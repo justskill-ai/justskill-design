@@ -27,6 +27,11 @@ const VERBS = {
   ls: () => import("./lib/node/verbs/ls.mjs"),
   show: () => import("./lib/node/verbs/show.mjs"),
   add: () => import("./lib/node/verbs/add.mjs"),
+  set: () => import("./lib/node/verbs/set.mjs"),
+  remove: () => import("./lib/node/verbs/remove.mjs"),
+  move: () => import("./lib/node/verbs/move.mjs"),
+  export: () => import("./lib/node/verbs/export.mjs"),
+  serve: () => import("./lib/node/verbs/serve.mjs"),
 };
 
 export const USAGE = `skill-design — design web pages as a validated HTML file
@@ -40,6 +45,11 @@ Verbs:
   ls <file> [--pages] [--in <data-id>] [--depth n] [--json]
   show <file> <data-id> [--json]
   add <file> --html-file f | --html - [--in <data-id>] [--as <id>] [--index n]
+  set <file> <data-id> [--style 'a:b;c:d'] [--text T] [--attr name=value] [--unset name]
+  remove <file> <data-id>
+  move <file> <data-id> [--before X | --after X | --index n | --into P]
+  export <file> [--page <id>] [--all] [-o path] [--resolve-tokens] [--stdout]
+  serve [<file>] [--port 0] [--ttl 30] [--no-open]
 
 Shared flags: --json  --quiet  --dry-run  --force  --help
 
@@ -82,6 +92,7 @@ function reportError(error) {
     return 2;
   }
   print(`ERROR  ${message}`, process.stderr);
+  if (process.env.SD_TRACE && error && error.stack) print(error.stack, process.stderr);
   return 1;
 }
 

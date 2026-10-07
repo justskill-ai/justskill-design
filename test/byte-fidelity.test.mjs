@@ -314,3 +314,25 @@ test("no node is dropped silently: element count is preserved", () => {
   assert.deepEqual(tags, ["div", "p", "span", "canvas"]);
   assert.equal(serialize(doc), text);
 });
+
+test("a void element never gains a closing tag, however it was written", () => {
+  // A file may write `<img …>` or `<img … />`. Both are void. When a sibling
+  // changes, the parent's body is rewritten, and emitting `</img>` there is a
+  // syntax error the writer would have introduced into a file it was asked to
+  // edit. The tag table decides, not the `/>` the author typed.
+  const text = `<section data-id="home" data-type="page" style="width:1px;height:1px"><p data-id="a" data-type="text" style="font-size:12px">x</p><img data-id="b" data-type="image" src="a.png" alt="" style="width:1px;height:1px"><br></section>`;
+  const doc = parse(text);
+  const a = findById(doc, "a");
+  const b = findById(doc, "b");
+  a.attrs.find((x) => x.name === "style").value = "font-size:13px";
+  b.attrs.find((x) => x.name === "style").value = "width:2px;height:1px";
+  const out = serialize(doc, doc);
+  assert.ok(!out.includes("</img>"), `a closing tag was invented: ${out}`);
+  assert.ok(!out.includes("</br>"), `a closing tag was invented: ${out}`);
+  assert.ok(out.includes('alt=""'), "the empty alt survives, because it is not the same as no alt");
+});
+
+test("a hand-written self-closing tag keeps its own spelling when nothing changes", () => {
+  const text = `<section data-id="home" data-type="page" style="width:1px;height:1px"><img data-id="b" data-type="image" src="a.png" alt="" style="width:1px;height:1px"/></section>`;
+  assert.equal(serialize(parse(text)), text);
+});
