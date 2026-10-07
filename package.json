@@ -1,0 +1,15 @@
+{
+  "name": "skill-design",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Design web pages as a validated HTML file with inline CSS. Agent edits by CLI, human edits on a local canvas, both write the same file.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:all": "node --test \"test/*.test.mjs\" \"test/**/*.test.mjs\""
+  }
+}

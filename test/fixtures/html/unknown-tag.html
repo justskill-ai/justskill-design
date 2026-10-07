@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>unknown-tag</title>
+  <meta name="design-schema" content="3.0">
+  <style>
+    :root{ --color-ink:#0b0d12 }
+  </style>
+  <style>
+    section[data-type="page"]{ margin:0 0 24px }
+  </style>
+</head>
+<body>
+  <section data-id="misc" data-type="page" data-canvas="0,0" data-name="杂项" style="width:390px;height:844px">
+    <div data-id="misc__root" data-type="frame" style="display:flex;flex-direction:column;gap:12px;padding:16px">
+      <p data-id="misc__note" data-type="text" style="font-size:14px;color:var(--color-ink)">见下方代码块</p>
+      <canvas data-x="1"></canvas>
+      <pre>
+const gap = 12;
+if (gap < 16 && gap > 4) {
+  console.log("a;b &lt;div&gt;");
+}
+</pre>
+      <p data-id="misc__foot" data-type="text" style="font-size:12px">结束</p>
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>eval starter</title>
+  <meta name="design-schema" content="3.0">
+  <style>
+    :root{ --color-bg:#ffffff; --color-ink:#111111; --color-muted:#6b7280; --color-line:#f3f4f6 }
+  </style>
+  <style>
+    section[data-type="page"]{ margin:0 0 24px; background-color:var(--color-bg) }
+  </style>
+</head>
+<body>
+  <section data-id="home" data-type="page" data-name="首页" data-canvas="0,0" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="home__root" data-type="frame" style="display:flex;flex-direction:column;gap:16px;padding:16px">
+      <div data-id="home__header" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+        <p data-id="home__title" data-type="text" style="font-size:24px;font-weight:700;color:var(--color-ink)">首页</p>
+      </div>
+      <div data-id="home__slot" data-type="frame" style="display:flex;flex-direction:column;gap:12px">
+        <div data-id="home__stats" data-type="frame" style="display:flex;flex-direction:row;gap:12px">
+          <p data-id="home__stats-today" data-type="text" style="font-size:13px;color:var(--color-muted)">今日 3 单</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</body>
+</html>

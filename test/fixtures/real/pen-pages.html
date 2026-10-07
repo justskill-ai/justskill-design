@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>miniprogram.pen — first 3 frames</title>
+  <meta name="design-schema" content="3.0">
+  <style>
+    /* tokens lifted from miniprogram.pen variables, only those referenced */
+    :root{
+    --v2-brand:#B8325E;
+    --v2-brand-deep:#8E2148;
+    --v2-brand-soft:#FBE7EE;
+    --v2-brand-tint:#FDF4F7;
+    --v2-card:#FFFFFF;
+    --v2-faint:#B09AA2;
+    --v2-gold-deep:#8F6A1F;
+    --v2-gold-soft:#F6ECD9;
+    --v2-ink:#2E1F26;
+    --v2-line:#F0E1E4;
+    --v2-sage:#4A6B5C;
+    --v2-sage-deep:#335044;
+    --v2-sage-soft:#E9F1EB;
+    --v2-sans:"Noto Sans SC";
+    --v2-serif:"Noto Serif SC";
+    --v2-star:#E9A13B;
+    --v2-sub:#7A646D;
+    }
+  </style>
+  <style>
+    section[data-type="page"]{ margin:0 0 24px }
+  </style>
+</head>
+<body>
+  <section data-id="a34xaj" data-type="page" data-canvas="0,0" data-library="true" data-name="组件库 v2" style="width:460px;overflow:hidden">
+    <div data-id="ut3Ge" data-type="frame" data-name="StatusBar" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:0 22px 0 26px;width:375px;height:44px">
+      <p data-id="dAVdE" data-type="text" data-name="Time" style="font-family:var(--v2-sans);font-size:14px;font-weight:600;color:var(--v2-ink)">9:41</p>
+      <div data-id="ESsyH" data-type="frame" data-name="Icons" style="display:flex;flex-direction:row;align-items:center;gap:6px">
+        <svg data-id="Mmine" data-type="icon" data-icon="signal" data-icon-library="lucide" data-name="Signal" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--v2-ink)">
+          <title>Signal</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <svg data-id="WYnM9" data-type="icon" data-icon="wifi" data-icon-library="lucide" data-name="Wifi" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--v2-ink)">
+          <title>Wifi</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <svg data-id="bvoXT" data-type="icon" data-icon="battery-full" data-icon-library="lucide" data-name="Battery" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:20px;height:20px;color:var(--v2-ink)">
+          <title>Battery</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+    </div>
+    <div data-id="c1t3rR" data-type="frame" data-name="NavBar" style="display:flex;flex-direction:row;align-items:center;padding:0 12px 12px 12px;width:375px;height:48px">
+      <div data-id="Ab0Xq" data-type="frame" data-name="Left" style="display:flex;flex-direction:row;align-items:center;width:64px">
+        <svg data-id="W8rI9" data-type="icon" data-icon="chevron-left" data-icon-library="lucide" data-name="Back" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:26px;height:26px;color:var(--v2-ink)">
+          <title>Back</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+      <div data-id="SEXOT" data-type="frame" data-name="Center" style="display:flex;flex-direction:row;justify-content:center;flex:1 1 0%">
+        <p data-id="OJXVA" data-type="text" data-name="Title" style="font-family:var(--v2-sans);font-size:16px;font-weight:600;color:var(--v2-ink)">页面标题</p>
+      </div>
+      <div data-id="CJ6dw" data-type="frame" data-name="Capsule" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;width:78px;height:32px;background-color:#ffffff80;border:1px solid var(--v2-line);border-radius:9999px">
+        <svg data-id="GxDah" data-type="icon" data-icon="ellipsis" data-icon-library="lucide" data-name="More" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--v2-ink)">
+          <title>More</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <div data-id="lEYro" data-type="shape" data-kind="rect" data-name="Sep" style="width:1px;height:16px;background-color:var(--v2-line)"></div>
+        <svg data-id="mKYDe" data-type="icon" data-icon="target" data-icon-library="lucide" data-name="Target" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--v2-ink)">
+          <title>Target</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+    </div>
+    <div data-id="LVTiV" data-type="frame" data-name="TabBar" style="display:flex;flex-direction:column;padding:8px 24px 18px 24px;width:375px;background-color:var(--v2-card)">
+      <div data-id="f65l9" data-type="frame" data-name="Tabs" style="display:flex;flex-direction:row;flex:1 1 0%">
+        <div data-id="CjLXK" data-type="frame" data-name="Tab/首页" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:100%">
+          <svg data-id="k2Vz0" data-type="icon" data-icon="house" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:23px;height:23px;color:var(--v2-brand)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="X4fac" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-brand)">首页</p>
+        </div>
+        <div data-id="tRAAD" data-type="frame" data-name="Tab/看月嫂" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:100%">
+          <svg data-id="nw3uk" data-type="icon" data-icon="heart-handshake" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:23px;height:23px;color:var(--v2-faint)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="JQAGz" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">看月嫂</p>
+        </div>
+        <div data-id="C8NAf" data-type="frame" data-name="Tab/我的" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:100%">
+          <svg data-id="P2Wn0Y" data-type="icon" data-icon="user-round" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:23px;height:23px;color:var(--v2-faint)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="dUDRh" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">我的</p>
+        </div>
+      </div>
+    </div>
+    <div data-id="i8DUP" data-type="frame" data-name="Btn/Primary" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:0 24px 24px 24px;height:48px;background-color:var(--v2-brand);border-radius:9999px;box-shadow:0 6px 16px #b8325e33">
+      <p data-id="jGOEe" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:15px;font-weight:600;color:#ffffff">主要按钮</p>
+    </div>
+    <div data-id="ozdOO" data-type="frame" data-name="Btn/Outline" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:0 20px 20px 20px;height:44px;background-color:var(--v2-card);border:1px solid var(--v2-brand);border-radius:9999px">
+      <p data-id="ih1p4" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:14px;font-weight:500;color:var(--v2-brand)">次要按钮</p>
+    </div>
+    <div data-id="CuaN2" data-type="frame" data-name="Btn/Sage" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:0 24px 24px 24px;height:48px;background-color:var(--v2-sage);border-radius:9999px;box-shadow:0 6px 16px #4a6b5c33">
+      <p data-id="n1G3R" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:15px;font-weight:600;color:#ffffff">联系按钮</p>
+    </div>
+    <div data-id="L0cddQ" data-type="frame" data-name="Tag" style="display:flex;flex-direction:row;align-items:center;gap:4px;padding:4px 10px 10px 10px;background-color:var(--v2-brand-soft);border-radius:9999px">
+      <p data-id="j4DoG1" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-brand-deep)">标签</p>
+    </div>
+    <div data-id="X0GuAk" data-type="frame" data-name="Tag/Sage" style="display:flex;flex-direction:row;align-items:center;gap:4px;padding:4px 10px 10px 10px;background-color:var(--v2-sage-soft);border-radius:9999px">
+      <p data-id="iS9LC" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sage-deep)">标签</p>
+    </div>
+    <div data-id="cdroa" data-type="frame" data-name="Chip/Level" style="display:flex;flex-direction:row;align-items:center;gap:3px;padding:4px 10px 10px 10px;background-color:var(--v2-gold-soft);border-radius:9999px">
+      <svg data-id="j5A8b" data-type="icon" data-icon="crown" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-gold-deep)">
+        <title>Icon</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+      <p data-id="Z1232e" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:11px;font-weight:600;color:var(--v2-gold-deep)">皇冠月嫂</p>
+    </div>
+    <div data-id="d35s3i" data-type="frame" data-name="Chip/Status" style="display:flex;flex-direction:row;align-items:center;gap:4px;padding:4px 10px 10px 10px;background-color:var(--v2-sage-soft);border-radius:9999px">
+      <div data-id="b6gj6" data-type="shape" data-kind="ellipse" data-name="Dot" style="width:5px;height:5px;background-color:var(--v2-sage);border-radius:50%"></div>
+      <p data-id="OFgXT" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-sage-deep)">服务中</p>
+    </div>
+    <div data-id="IUWu0" data-type="shape" data-kind="ellipse" data-name="Avatar" style="width:44px;height:44px;background-color:var(--v2-brand-soft);border-radius:50%"></div>
+    <div data-id="Y8BwqB" data-type="frame" data-name="Stars" style="display:flex;flex-direction:row;align-items:center;gap:2px">
+      <svg data-id="UlVh4" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="Star 1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--v2-star)">
+        <title>Star 1</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+      <svg data-id="b5Tjjs" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="Star 2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--v2-star)">
+        <title>Star 2</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+      <svg data-id="OSiXV" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="Star 3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--v2-star)">
+        <title>Star 3</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+      <svg data-id="piNZ5" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="Star 4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--v2-star)">
+        <title>Star 4</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+      <svg data-id="L8PdgM" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="Star 5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--v2-star)">
+        <title>Star 5</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+    </div>
+    <div data-id="x2cjUg" data-type="frame" data-name="Divider" style="display:flex;flex-direction:row;width:320px;height:1px;background-color:var(--v2-line)"></div>
+    <div data-id="gEIOx" data-type="frame" data-name="QuickEntry" style="display:flex;flex-direction:column;align-items:center;gap:7px;width:64px">
+      <div data-id="JQjhE" data-type="frame" data-name="IconBox" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:50px;height:50px;background-color:var(--v2-card);border-radius:18px;box-shadow:0 4px 12px #6b103512">
+        <svg data-id="whAKg" data-type="icon" data-icon="sparkles" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--v2-brand)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+      <p data-id="hKy10" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-ink)">入口</p>
+    </div>
+    <div data-id="rgEJt" data-type="frame" data-name="SectionHead" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;width:343px">
+      <div data-id="wDLBt" data-type="frame" data-name="Left" style="display:flex;flex-direction:column;gap:3px">
+        <p data-id="lT1dG" data-type="text" data-name="Eyebrow" style="font-family:var(--v2-sans);font-size:9px;font-weight:400;letter-spacing:2px;color:var(--v2-faint)">REVIEWS</p>
+        <p data-id="nOU3Y" data-type="text" data-name="Title" style="font-family:var(--v2-serif);font-size:19px;font-weight:600;color:var(--v2-ink)">区块标题</p>
+      </div>
+      <div data-id="agffK" data-type="frame" data-name="More" style="display:flex;flex-direction:row;align-items:center;gap:2px">
+        <p data-id="TuTiQ" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-faint)">查看全部</p>
+        <svg data-id="hMzwP" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" data-name="Chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--v2-faint)">
+          <title>Chevron</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+    </div>
+    <div data-id="rpoIB" data-type="frame" data-name="KVRow" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:13px 0 0 0;width:311px">
+      <p data-id="WHR0T" data-type="text" data-name="Key" style="font-family:var(--v2-sans);font-size:13px;font-weight:400;color:var(--v2-sub)">字段名</p>
+      <p data-id="luQul" data-type="text" data-name="Value" style="font-family:var(--v2-sans);font-size:13px;font-weight:400;color:var(--v2-ink)">字段值</p>
+    </div>
+    <div data-id="l9pwk" data-type="frame" data-name="AuthRow" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:14px 0 0 0;width:311px">
+      <div data-id="zDUt4" data-type="frame" data-name="IconBox" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:38px;height:38px;background-color:var(--v2-brand-tint);border-radius:12px">
+        <svg data-id="hjzwj" data-type="icon" data-icon="shield-check" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--v2-brand)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+      <div data-id="Jg6kn" data-type="frame" data-name="Text" style="display:flex;flex-direction:column;gap:2px;width:100%">
+        <p data-id="X5mXw" data-type="text" data-name="Title" style="font-family:var(--v2-sans);font-size:14px;font-weight:600;color:var(--v2-ink)">认证项</p>
+        <p data-id="X3tg48" data-type="text" data-name="Desc" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-faint)">说明文字</p>
+      </div>
+      <div data-id="w9QPE" data-type="frame" data-name="Right" style="display:flex;flex-direction:row;align-items:center;gap:4px">
+        <p data-id="EwWSA" data-type="text" data-name="Value" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sage)">已认证</p>
+        <svg data-id="tU4Fi" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" data-name="Chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--v2-faint)">
+          <title>Chevron</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+    </div>
+    <div data-id="Bg9X6" data-type="frame" data-name="CheckRow" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:11px 0 0 0;width:311px">
+      <svg data-id="CmENE" data-type="icon" data-icon="circle-check" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--v2-sage)">
+        <title>Icon</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+      <p data-id="uHKRY" data-type="text" data-name="Label" style="width:100%;font-family:var(--v2-sans);font-size:13px;font-weight:400;color:var(--v2-ink)">体检项目</p>
+      <p data-id="bYwZp" data-type="text" data-name="Value" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sage-deep)">合格</p>
+    </div>
+    <div data-id="iQwEv" data-type="frame" data-name="GuaranteeRow" style="display:flex;flex-direction:row;gap:12px;padding:14px 0 0 0;width:311px">
+      <div data-id="TuamW" data-type="frame" data-name="IconBox" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:36px;height:36px;background-color:var(--v2-sage-soft);border-radius:9999px">
+        <svg data-id="O3IYs" data-type="icon" data-icon="shield-check" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:17px;height:17px;color:var(--v2-sage)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+      <div data-id="AzHnv" data-type="frame" data-name="Text" style="display:flex;flex-direction:column;gap:3px;width:100%">
+        <p data-id="k0J6uF" data-type="text" data-name="Title" style="font-family:var(--v2-sans);font-size:14px;font-weight:600;color:var(--v2-ink)">保障名称</p>
+        <p data-id="Rir1y" data-type="text" data-name="Desc" style="width:100%;font-family:var(--v2-sans);font-size:11px;font-weight:400;line-height:1.5;color:var(--v2-sub)">保障说明文字</p>
+      </div>
+    </div>
+    <div data-id="Dg0cC" data-type="frame" data-name="ListRow" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:14px 0 0 0;width:311px">
+      <div data-id="ecP60" data-type="frame" data-name="IconBox" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:34px;height:34px;background-color:var(--v2-brand-tint);border-radius:10px">
+        <svg data-id="sc8vW" data-type="icon" data-icon="file-text" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:17px;height:17px;color:var(--v2-brand)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+      <p data-id="IKVir" data-type="text" data-name="Label" style="width:100%;font-family:var(--v2-sans);font-size:14px;font-weight:400;color:var(--v2-ink)">菜单项</p>
+      <svg data-id="bJlES" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" data-name="Chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--v2-faint)">
+        <title>Chevron</title>
+        <path d="M0 0h24v24H0z"></path>
+      </svg>
+    </div>
+    <div data-id="cM3pr" data-type="frame" data-name="FileRow" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:12px 0 0 0;width:311px">
+      <div data-id="n8E6zH" data-type="frame" data-name="IconBox" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:40px;height:40px;background-color:var(--v2-brand-tint);border-radius:10px">
+        <svg data-id="hNXm0" data-type="icon" data-icon="file-text" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:19px;height:19px;color:var(--v2-brand)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+      <div data-id="Nq99U" data-type="frame" data-name="Text" style="display:flex;flex-direction:column;gap:2px;width:100%">
+        <p data-id="DtF4b" data-type="text" data-name="Name" style="font-family:var(--v2-sans);font-size:13px;font-weight:400;color:var(--v2-ink)">合同文件.pdf</p>
+        <p data-id="X4csV" data-type="text" data-name="Meta" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">PDF · 2.4 MB</p>
+      </div>
+      <div data-id="Z4fxWn" data-type="frame" data-name="Actions" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+        <p data-id="b1z2Q" data-type="text" data-name="Preview" style="font-family:var(--v2-sans);font-size:12px;font-weight:400;color:var(--v2-brand)">预览</p>
+        <p data-id="aNunz" data-type="text" data-name="Download" style="font-family:var(--v2-sans);font-size:12px;font-weight:400;color:var(--v2-sub)">下载</p>
+      </div>
+    </div>
+    <div data-id="yUSzT" data-type="frame" data-name="ScoreBar" style="display:flex;flex-direction:column;gap:7px;width:311px">
+      <div data-id="IBQAP" data-type="frame" data-name="Row" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between;flex:1 1 0%">
+        <p data-id="FFBry" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:12px;font-weight:400;color:var(--v2-sub)">护理能力</p>
+        <p data-id="i8LOw" data-type="text" data-name="Value" style="font-family:var(--v2-serif);font-size:13px;font-weight:600;color:var(--v2-ink)">5.0</p>
+      </div>
+      <div data-id="fSlUQ" data-type="frame" data-name="Track" style="display:flex;flex-direction:row;height:6px;flex:1 1 0%;background-color:var(--v2-brand-soft);border-radius:9999px">
+        <div data-id="RpfDl" data-type="frame" data-name="Bar" style="display:flex;flex-direction:row;width:200px;height:6px;background-color:var(--v2-brand);border-radius:9999px"></div>
+      </div>
+    </div>
+    <div data-id="RktCR" data-type="frame" data-name="BottomActionBar" style="display:flex;flex-direction:row;align-items:center;gap:12px;padding:10px 16px 20px 16px;width:375px;background-color:var(--v2-card)">
+      <div data-id="J3d4GJ" data-type="frame" data-name="Action/分享" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:38px">
+        <svg data-id="SlG8D" data-type="icon" data-icon="share-2" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:21px;height:21px;color:var(--v2-sub)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <p data-id="GbwZO" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:9px;font-weight:400;color:var(--v2-faint)">分享</p>
+      </div>
+      <div data-id="l82HW" data-type="frame" data-name="Action/收藏" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:38px">
+        <svg data-id="XPCmP" data-type="icon" data-icon="heart" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:21px;height:21px;color:var(--v2-sub)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <p data-id="qHugY" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:9px;font-weight:400;color:var(--v2-faint)">收藏</p>
+      </div>
+      <div data-id="cPrmQ" data-type="frame" data-name="Spacer" style="display:flex;flex-direction:row;height:1px;flex:1 1 0%"></div>
+      <div data-id="gtmX0" data-type="frame" data-name="Btn/联系客服" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;padding:0 16px 16px 16px;height:44px;background-color:var(--v2-card);border:1px solid var(--v2-brand);border-radius:9999px">
+        <svg data-id="Z90DhD" data-type="icon" data-icon="phone" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--v2-brand)">
+          <title>Icon</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <p data-id="h5ChBj" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:13px;font-weight:500;color:var(--v2-brand)">联系客服</p>
+      </div>
+      <div data-id="q8yFj" data-type="frame" data-name="Btn/免费锁定档期" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:148px;height:44px;background-color:var(--v2-brand);border-radius:9999px;box-shadow:0 6px 16px #b8325e33">
+        <p data-id="Sv044" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:14px;font-weight:600;color:#ffffff">免费锁定档期</p>
+      </div>
+    </div>
+  </section>
+  <section data-id="IhfVe" data-type="page" data-canvas="600,0" data-name="首页" style="width:375px;overflow:hidden">
+    <div data-id="gmVcR" data-type="instance" data-name="StatusBar" data-ref="ut3Ge" style="display:flex;flex-direction:row"></div>
+    <div data-id="qSVso" data-type="frame" data-name="Header" style="display:flex;flex-direction:row;align-items:center;padding:6px 16px 10px 20px;flex:1 1 0%">
+      <div data-id="b9S0V" data-type="frame" data-name="Brand" style="display:flex;flex-direction:column;gap:2px;width:100%">
+        <p data-id="FPv9g" data-type="text" data-name="Logo" style="font-family:var(--v2-serif);font-size:23px;font-weight:700;color:var(--v2-brand-deep)">暖巢家</p>
+        <p data-id="QYqEl" data-type="text" data-name="Slogan" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">专业母婴护理 · 让爱安心</p>
+      </div>
+      <div data-id="lKAIa" data-type="frame" data-name="Capsule" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:10px;width:78px;height:32px;background-color:#ffffff80;border:1px solid var(--v2-line);border-radius:9999px">
+        <svg data-id="oasHY" data-type="icon" data-icon="ellipsis" data-icon-library="lucide" data-name="More" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--v2-ink)">
+          <title>More</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+        <div data-id="Jdfyj" data-type="shape" data-kind="rect" data-name="Sep" style="width:1px;height:16px;background-color:var(--v2-line)"></div>
+        <svg data-id="nxdx5" data-type="icon" data-icon="target" data-icon-library="lucide" data-name="Target" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--v2-ink)">
+          <title>Target</title>
+          <path d="M0 0h24v24H0z"></path>
+        </svg>
+      </div>
+    </div>
+    <div data-id="AtknD" data-type="frame" data-name="Content" style="display:flex;flex-direction:column;gap:20px;padding:2px 16px 24px 16px;width:100%">
+      <div data-id="p4GcZ0" data-type="frame" data-name="Carousel" style="display:flex;flex-direction:column;justify-content:flex-end;width:100%;height:150px;border-radius:20px;box-shadow:0 10px 28px #6b10351a;overflow:hidden">
+        <div data-id="JMcT2" data-type="frame" data-name="CaptionBar" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;padding:30px 14px 11px 14px;flex:1 1 0%">
+          <p data-id="SMxwg" data-type="text" data-name="Caption" style="font-family:var(--v2-sans);font-size:13px;font-weight:600;color:#ffffff">九月见面会 · 到店面对面选月嫂</p>
+          <div data-id="Qj0zf" data-type="frame" data-name="Dots" style="display:flex;flex-direction:row;align-items:center;gap:4px">
+            <div data-id="l6LIoh" data-type="frame" data-name="Dot1" style="display:flex;flex-direction:row;width:14px;height:5px;background-color:#ffffff;border-radius:9999px"></div>
+            <div data-id="S7072G" data-type="shape" data-kind="ellipse" data-name="Dot2" style="width:5px;height:5px;background-color:#ffffff80;border-radius:50%"></div>
+            <div data-id="hUknm" data-type="shape" data-kind="ellipse" data-name="Dot3" style="width:5px;height:5px;background-color:#ffffff80;border-radius:50%"></div>
+          </div>
+        </div>
+      </div>
+      <div data-id="pUAJB" data-type="frame" data-name="PromoStrip" style="display:flex;flex-direction:row;padding:13px 6px 6px 6px;flex:1 1 0%;background-color:var(--v2-card);border-radius:16px;box-shadow:0 10px 28px #6b10351a">
+        <div data-id="HUJ3W" data-type="frame" data-name="Promo/口碑推荐" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:100%">
+          <svg data-id="Q8irlA" data-type="icon" data-icon="thumbs-up" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:19px;height:19px;color:var(--v2-brand)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="ZX1Bq" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-sub)">口碑推荐</p>
+        </div>
+        <div data-id="ukrsr" data-type="frame" data-name="Promo/免费更换" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:100%">
+          <svg data-id="SRUWI" data-type="icon" data-icon="refresh-ccw" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:19px;height:19px;color:var(--v2-brand)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="uQfRQ" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-sub)">免费更换</p>
+        </div>
+        <div data-id="BUBv6" data-type="frame" data-name="Promo/十大保障" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:100%">
+          <svg data-id="d971H" data-type="icon" data-icon="shield-check" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:19px;height:19px;color:var(--v2-brand)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="P19FLU" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-sub)">十大保障</p>
+        </div>
+        <div data-id="G20C5F" data-type="frame" data-name="Promo/极速响应" style="display:flex;flex-direction:column;align-items:center;gap:5px;width:100%">
+          <svg data-id="JlKtC" data-type="icon" data-icon="zap" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:19px;height:19px;color:var(--v2-brand)">
+            <title>Icon</title>
+            <path d="M0 0h24v24H0z"></path>
+          </svg>
+          <p data-id="wM4g7" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-sub)">极速响应</p>
+        </div>
+      </div>
+      <div data-id="yBHrN" data-type="frame" data-name="QuickGrid" style="display:flex;flex-direction:column;gap:16px;padding:18px 12px 12px 12px;width:100%;background-color:var(--v2-card);border-radius:20px;box-shadow:0 10px 28px #6b10351a">
+        <div data-id="dVkSd" data-type="frame" data-name="Row" style="display:flex;flex-direction:row;flex:1 1 0%">
+          <div data-id="gxEGE" data-type="instance" data-name="Entry/品牌介绍" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;gem&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;品牌介绍&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="lcnQ5" data-type="instance" data-name="Entry/服务理念" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;heart-handshake&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;服务理念&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="nDiXj" data-type="instance" data-name="Entry/服务流程" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;route&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;服务流程&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="bKFUY" data-type="instance" data-name="Entry/服务保障" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;shield-check&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;服务保障&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        </div>
+        <div data-id="k3qkHX" data-type="frame" data-name="Row" style="display:flex;flex-direction:row;flex:1 1 0%">
+          <div data-id="BNbE5" data-type="instance" data-name="Entry/参观公司" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;building-2&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;参观公司&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="fSWjs" data-type="instance" data-name="Entry/真实培训" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;graduation-cap&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;真实培训&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="b6Cw6T" data-type="instance" data-name="Entry/宝藏月嫂" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;crown&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;宝藏月嫂&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="I5MnR5" data-type="instance" data-name="Entry/现场选月嫂" data-overrides="{&amp;amp;quot;whAKg&amp;amp;quot;:{&amp;amp;quot;icon&amp;amp;quot;:&amp;amp;quot;users&amp;amp;quot;},&amp;amp;quot;hKy10&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;现场选月嫂&amp;amp;quot;}}" data-ref="gEIOx" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        </div>
+      </div>
+      <div data-id="GGmz5" data-type="frame" data-name="Reviews" style="display:flex;flex-direction:column;gap:10px;width:100%">
+        <div data-id="m1pRHt" data-type="instance" data-name="Head" data-overrides="{&amp;amp;quot;lT1dG&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;REVIEWS&amp;amp;quot;},&amp;amp;quot;nOU3Y&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;客户评价&amp;amp;quot;}}" data-ref="rgEJt" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        <div data-id="tSv7e" data-type="frame" data-name="ReviewList" style="display:flex;flex-direction:column;padding:4px 16px 6px 16px;width:100%;background-color:var(--v2-card);border-radius:20px;box-shadow:0 10px 28px #6b10351a">
+          <div data-id="KO0JQ" data-type="frame" data-name="Review/王女士" style="display:flex;flex-direction:column;gap:9px;padding:14px 0 0 0;width:100%">
+            <div data-id="K9dXul" data-type="frame" data-name="Head" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex:1 1 0%">
+              <div data-id="I2ICD" data-type="shape" data-kind="ellipse" data-name="Avatar" style="width:40px;height:40px;border-radius:50%"></div>
+              <div data-id="G0rAQ" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:4px;width:100%">
+                <p data-id="kCs2U" data-type="text" data-name="Nick" style="font-family:var(--v2-sans);font-size:13px;font-weight:600;color:var(--v2-ink)">王女士</p>
+                <div data-id="IWkjH" data-type="frame" data-name="Stars" style="display:flex;flex-direction:row;align-items:center;gap:2px">
+                  <svg data-id="WqkLE" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S0</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="ZVrtO" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S1</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="eOx0b" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S2</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="ICotT" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S3</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="ooj7t" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S4</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <p data-id="WImmJ" data-type="text" data-name="Score" style="font-family:var(--v2-sans);font-size:10px;font-weight:600;color:var(--v2-star)">5.0</p>
+                </div>
+              </div>
+              <p data-id="mTP6W" data-type="text" data-name="Date" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">2026-08-12 · 上户26天</p>
+            </div>
+            <p data-id="q4bxRa" data-type="text" data-name="Content" style="width:100%;font-family:var(--v2-sans);font-size:13px;font-weight:400;line-height:1.6;color:var(--v2-ink)">张阿姨照顾宝宝特别细心，月子餐每天不重样，夜里也不用我操心，我们全家都很满意。</p>
+            <div data-id="PDHRe" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+              <div data-id="rHfhI" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:76px;flex:1 1 0%;border-radius:10px"></div>
+              <div data-id="dEBzQ" data-type="frame" data-name="Photo2" style="display:flex;flex-direction:row;height:76px;flex:1 1 0%;border-radius:10px"></div>
+              <div data-id="xmaiT" data-type="frame" data-name="Photo3" style="display:flex;flex-direction:row;height:76px;flex:1 1 0%;border-radius:10px"></div>
+            </div>
+            <div data-id="fL498" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:6px">
+              <div data-id="W65ek" data-type="instance" data-name="Tag/护理专业" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;护理专业&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="s6SPl" data-type="instance" data-name="Tag/月子餐好吃" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;月子餐好吃&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="QViTe" data-type="instance" data-name="Tag/有耐心" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;有耐心&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+          </div>
+          <div data-id="a58ZDJ" data-type="instance" data-name="Divider" data-ref="x2cjUg" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="lmfvT" data-type="frame" data-name="Review/李女士" style="display:flex;flex-direction:column;gap:9px;padding:14px 0 0 0;width:100%">
+            <div data-id="oANDQ" data-type="frame" data-name="Head" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex:1 1 0%">
+              <div data-id="G4NJZ" data-type="shape" data-kind="ellipse" data-name="Avatar" style="width:40px;height:40px;border-radius:50%"></div>
+              <div data-id="n8oe0U" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:4px;width:100%">
+                <p data-id="Q44BHQ" data-type="text" data-name="Nick" style="font-family:var(--v2-sans);font-size:13px;font-weight:600;color:var(--v2-ink)">李女士</p>
+                <div data-id="vRPzD" data-type="frame" data-name="Stars" style="display:flex;flex-direction:row;align-items:center;gap:2px">
+                  <svg data-id="EU2fU" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S0</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="o3FTE6" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S1</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="fKSL0" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S2</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="f9tie" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S3</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="duXRi" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S4</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <p data-id="yMSKv" data-type="text" data-name="Score" style="font-family:var(--v2-sans);font-size:10px;font-weight:600;color:var(--v2-star)">4.9</p>
+                </div>
+              </div>
+              <p data-id="n7zj3" data-type="text" data-name="Date" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">2026-07-30 · 上户42天</p>
+            </div>
+            <p data-id="c5mApk" data-type="text" data-name="Content" style="width:100%;font-family:var(--v2-sans);font-size:13px;font-weight:400;line-height:1.6;color:var(--v2-ink)">半夜宝宝哭闹，阿姨总是第一时间起来安抚，真的很感动，把宝宝交给她我完全放心。</p>
+            <div data-id="bIepY" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+              <div data-id="yVLwj" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:76px;flex:1 1 0%;border-radius:10px"></div>
+              <div data-id="LjSSA" data-type="frame" data-name="Photo2" style="display:flex;flex-direction:row;height:76px;flex:1 1 0%;border-radius:10px"></div>
+            </div>
+            <div data-id="t6MzqF" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:6px">
+              <div data-id="rsBa3" data-type="instance" data-name="Tag/责任心强" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;责任心强&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="Bgja2" data-type="instance" data-name="Tag/沟通顺畅" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;沟通顺畅&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+          </div>
+          <div data-id="NGTSz" data-type="instance" data-name="Divider" data-ref="x2cjUg" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+          <div data-id="AxBIm" data-type="frame" data-name="Review/陈女士" style="display:flex;flex-direction:column;gap:9px;padding:14px 0 0 0;width:100%">
+            <div data-id="a8kid5" data-type="frame" data-name="Head" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex:1 1 0%">
+              <div data-id="PjaKN" data-type="shape" data-kind="ellipse" data-name="Avatar" style="width:40px;height:40px;border-radius:50%"></div>
+              <div data-id="TTLNa" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:4px;width:100%">
+                <p data-id="u3kbr" data-type="text" data-name="Nick" style="font-family:var(--v2-sans);font-size:13px;font-weight:600;color:var(--v2-ink)">陈女士</p>
+                <div data-id="ieV2F" data-type="frame" data-name="Stars" style="display:flex;flex-direction:row;align-items:center;gap:2px">
+                  <svg data-id="awgx2" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S0</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="rsAlT" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S1</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="n814bz" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S2</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="IYFtr" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S3</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <svg data-id="XvDDs" data-type="icon" data-icon="star" data-icon-library="lucide" data-name="S4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-star)">
+                    <title>S4</title>
+                    <path d="M0 0h24v24H0z"></path>
+                  </svg>
+                  <p data-id="J2vbI" data-type="text" data-name="Score" style="font-family:var(--v2-sans);font-size:10px;font-weight:600;color:var(--v2-star)">5.0</p>
+                </div>
+              </div>
+              <p data-id="Pvz52" data-type="text" data-name="Date" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">2026-07-02 · 上户26天</p>
+            </div>
+            <p data-id="R6k5da" data-type="text" data-name="Content" style="width:100%;font-family:var(--v2-sans);font-size:13px;font-weight:400;line-height:1.6;color:var(--v2-ink)">通乳手法专业，帮我顺利度过了涨奶期，还教会我很多护理知识，强烈推荐！</p>
+            <div data-id="Gv2VV" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+              <div data-id="vnDIz" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:76px;flex:1 1 0%;border-radius:10px"></div>
+            </div>
+            <div data-id="y03S3y" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:6px">
+              <div data-id="jmuhc" data-type="instance" data-name="Tag/通乳专业" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;通乳专业&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="NFlg8" data-type="instance" data-name="Tag/经验丰富" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;经验丰富&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-id="ijBhA" data-type="instance" data-name="TabBar" data-ref="LVTiV" style="display:flex;flex-direction:row"></div>
+  </section>
+  <section data-id="tLejx" data-type="page" data-canvas="1060,0" data-name="看月嫂" style="width:375px;overflow:hidden">
+    <div data-id="K2Kf8M" data-type="instance" data-name="StatusBar" data-ref="ut3Ge" style="display:flex;flex-direction:row"></div>
+    <div data-id="f9hN4x" data-type="instance" data-name="NavBar" data-overrides="{&amp;amp;quot;W8rI9&amp;amp;quot;:{&amp;amp;quot;enabled&amp;amp;quot;:false},&amp;amp;quot;OJXVA&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;看月嫂&amp;amp;quot;}}" data-ref="c1t3rR" style="display:flex;flex-direction:row"></div>
+    <div data-id="SPUZ7" data-type="frame" data-name="Content" style="display:flex;flex-direction:column;gap:16px;padding:6px 16px 24px 16px;width:100%">
+      <div data-id="j51jT5" data-type="frame" data-name="MeetupBanner" style="display:flex;flex-direction:column;gap:5px;padding:18px 18px 16px 18px;width:100%;border-radius:20px;box-shadow:0 10px 24px #8e214840">
+        <p data-id="q2DrYH" data-type="text" data-name="Eyebrow" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:#ffd9e2">每月一期 · 到店面对面</p>
+        <div data-id="pt20D" data-type="frame" data-name="TitleRow" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between;flex:1 1 0%">
+          <p data-id="Z61TWN" data-type="text" data-name="Title" style="font-family:var(--v2-serif);font-size:19px;font-weight:600;color:#ffffff">月嫂见面会 · 第 12 期</p>
+          <div data-id="UTauW" data-type="frame" data-name="Arrow" style="display:flex;flex-direction:row;align-items:center;justify-content:center;width:28px;height:28px;background-color:#ffffff2e;border-radius:9999px">
+            <svg data-id="gvSYm" data-type="icon" data-icon="arrow-right" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:14px;height:14px;color:#ffffff">
+              <title>Icon</title>
+              <path d="M0 0h24v24H0z"></path>
+            </svg>
+          </div>
+        </div>
+        <p data-id="ghAu9" data-type="text" data-name="Meta" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:#ffffffcc">9月28日（周六）10:00-12:00 · 12 位月嫂现场等候</p>
+      </div>
+      <div data-id="J0gavP" data-type="frame" data-name="Nanny/张秀兰" style="display:flex;flex-direction:column;gap:12px;padding:14px;width:100%;background-color:var(--v2-card);border-radius:20px;box-shadow:0 10px 28px #6b10351a">
+        <div data-id="lXRwu" data-type="frame" data-name="Main" style="display:flex;flex-direction:row;gap:12px;flex:1 1 0%">
+          <div data-id="m7c7GR" data-type="frame" data-name="Portrait" style="display:flex;flex-direction:row;width:96px;height:120px;border-radius:14px;overflow:hidden"></div>
+          <div data-id="R8fCGt" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:6px;width:100%">
+            <div data-id="OZNwy" data-type="frame" data-name="NameRow" style="display:flex;flex-direction:row;align-items:center;gap:6px;flex:1 1 0%">
+              <p data-id="bjtWw" data-type="text" data-name="Name" style="font-family:var(--v2-serif);font-size:17px;font-weight:600;color:var(--v2-ink)">张秀兰</p>
+              <div data-id="Y4Ddo" data-type="instance" data-name="Level" data-overrides="{&amp;amp;quot;Z1232e&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;皇冠月嫂&amp;amp;quot;}}" data-ref="cdroa" style="display:flex;flex-direction:row"></div>
+              <div data-id="jOeEJ" data-type="frame" data-name="Spacer" style="display:flex;flex-direction:row;height:1px;flex:1 1 0%"></div>
+              <div data-id="F9QYa" data-type="instance" data-name="Status" data-ref="d35s3i" style="display:flex;flex-direction:row"></div>
+            </div>
+            <p data-id="z2wkP" data-type="text" data-name="Meta" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sub)">38岁 · 河南周口</p>
+            <div data-id="qjfbB" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:5px">
+              <div data-id="v6mA8" data-type="instance" data-name="Tag/护理专业" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;护理专业&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="gT5CL" data-type="instance" data-name="Tag/月子餐好吃" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;月子餐好吃&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="afFoi" data-type="instance" data-name="Tag/有耐心" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;有耐心&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+            <p data-id="SVNGp" data-type="text" data-name="Intro" style="width:100%;font-family:var(--v2-sans);font-size:11px;font-weight:400;line-height:1.5;color:var(--v2-sub)">从事母婴护理 8 年，服务过 60+ 家庭，擅长新生儿护理与月子餐制作。</p>
+          </div>
+        </div>
+        <div data-id="w9XIV" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+          <div data-id="i1wCr" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="D82dKV" data-type="frame" data-name="Photo2" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="rNFA5" data-type="frame" data-name="Photo3" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+        </div>
+        <div data-id="bGqI1" data-type="instance" data-name="Divider" data-ref="x2cjUg" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        <div data-id="dOwKe" data-type="frame" data-name="Foot" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;flex:1 1 0%">
+          <div data-id="XfnYS" data-type="frame" data-name="Price" style="display:flex;flex-direction:row;align-items:flex-end;gap:2px">
+            <p data-id="kWqgS" data-type="text" data-name="Cur" style="font-family:var(--v2-sans);font-size:12px;font-weight:600;color:var(--v2-brand)">¥</p>
+            <p data-id="zAqk9" data-type="text" data-name="Num" style="font-family:var(--v2-serif);font-size:20px;font-weight:700;color:var(--v2-brand-deep)">16,800</p>
+            <p data-id="QAECA" data-type="text" data-name="Unit" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)"> /26天</p>
+          </div>
+          <div data-id="BD5Nd" data-type="frame" data-name="Fav" style="display:flex;flex-direction:row;align-items:center;gap:4px">
+            <svg data-id="y0QjUu" data-type="icon" data-icon="heart" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-faint)">
+              <title>Icon</title>
+              <path d="M0 0h24v24H0z"></path>
+            </svg>
+            <p data-id="xDzLp" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">236人收藏</p>
+          </div>
+        </div>
+      </div>
+      <div data-id="AHVeZ" data-type="frame" data-name="Nanny/陈美玲" style="display:flex;flex-direction:column;gap:12px;padding:14px;width:100%;background-color:var(--v2-card);border-radius:20px;box-shadow:0 10px 28px #6b10351a">
+        <div data-id="AdaCW" data-type="frame" data-name="Main" style="display:flex;flex-direction:row;gap:12px;flex:1 1 0%">
+          <div data-id="VC3Lj" data-type="frame" data-name="Portrait" style="display:flex;flex-direction:row;width:96px;height:120px;border-radius:14px;overflow:hidden"></div>
+          <div data-id="K3kJv" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:6px;width:100%">
+            <div data-id="U0DJlU" data-type="frame" data-name="NameRow" style="display:flex;flex-direction:row;align-items:center;gap:6px;flex:1 1 0%">
+              <p data-id="Mp57J" data-type="text" data-name="Name" style="font-family:var(--v2-serif);font-size:17px;font-weight:600;color:var(--v2-ink)">陈美玲</p>
+              <div data-id="j5M4Jk" data-type="instance" data-name="Level" data-overrides="{&amp;amp;quot;Z1232e&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;金牌月嫂&amp;amp;quot;}}" data-ref="cdroa" style="display:flex;flex-direction:row"></div>
+              <div data-id="v3c8PW" data-type="frame" data-name="Spacer" style="display:flex;flex-direction:row;height:1px;flex:1 1 0%"></div>
+              <div data-id="VUUNg" data-type="instance" data-name="Status" data-overrides="{&amp;amp;quot;b6gj6&amp;amp;quot;:{&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;#B09AA2&amp;amp;quot;},&amp;amp;quot;OFgXT&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;空闲&amp;amp;quot;,&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;$v2-sub&amp;amp;quot;}}" data-ref="d35s3i" style="display:flex;flex-direction:row;background-color:#f1eae8"></div>
+            </div>
+            <p data-id="KigGy" data-type="text" data-name="Meta" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sub)">42岁 · 山东临沂</p>
+            <div data-id="C9jvY" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:5px">
+              <div data-id="f2gB1a" data-type="instance" data-name="Tag/通乳专业" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;通乳专业&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="e6T3e" data-type="instance" data-name="Tag/经验丰富" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;经验丰富&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="P4zNSj" data-type="instance" data-name="Tag/性格温和" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;性格温和&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+            <p data-id="VI05D" data-type="text" data-name="Intro" style="width:100%;font-family:var(--v2-sans);font-size:11px;font-weight:400;line-height:1.5;color:var(--v2-sub)">10 年月嫂经验，高级育婴师，擅长通乳催乳与产后修复指导。</p>
+          </div>
+        </div>
+        <div data-id="FArhc" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+          <div data-id="zdItO" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="ctOGU" data-type="frame" data-name="Photo2" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="zqhx9" data-type="frame" data-name="Photo3" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+        </div>
+        <div data-id="FoPPA" data-type="instance" data-name="Divider" data-ref="x2cjUg" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        <div data-id="ekti5" data-type="frame" data-name="Foot" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;flex:1 1 0%">
+          <div data-id="h90h8y" data-type="frame" data-name="Price" style="display:flex;flex-direction:row;align-items:flex-end;gap:2px">
+            <p data-id="WGk7F" data-type="text" data-name="Cur" style="font-family:var(--v2-sans);font-size:12px;font-weight:600;color:var(--v2-brand)">¥</p>
+            <p data-id="uqHqN" data-type="text" data-name="Num" style="font-family:var(--v2-serif);font-size:20px;font-weight:700;color:var(--v2-brand-deep)">15,800</p>
+            <p data-id="t5JLpL" data-type="text" data-name="Unit" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)"> /26天</p>
+          </div>
+          <div data-id="pmUTm" data-type="frame" data-name="Fav" style="display:flex;flex-direction:row;align-items:center;gap:4px">
+            <svg data-id="KU4JW" data-type="icon" data-icon="heart" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-faint)">
+              <title>Icon</title>
+              <path d="M0 0h24v24H0z"></path>
+            </svg>
+            <p data-id="x1qpQ" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">189人收藏</p>
+          </div>
+        </div>
+      </div>
+      <div data-id="ONdci" data-type="frame" data-name="Nanny/李桂香" style="display:flex;flex-direction:column;gap:12px;padding:14px;width:100%;background-color:var(--v2-card);border-radius:20px;box-shadow:0 10px 28px #6b10351a">
+        <div data-id="wUErx" data-type="frame" data-name="Main" style="display:flex;flex-direction:row;gap:12px;flex:1 1 0%">
+          <div data-id="h3o7Z1" data-type="frame" data-name="Portrait" style="display:flex;flex-direction:row;width:96px;height:120px;border-radius:14px;overflow:hidden"></div>
+          <div data-id="F9SqRO" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:6px;width:100%">
+            <div data-id="vsAoT" data-type="frame" data-name="NameRow" style="display:flex;flex-direction:row;align-items:center;gap:6px;flex:1 1 0%">
+              <p data-id="oltl8" data-type="text" data-name="Name" style="font-family:var(--v2-serif);font-size:17px;font-weight:600;color:var(--v2-ink)">李桂香</p>
+              <div data-id="p2DCvY" data-type="instance" data-name="Level" data-overrides="{&amp;amp;quot;Z1232e&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;金牌月嫂&amp;amp;quot;}}" data-ref="cdroa" style="display:flex;flex-direction:row"></div>
+              <div data-id="mZ94z" data-type="frame" data-name="Spacer" style="display:flex;flex-direction:row;height:1px;flex:1 1 0%"></div>
+              <div data-id="ILQMz" data-type="instance" data-name="Status" data-ref="d35s3i" style="display:flex;flex-direction:row"></div>
+            </div>
+            <p data-id="zQAGa" data-type="text" data-name="Meta" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sub)">45岁 · 江苏苏州</p>
+            <div data-id="b2mk6L" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:5px">
+              <div data-id="E32892" data-type="instance" data-name="Tag/早产儿护理" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;早产儿护理&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="a9T6rU" data-type="instance" data-name="Tag/双胞胎经验" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;双胞胎经验&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="uvtSE" data-type="instance" data-name="Tag/细心" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;细心&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+            <p data-id="c18Qba" data-type="text" data-name="Intro" style="width:100%;font-family:var(--v2-sans);font-size:11px;font-weight:400;line-height:1.5;color:var(--v2-sub)">12 年经验，擅长早产儿与双胞胎护理，持有高级母婴护理师证。</p>
+          </div>
+        </div>
+        <div data-id="T1oJno" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+          <div data-id="tyiKB" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="Z2lW23" data-type="frame" data-name="Photo2" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="kITlT" data-type="frame" data-name="Photo3" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+        </div>
+        <div data-id="Y3C6J" data-type="instance" data-name="Divider" data-ref="x2cjUg" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        <div data-id="d97BP" data-type="frame" data-name="Foot" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;flex:1 1 0%">
+          <div data-id="gon5P" data-type="frame" data-name="Price" style="display:flex;flex-direction:row;align-items:flex-end;gap:2px">
+            <p data-id="O6mwe7" data-type="text" data-name="Cur" style="font-family:var(--v2-sans);font-size:12px;font-weight:600;color:var(--v2-brand)">¥</p>
+            <p data-id="y10ad" data-type="text" data-name="Num" style="font-family:var(--v2-serif);font-size:20px;font-weight:700;color:var(--v2-brand-deep)">18,800</p>
+            <p data-id="w9rTA" data-type="text" data-name="Unit" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)"> /26天</p>
+          </div>
+          <div data-id="H5QSMQ" data-type="frame" data-name="Fav" style="display:flex;flex-direction:row;align-items:center;gap:4px">
+            <svg data-id="oWCxd" data-type="icon" data-icon="heart" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-faint)">
+              <title>Icon</title>
+              <path d="M0 0h24v24H0z"></path>
+            </svg>
+            <p data-id="iogev" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">312人收藏</p>
+          </div>
+        </div>
+      </div>
+      <div data-id="bNwAD" data-type="frame" data-name="Nanny/王翠华" style="display:flex;flex-direction:column;gap:12px;padding:14px;width:100%;background-color:var(--v2-card);border-radius:20px;box-shadow:0 10px 28px #6b10351a">
+        <div data-id="v3SFi" data-type="frame" data-name="Main" style="display:flex;flex-direction:row;gap:12px;flex:1 1 0%">
+          <div data-id="dxPiN" data-type="frame" data-name="Portrait" style="display:flex;flex-direction:row;width:96px;height:120px;border-radius:14px;overflow:hidden"></div>
+          <div data-id="EwGgz" data-type="frame" data-name="Info" style="display:flex;flex-direction:column;gap:6px;width:100%">
+            <div data-id="dATOk" data-type="frame" data-name="NameRow" style="display:flex;flex-direction:row;align-items:center;gap:6px;flex:1 1 0%">
+              <p data-id="hlTqm" data-type="text" data-name="Name" style="font-family:var(--v2-serif);font-size:17px;font-weight:600;color:var(--v2-ink)">王翠华</p>
+              <div data-id="bWjmg" data-type="instance" data-name="Level" data-overrides="{&amp;amp;quot;Z1232e&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;银牌月嫂&amp;amp;quot;}}" data-ref="cdroa" style="display:flex;flex-direction:row"></div>
+              <div data-id="KOnuz" data-type="frame" data-name="Spacer" style="display:flex;flex-direction:row;height:1px;flex:1 1 0%"></div>
+              <div data-id="H11Qj" data-type="instance" data-name="Status" data-overrides="{&amp;amp;quot;b6gj6&amp;amp;quot;:{&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;#B09AA2&amp;amp;quot;},&amp;amp;quot;OFgXT&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;空闲&amp;amp;quot;,&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;$v2-sub&amp;amp;quot;}}" data-ref="d35s3i" style="display:flex;flex-direction:row;background-color:#f1eae8"></div>
+            </div>
+            <p data-id="trCyZ" data-type="text" data-name="Meta" style="font-family:var(--v2-sans);font-size:11px;font-weight:400;color:var(--v2-sub)">36岁 · 安徽合肥</p>
+            <div data-id="L88qA9" data-type="frame" data-name="Tags" style="display:flex;flex-direction:row;gap:5px">
+              <div data-id="KzzJd" data-type="instance" data-name="Tag/月子餐好吃" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;月子餐好吃&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="n8eCo" data-type="instance" data-name="Tag/勤快麻利" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;勤快麻利&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+              <div data-id="DeAEd" data-type="instance" data-name="Tag/好沟通" data-overrides="{&amp;amp;quot;j4DoG1&amp;amp;quot;:{&amp;amp;quot;content&amp;amp;quot;:&amp;amp;quot;好沟通&amp;amp;quot;}}" data-ref="L0cddQ" style="display:flex;flex-direction:row"></div>
+            </div>
+            <p data-id="LV658" data-type="text" data-name="Intro" style="width:100%;font-family:var(--v2-sans);font-size:11px;font-weight:400;line-height:1.5;color:var(--v2-sub)">6 年经验，性格开朗，擅长南北口味月子餐，深受年轻妈妈喜爱。</p>
+          </div>
+        </div>
+        <div data-id="koOGc" data-type="frame" data-name="Photos" style="display:flex;flex-direction:row;gap:8px;flex:1 1 0%">
+          <div data-id="powkN" data-type="frame" data-name="Photo1" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="U2cfMo" data-type="frame" data-name="Photo2" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+          <div data-id="KLSQD" data-type="frame" data-name="Photo3" style="display:flex;flex-direction:row;height:66px;flex:1 1 0%;border-radius:10px;overflow:hidden"></div>
+        </div>
+        <div data-id="fYy3j" data-type="instance" data-name="Divider" data-ref="x2cjUg" style="display:flex;flex-direction:row;flex:1 1 0%"></div>
+        <div data-id="jLtXQ" data-type="frame" data-name="Foot" style="display:flex;flex-direction:row;align-items:flex-end;justify-content:space-between;flex:1 1 0%">
+          <div data-id="oHunX" data-type="frame" data-name="Price" style="display:flex;flex-direction:row;align-items:flex-end;gap:2px">
+            <p data-id="epLbm" data-type="text" data-name="Cur" style="font-family:var(--v2-sans);font-size:12px;font-weight:600;color:var(--v2-brand)">¥</p>
+            <p data-id="SAvAS" data-type="text" data-name="Num" style="font-family:var(--v2-serif);font-size:20px;font-weight:700;color:var(--v2-brand-deep)">13,800</p>
+            <p data-id="ul09G" data-type="text" data-name="Unit" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)"> /26天</p>
+          </div>
+          <div data-id="e4RAT" data-type="frame" data-name="Fav" style="display:flex;flex-direction:row;align-items:center;gap:4px">
+            <svg data-id="hDVIo" data-type="icon" data-icon="heart" data-icon-library="lucide" data-name="Icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:11px;height:11px;color:var(--v2-faint)">
+              <title>Icon</title>
+              <path d="M0 0h24v24H0z"></path>
+            </svg>
+            <p data-id="fAYXs" data-type="text" data-name="Label" style="font-family:var(--v2-sans);font-size:10px;font-weight:400;color:var(--v2-faint)">128人收藏</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-id="iM8wm" data-type="instance" data-name="TabBar" data-overrides="{&amp;amp;quot;k2Vz0&amp;amp;quot;:{&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;$v2-faint&amp;amp;quot;},&amp;amp;quot;X4fac&amp;amp;quot;:{&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;$v2-faint&amp;amp;quot;},&amp;amp;quot;nw3uk&amp;amp;quot;:{&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;$v2-brand&amp;amp;quot;},&amp;amp;quot;JQAGz&amp;amp;quot;:{&amp;amp;quot;fill&amp;amp;quot;:&amp;amp;quot;$v2-brand&amp;amp;quot;}}" data-ref="LVTiV" style="display:flex;flex-direction:row"></div>
+  </section>
+</body>
+</html>

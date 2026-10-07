@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- fixture: comments in every supported position -->
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>comments</title>
+  <meta name="design-schema" content="3.0">
+  <!-- head comment before the tokens block -->
+  <style>
+    /* CSS comment inside the tokens block */
+    :root{ --color-bg:#ffffff; --color-ink:#0b0d12 }
+  </style>
+  <!-- head comment between the two style blocks -->
+  <style>
+    /* CSS comment inside the page-frame block */
+    section[data-type="page"]{ margin:0 0 24px }
+  </style>
+  <!-- head comment after the page-frame block -->
+</head>
+<body>
+  <!-- body comment before the first page -->
+  <section data-id="home" data-type="page" data-canvas="0,0" data-name="首页" style="width:390px;height:600px">
+    <div data-id="home__root" data-type="frame" style="display:flex;flex-direction:column;gap:12px;padding:16px">
+      <!-- comment inside a frame, before its first child -->
+      <p data-id="home__title" data-type="text" style="font-size:28px;font-weight:700">标题</p>
+      <!-- comment inside a frame, between two children -->
+      <p data-id="home__body" data-type="text" style="font-size:14px;color:var(--color-ink)">正文</p>
+      <!-- comment inside a frame, after its last child -->
+    </div>
+  </section>
+  <!-- comment between two pages -->
+  <section data-id="detail" data-type="page" data-canvas="420,0" data-name="详情" style="width:390px;height:600px">
+    <div data-id="detail__root" data-type="frame" style="display:flex;flex-direction:column;padding:16px">
+      <p data-id="detail__text" data-type="text" style="font-size:14px">详情 -- not a comment <!-- tail comment --></p>
+    </div>
+  </section>
+  <!-- comment just before </body> -->
+</body>
+<!-- comment after </body> -->
+</html>

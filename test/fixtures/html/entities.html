@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>entities</title>
+  <meta name="design-schema" content="3.0">
+  <style>
+    :root{ --color-ink:#111111 }
+  </style>
+  <style>
+    section[data-type="page"]{ margin:0 0 24px }
+  </style>
+</head>
+<body>
+  <section data-id="notes" data-type="page" data-canvas="0,0" data-name="Notes" style="width:390px;height:400px">
+    <div data-id="notes__root" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:16px">
+      <p data-id="notes__named" data-type="text" style="font-size:14px;color:var(--color-ink)">A &amp; B &lt; C &gt; D&nbsp;E</p>
+      <p data-id="notes__numeric" data-type="text" style="font-size:14px">&#x4e2d;&#25991; &#20013; &#x6587;</p>
+      <p data-id="notes__bare" data-type="text" style="font-size:14px">AT&T a&b 100%&nbsp;ok</p>
+      <p data-id="notes__angles" data-type="text" style="font-size:14px">a <<< b >< c</p>
+      <span data-id="notes__mixed" data-type="text" style="font-size:12px">1 &lt; 2 &amp;&amp; 3 &gt; 2 &amp;amp;</span>
+    </div>
+  </section>
+</body>
+</html>

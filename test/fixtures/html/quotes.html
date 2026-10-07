@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>quotes</title>
+  <meta name="design-schema" content="3.0">
+  <style>
+    :root{ --color-ink:#111111; --color-muted:#6b7280 }
+  </style>
+  <style>
+    section[data-type="page"]{ margin:0 0 24px }
+  </style>
+</head>
+<body>
+  <section data-id="quotes" data-type="page" data-canvas="0,0" data-name="Quotes" style="width:390px;height:600px">
+    <div data-id="quotes__card" data-type="frame" data-Name="Card" style="display:flex;flex-direction:column;gap:8px;padding:12px">
+      <img data-id="quotes__avatar" data-type="image" alt="头像" src="avatar.png" style="width:40px;height:40px;border-radius:20px" />
+      <p DATA-ID="quotes__title" data-type="text" data-HIDDEN="true" style="font-size:16px;color:var(--color-ink)">标题</p>
+      <p data-id="quotes__sub" DATA-TYPE="text" data-hidden style="font-size:12px;color:var(--color-muted)">副标题</p>
+      <span data-id="quotes__tag" data-type="text" style="font-size:12px">标签</span>
+    </div>
+  </section>
+</body>
+</html>
