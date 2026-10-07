@@ -1006,6 +1006,26 @@ test("the carried child list is plain data, with elements named by data-id", () 
   assert.equal(JSON.parse(JSON.stringify(first.inverse)).length, 1, "the inverse must survive JSON as it stands");
 });
 
+test("the inverse of a restore lands on the written file again", () => {
+  for (const ops of [
+    [{ op: "move", target: "home__card", index: 0 }],
+    [{ op: "remove", target: "home__card" }],
+    [{ op: "move", target: "home__card", into: "home", index: 0 }],
+  ]) {
+    const label = JSON.stringify(ops);
+    const document = parse(SOURCE);
+    const first = applyOps(document, ops);
+    const written = serialize(document, first.doc);
+    // Undo, on a fresh parse of what was written.
+    const reread = parse(written);
+    const second = applyOps(reread, first.inverse);
+    assert.equal(serialize(reread, second.doc), SOURCE, `undo of ${label}`);
+    // Redo, from the inverse of that restore.
+    const third = applyOps(second.doc, second.inverse);
+    assert.equal(serialize(second.doc, third.doc), written, `redo of ${label}`);
+  }
+});
+
 test("an in-memory inverse lands the node back between the halves of a merged text node", () => {
   const original = doc([
     frame("n_root", [], [text("\n      "), frame("n_a"), text("\n      "), frame("n_b"), text("\n    ")]),

@@ -10,6 +10,8 @@
   },
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
-    "test:all": "node --test \"test/*.test.mjs\" \"test/**/*.test.mjs\""
+    "references": "node scripts/gen-references.mjs",
+    "references:check": "node scripts/gen-references.mjs --check",
+    "install:skill": "node scripts/install.mjs"
   }
 }
