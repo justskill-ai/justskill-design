@@ -71,7 +71,16 @@ node design.mjs format   design.html --check
 node design.mjs ls       design.html --pages
 node design.mjs show     design.html home__title
 node design.mjs add      design.html --html-file card.html --in home__root
+node design.mjs set      design.html home__title --style 'font-size:40px'
+node design.mjs move     design.html home__card --index 0
+node design.mjs remove   design.html home__note
+node design.mjs export   design.html --all -o dist
+node design.mjs import   pen some.pen -o design.html
+node design.mjs serve    design.html
 ```
+
+`serve` prints a tokenised URL and opens the canvas. The canvas and the CLI
+write through the same funnel, so a drag and a `set` cannot disagree.
 
 Exit codes: `0` success, `1` refused or invalid, `2` unreadable or bad arguments.
 
@@ -140,7 +149,15 @@ What the suite pins, in order of what breaks first if it fails:
 | Silent drops | 0 | 0 |
 | Serialization round trip | byte exact | byte exact, 11 fixtures including a 73 KB generated design |
 | Normalization | idempotent | idempotent |
-| `.pen` import (705 KB, 26 artboards, 1541 nodes) | 0 errors | not yet implemented (M4) |
+| `.pen` import | 0 errors, empty `unmapped` | **0 errors, `unmapped` empty** |
+| `.pen` import ledger | every loss named | 1 loss in 1541 nodes (`perCornerRadius`) |
+| Tests | — | 369 pass, 0 fail |
+
+The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
+nodes. It imports to 1515 elements, 23 components, 239 instances and 140
+instances carrying overrides, in about 60 ms, and the result validates and is
+already canonical. One node in that file has four different corner radii, which
+this format does not have a spelling for, and the ledger says so by name.
 
 The legibility metric means: the first response is always usable, whether it
 accepts the snippet or refuses it with a code, a target and a fix. 17 of the 20

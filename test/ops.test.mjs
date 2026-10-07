@@ -1,9 +1,11 @@
 /**
  * test/ops.test.mjs — the op engine, and the receipt that reports it.
  *
- * The documents here are plain objects in the shape docs/format-v3.md §4 freezes.
- * They are built by hand on purpose: `lib/parse.mjs` and `lib/serialize.mjs` are other
- * people's files, and the op engine must be testable without either of them.
+ * Most documents here are plain objects in the shape docs/format-v3.md §4 freezes, so
+ * the op engine is testable on its own. The last section is the exception, and on
+ * purpose: it reads a real file, writes it and reads it back, because "the inverse
+ * restores the exact bytes" is an invariant about the write funnel, not about the
+ * tree in memory.
  */
 
 import test from "node:test";
@@ -19,6 +21,8 @@ import {
   setOpFor,
 } from "../lib/ops.mjs";
 import { buildReceipt, formatReceipt } from "../lib/receipt.mjs";
+import { parse } from "../lib/parse.mjs";
+import { serialize } from "../lib/serialize.mjs";
 
 /* ------------------------------------------------------------------ *
  * Building documents
@@ -454,7 +458,7 @@ test("move before a sibling", () => {
     byId(next, "home__root").children.map((child) => attrValueOf(child, "data-id")),
     ["home__cta", "home__title", "home__card"],
   );
-  assert.deepStrictEqual(inverse, [{ op: "move", target: "home__cta", index: 2 }]);
+  assert.deepStrictEqual(inverse, [{ op: "move", target: "home__cta", into: "home__root", index: 2 }]);
   same(applyOps(next, inverse).doc, document);
 });
 
@@ -863,4 +867,160 @@ test("zero silent drops: every declaration is consumed or reported", () => {
         dropped.some((entry) => entry.prop === property),
     );
   }
+});
+
+/* ------------------------------------------------------------------ *
+ * The write funnel: an inverse has to survive a write and a re-read
+ * ------------------------------------------------------------------ */
+
+/**
+ * The path the CLI actually takes: apply, serialize, write, and the next op comes
+ * from a fresh parse. HTML has no room for two adjacent text nodes, so a write merges
+ * them — and an inverse that names a position by index then names a different one.
+ * These tests read a real file, write it, read it back, and undo.
+ */
+
+const SOURCE = `<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <style>:root{--color-ink:#111827}</style>
+</head>
+<body>
+  <section data-id="home" data-type="page" style="width:390px;height:844px">
+    <div data-id="home__root" data-type="frame" style="display:flex;flex-direction:column">
+      <p data-id="home__title" data-type="text" style="font-size:32px">你好</p>
+      <div data-id="home__card" data-type="frame" style="border-radius:12px"></div>
+      <p data-id="home__tail" data-type="text" style="font-size:14px">尾</p>
+    </div>
+  </section>
+</body>
+</html>
+`;
+
+/** No whitespace between the children: nothing can merge, so nothing needs rescuing. */
+const TIGHT = `<!doctype html>
+<html lang="zh">
+<head><meta charset="utf-8"><style>:root{--color-ink:#111827}</style></head>
+<body><section data-id="home" data-type="page" style="width:390px"><div data-id="home__root" data-type="frame" style="display:flex"><p data-id="home__a" data-type="text" style="font-size:14px">一</p><div data-id="home__b" data-type="frame" style="gap:8px"></div><p data-id="home__c" data-type="text" style="font-size:14px">二</p></div></section></body>
+</html>
+`;
+
+/** Drop live node objects, the way the receipt's JSON does. */
+function stripLiveNodes(value) {
+  if (Array.isArray(value)) return value.map(stripLiveNodes);
+  if (value !== null && typeof value === "object") {
+    const out = {};
+    for (const [key, inner] of Object.entries(value)) {
+      if (key === "node") continue;
+      out[key] = stripLiveNodes(inner);
+    }
+    return out;
+  }
+  return value;
+}
+
+test("a move out from between two text nodes is undone byte for byte", () => {
+  const document = parse(SOURCE);
+  const first = applyOps(document, [{ op: "move", target: "home__card", index: 0 }]);
+  const written = serialize(document, first.doc);
+  assert.notEqual(written, SOURCE, "the write must actually move the card");
+
+  // What undo sees: a fresh parse of what was written, where the two whitespace runs
+  // have become one node.
+  const reread = parse(written);
+  const root = buildIdIndex(reread).get("home__root");
+  const whitespace = root.children.filter((child) => child.kind === "text").map((child) => child.value);
+  assert.ok(
+    whitespace.includes("\n      \n      "),
+    `the write must fuse the two runs the card sat between, got ${JSON.stringify(whitespace)}`,
+  );
+
+  const back = applyOps(reread, first.inverse);
+  assert.equal(serialize(reread, back.doc), SOURCE);
+});
+
+test("the same move undo survives the inverse going through JSON", () => {
+  const document = parse(SOURCE);
+  const first = applyOps(document, [{ op: "move", target: "home__card", index: 0 }]);
+  const written = serialize(document, first.doc);
+  const inverse = JSON.parse(JSON.stringify(first.inverse));
+  const back = applyOps(parse(written), inverse);
+  assert.equal(serialize(parse(written), back.doc), SOURCE);
+});
+
+test("a remove from between two text nodes is undone byte for byte", () => {
+  const document = parse(SOURCE);
+  const first = applyOps(document, [{ op: "remove", target: "home__card" }]);
+  const written = serialize(document, first.doc);
+  assert.notEqual(written, SOURCE);
+
+  const reread = parse(written);
+  const back = applyOps(reread, stripLiveNodes(first.inverse));
+  assert.equal(serialize(reread, back.doc), SOURCE);
+});
+
+test("removing a whitespace text node by index is undone byte for byte", () => {
+  const document = parse(SOURCE);
+  const root = buildIdIndex(document).get("home__root");
+  const at = root.children.findIndex((child) => child.kind === "text" && child.value.includes("\n    "));
+  const first = applyOps(document, [{ op: "remove", target: "home__root", index: at }]);
+  const written = serialize(document, first.doc);
+  assert.notEqual(written, SOURCE);
+
+  const reread = parse(written);
+  const back = applyOps(reread, stripLiveNodes(first.inverse));
+  assert.equal(serialize(reread, back.doc), SOURCE);
+});
+
+test("a remove that leaves no two text nodes side by side keeps a plain index inverse", () => {
+  const document = parse(TIGHT);
+  const first = applyOps(document, [{ op: "remove", target: "home__b" }]);
+  assert.equal(first.inverse[0].children, undefined, "no merge is possible, so no list is carried");
+  const reread = parse(serialize(document, first.doc));
+  const back = applyOps(reread, first.inverse);
+  assert.equal(serialize(reread, back.doc), TIGHT);
+});
+
+test("an insert whose fragment brings whitespace is undone byte for byte", () => {
+  const document = parse(SOURCE);
+  const ops = [{ op: "insert", target: "home__root", index: 1, html: '\n      <div data-id="n_new" data-type="frame"></div>\n      ' }];
+  const first = applyOps(document, ops);
+  const written = serialize(document, first.doc);
+  const reread = parse(written);
+  const back = applyOps(reread, stripLiveNodes(first.inverse));
+  assert.equal(serialize(reread, back.doc), SOURCE);
+});
+
+test("the carried child list is plain data, with elements named by data-id", () => {
+  const document = parse(SOURCE);
+  const first = applyOps(document, [{ op: "move", target: "home__card", index: 0 }]);
+  const carried = first.inverse[0].children;
+  assert.ok(Array.isArray(carried));
+  assert.ok(carried.every((entry) => typeof entry.kind === "string"));
+  assert.deepStrictEqual(
+    carried.filter((entry) => entry.kind === "ref").map((entry) => entry.target),
+    ["home__title", "home__card", "home__tail"],
+  );
+  assert.ok(carried.some((entry) => entry.kind === "text" && entry.value === "\n    "));
+  assert.equal(JSON.parse(JSON.stringify(first.inverse)).length, 1, "the inverse must survive JSON as it stands");
+});
+
+test("an in-memory inverse lands the node back between the halves of a merged text node", () => {
+  const original = doc([
+    frame("n_root", [], [text("\n      "), frame("n_a"), text("\n      "), frame("n_b"), text("\n    ")]),
+  ]);
+  const moved = applyOps(original, [{ op: "move", target: "n_b", index: 0 }]);
+  assert.deepStrictEqual(
+    moved.doc.children[0].children.map((child) => (child.kind === "text" ? child.value : attrValueOf(child, "data-id"))),
+    ["n_b", "\n      ", "n_a", "\n      ", "\n    "],
+  );
+
+  // A document read back from disk: the two whitespace runs have become one node.
+  const reread = doc([frame("n_root", [], [frame("n_b"), text("\n      "), frame("n_a"), text("\n      \n    ")])]);
+  const back = applyOps(reread, moved.inverse);
+  assert.deepStrictEqual(
+    back.doc.children[0].children.map((child) => (child.kind === "text" ? child.value : attrValueOf(child, "data-id"))),
+    ["\n      ", "n_a", "\n      ", "n_b", "\n    "],
+  );
 });

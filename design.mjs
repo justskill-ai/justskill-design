@@ -31,6 +31,7 @@ const VERBS = {
   remove: () => import("./lib/node/verbs/remove.mjs"),
   move: () => import("./lib/node/verbs/move.mjs"),
   export: () => import("./lib/node/verbs/export.mjs"),
+  import: () => import("./lib/node/verbs/import.mjs"),
   serve: () => import("./lib/node/verbs/serve.mjs"),
 };
 
@@ -49,6 +50,7 @@ Verbs:
   remove <file> <data-id>
   move <file> <data-id> [--before X | --after X | --index n | --into P]
   export <file> [--page <id>] [--all] [-o path] [--resolve-tokens] [--stdout]
+  import pen <file> [-o design.html] [--report r.json]
   serve [<file>] [--port 0] [--ttl 30] [--no-open]
 
 Shared flags: --json  --quiet  --dry-run  --force  --help
