@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>skill-design canvas</title>
+<link rel="stylesheet" href="/canvas/styles.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="bar-left">
+    <span class="brand">skill-design</span>
+    <span class="file" id="file-name">—</span>
+    <span class="pill" id="revision">—</span>
+    <span class="pill warn" id="readonly" hidden>read only</span>
+  </div>
+  <div class="bar-right">
+    <span class="zoom" id="zoom-label">100%</span>
+    <button type="button" id="zoom-out" title="Zoom out">−</button>
+    <button type="button" id="zoom-in" title="Zoom in">+</button>
+    <button type="button" id="fit" title="Fit every page">Fit</button>
+    <span class="sep"></span>
+    <button type="button" id="undo" title="Undo">Undo</button>
+    <button type="button" id="redo" title="Redo">Redo</button>
+    <button type="button" id="toggle-problems" title="Problems">Problems <span id="problem-count" class="count">0</span></button>
+  </div>
+</header>
+
+<main id="stage">
+  <aside class="panel left">
+    <div class="panel-head">Pages</div>
+    <ul class="pages" id="page-list"></ul>
+    <div class="panel-head">Layers</div>
+    <ul class="layers" id="layer-list"></ul>
+  </aside>
+
+  <div class="viewport" id="viewport">
+    <div class="canvas" id="canvas"></div>
+    <div class="overlay" id="overlay"></div>
+  </div>
+
+  <aside class="panel right">
+    <div class="panel-head" id="selection-name">Nothing selected</div>
+    <div class="panel-body" id="inspector">
+      <p class="empty">Click an element on the canvas, or a row in the layer tree.</p>
+    </div>
+  </aside>
+</main>
+
+<section class="drawer" id="problems" hidden>
+  <div class="drawer-head">
+    <strong>Problems</strong>
+    <button type="button" id="close-problems">Close</button>
+  </div>
+  <div class="drawer-body" id="problem-list"></div>
+</section>
+
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="/canvas/app.mjs"></script>
+</body>
+</html>
