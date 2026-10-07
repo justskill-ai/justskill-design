@@ -14,6 +14,7 @@ import assert from "node:assert/strict";
 
 import { parse, getAttr, findById } from "../lib/parse.mjs";
 import { exportPage, exportAllPages, ExportError } from "../lib/export-html.mjs";
+import { pageToSvg, parseSize, clampScale } from "../lib/export-svg.mjs";
 
 const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-bg:#ffffff;--color-ink:#0b0d12;--space-md:16px}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
 
@@ -180,4 +181,60 @@ test("a token is not resolved twice", () => {
   const { html } = exportPage(parse(doc), { resolveTokens: true });
   assert.match(html, /background-color:#0b0d12/);
   assert.ok(!/var\(/.test(html), `a reference survived: ${html}`);
+});
+
+// -- svg and the raster route -------------------------------------------------
+
+test("a page becomes one SVG with the markup inside a foreignObject", () => {
+  const { html, page } = exportPage(parse(ONE_PAGE));
+  const svg = pageToSvg({ html, page });
+  assert.match(svg, /^<\?xml version="1\.0"/);
+  assert.match(svg, /xmlns="http:\/\/www\.w3\.org\/2000\/svg"/);
+  assert.match(svg, /<foreignObject x="0" y="0" width="390" height="844">/);
+  assert.match(svg, /viewBox="0 0 390 844"/);
+  assert.match(svg, /你好/, "the page's content is inside");
+  assert.match(svg, /:root\{/, "the token block travels with it, or every colour breaks");
+});
+
+test("the SVG says what cannot open it, instead of pretending", () => {
+  const { html, page } = exportPage(parse(ONE_PAGE));
+  const svg = pageToSvg({ html, page });
+  assert.match(svg, /Figma, Illustrator and Sketch/);
+  assert.match(svg, /foreignObject/);
+});
+
+test("a page with no stated size still produces a usable SVG", () => {
+  const doc = file(`<section data-id="home" data-type="page" style="width:auto;height:auto"></section>`);
+  const { html, page } = exportPage(parse(doc));
+  const svg = pageToSvg({ html, page });
+  assert.match(svg, /width="390" height="844"/, "a fallback size, not zero");
+});
+
+test("--size is parsed, and a typo is refused with the shape to use", () => {
+  assert.deepEqual(parseSize("390x844"), { width: 390, height: 844 });
+  assert.deepEqual(parseSize(" 375 × 812 "), { width: 375, height: 812 });
+  assert.equal(parseSize(undefined), null);
+  assert.throws(() => parseSize("big"), (error) => {
+    assert.equal(error.code, "export/bad-size");
+    assert.match(error.hint, /390x844/);
+    return true;
+  });
+});
+
+test("scale is clamped, so a typo cannot ask for a hundredfold image", () => {
+  assert.equal(clampScale(2), 2);
+  assert.equal(clampScale(0), 1);
+  assert.equal(clampScale(100), 3);
+  assert.equal(clampScale("nope"), 1);
+});
+
+test("the raster route refuses rather than substituting another format", async () => {
+  // No browser, no canvas: the export must fail and name three ways forward.
+  const { planRaster } = await import("../lib/raster.mjs");
+  assert.throws(() => planRaster({ raster: "auto" }, { findBrowser: () => null }), (error) => {
+    assert.match(error.hint, /Chrome/);
+    assert.match(error.hint, /canvas/);
+    assert.match(error.hint, /svg/);
+    return true;
+  });
 });

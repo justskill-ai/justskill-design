@@ -97,7 +97,9 @@ node design.mjs validate design.html --json
 node design.mjs format design.html --check    # is the file in canonical form?
 
 # 5. Hand over deliverables, or let the user drag.
-node design.mjs export design.html --all -o dist
+node design.mjs export design.html --all -o dist          # HTML, one file per page
+node design.mjs export design.html --format svg -o page.svg
+node design.mjs export design.html --format png --scale 2 -o page.png
 node design.mjs serve design.html
 ```
 
@@ -214,6 +216,26 @@ line while the canvas is open: both writers re-read the file first.
    instead of a literal. The user can then restyle the whole design in one edit.
 6. **Small edits, in order.** Three `set` commands beat one rewrite, and each
    one is a step the user can undo.
+
+## Deliverables, and which need a browser
+
+| `--format` | Needs | Notes |
+|---|---|---|
+| `html` (default) | nothing | One page, or `--all` for a site. Self-contained. |
+| `svg` | nothing | Wraps the page in `<foreignObject>`. A browser draws it; Figma, Illustrator and Sketch show an empty rectangle. |
+| `png` `jpeg` `webp` | a Chrome-family browser, or the canvas | `--scale 1..3`, `--size WxH` |
+
+The image formats find a browser already on the machine — no download, no
+bundled Chromium. When there is none the export **fails** and names three ways
+forward: install Chrome, Chromium or Edge, leave the canvas open, or use
+`--format svg`. It never quietly writes a different format, because a different
+format is a different deliverable.
+
+Before any image export, make sure the fonts are declared. `export` adds the
+stylesheet links itself from the families the page uses, and the browser waits
+for them; a screenshot taken before a web font arrives is captured in the
+fallback family, where the text wraps at different words and everything below it
+moves.
 
 ## Working with a `.pen` file
 
