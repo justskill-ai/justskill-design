@@ -312,3 +312,26 @@ test("renderNodeHtml keeps the tag, the data attributes and the style", () => {
   assert.match(html, /font-size:40px;font-weight:700/);
   assert.match(html, />标题<\/h1>$/);
 });
+
+test("the layer tree does not list svg geometry", () => {
+  const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px">
+    <div data-id="home__bar" data-type="frame" style="display:flex">
+      <svg data-id="home__icon" data-type="icon" data-icon="wifi" data-icon-library="lucide" style="width:24px;height:24px">
+        <path d="M2 20h.01"></path><path d="M7 20v-4"></path><circle cx="12" cy="12" r="3"></circle><title>wifi</title>
+      </svg>
+    </div></section>`);
+  const rows = pageTree(renderModel(doc).pages[0].node);
+  assert.deepEqual(rows.map((r) => r.id), ["home__bar", "home__icon"],
+    "the glyph is a row; its geometry is not");
+  assert.equal(rows[1].childCount, 0, "a glyph reports no children to expand");
+});
+
+test("the layer tree is not buried by a real imported icon set", () => {
+  const paths = Array.from({ length: 40 }, (_, i) => `<path d="M${i} 0h1"></path>`).join("");
+  const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px">
+    <div data-id="home__row" data-type="frame" style="display:flex">
+      <svg data-id="home__icon" data-type="icon" data-icon="x" data-icon-library="lucide" style="width:24px;height:24px">${paths}</svg>
+    </div></section>`);
+  const rows = pageTree(renderModel(doc).pages[0].node);
+  assert.equal(rows.length, 2, `expected 2 rows, got ${rows.length}`);
+});

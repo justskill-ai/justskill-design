@@ -174,6 +174,19 @@ The file stores only the reference. The component's markup reaches the export
 and the canvas through the instance. Edit the component once and every instance
 follows; override one field and only that field is pinned.
 
+**Editing a descendant id is editing the component.** In an imported pen file,
+`card__title` appears once, in the library, and 239 instances point at it. That
+is the point — one edit reaches every instance. When the user wants to change
+one instance instead, write `data-overrides` on that instance:
+
+```sh
+node design.mjs set design.html home__card --attr   'data-overrides={"card__title":{"style":"font-size:20px"}}'
+```
+
+The canvas can select and edit the component, but it cannot yet write an
+override for one instance. Tell the user that rather than letting them believe a
+drag changed only one card.
+
 ## The canvas
 
 ```sh
