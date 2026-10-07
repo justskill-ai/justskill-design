@@ -303,3 +303,53 @@ test("the imported file is canonical, so its first write is a no-op", { skip: !h
   const doc = parse(html);
   assert.equal(doc.source, html);
 });
+
+// -- layout defaults, pinned because each one was a real defect ----------------
+
+test("an absent layout is a row, not a column", () => {
+  // Pen's default layout is horizontal. Reading it as a column collapsed 208
+  // frames in the reference file, so this is pinned by name.
+  const row = styleFromNode({ type: "frame", width: "fill_container", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), { parentIsColumn: true });
+  assert.match(row, /flex-direction:row/);
+  assert.match(row, /align-self:stretch/);
+
+  const column = styleFromNode({ type: "frame", layout: "vertical", gap: 8 }, new Map(), createLedger(), {});
+  assert.match(column, /flex-direction:column/);
+
+  const none = styleFromNode({ type: "frame", layout: "none" }, new Map(), createLedger(), {});
+  assert.ok(!/display:flex/.test(none), "layout none has no flow");
+});
+
+test("fill_container is spelled by the parent's axis", () => {
+  // In a row the width shares the main axis; in a column it stretches across.
+  const inRow = styleFromNode({ type: "frame", width: "fill_container", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), { parentIsRow: true });
+  assert.match(inRow, /flex:1 1 0%/);
+  assert.match(inRow, /min-width:0/);
+  assert.ok(!/align-self/.test(inRow), `stretching across a row is a height change: ${inRow}`);
+
+  const inColumn = styleFromNode({ type: "frame", width: "fill_container", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), { parentIsColumn: true });
+  assert.match(inColumn, /align-self:stretch/);
+  assert.ok(!/flex:1/.test(inColumn), `sharing the main axis of a column is a height change: ${inColumn}`);
+});
+
+test("a text node hugs rather than filling, so it cannot stretch vertically", () => {
+  const text = styleFromNode({ type: "text", width: "fill_container", content: "hi" }, new Map(), createLedger(), { text: true, parentIsRow: true });
+  assert.match(text, /width:fit-content/);
+  assert.ok(!/align-self/.test(text), `a row's cross axis is vertical: ${text}`);
+});
+
+test("an artboard's own layout reaches the page", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "modal", name: "Modal", width: 375, height: 812,
+      layout: "vertical", justifyContent: "end", clip: true, fill: "#2E1F26A6",
+      children: [{ type: "frame", id: "sheet", name: "Sheet", width: "fill_container", height: 200 }],
+    }],
+  });
+  const { html } = importPen(pen);
+  const page = html.slice(html.indexOf("<section"), html.indexOf(">", html.indexOf("<section")) + 1);
+  assert.match(page, /justify-content:flex-end/, "a bottom sheet needs its artboard's alignment");
+  assert.match(page, /display:flex/);
+  assert.match(page, /flex-direction:column/);
+});
