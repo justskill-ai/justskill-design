@@ -187,7 +187,18 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   position: absolute;
   inset: 0;
   transform-origin: 0 0;
-  will-change: transform;
+  /*
+   * No `will-change: transform` here, on purpose.
+   *
+   * This element holds every page in the file and it is the thing the camera
+   * scales. `will-change` asks the engine to keep it as one composited layer
+   * with its own texture, and a texture has a size limit: past it the layer is
+   * rasterized once at a low scale and the compositor stretches the result. The
+   * text goes soft and nothing in the document says why.
+   *
+   * The transform changes when the user zooms or pans, not every frame, so there
+   * is nothing to keep the layer warm for.
+   */
 }
 
 .page-box {

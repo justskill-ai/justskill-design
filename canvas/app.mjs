@@ -122,11 +122,25 @@ function zoomAt(clientX, clientY, factor) {
   const px = clientX - rect.left;
   const py = clientY - rect.top;
   const { x, y, zoom } = state.camera;
-  const next = Math.min(4, Math.max(0.1, zoom * factor));
+  const raw = Math.min(4, Math.max(0.1, zoom * factor));
+  const next = crossesOne(zoom, raw) ? 1 : raw;
   const scale = next / zoom;
   state.camera = { zoom: next, x: px - (px - x) * scale, y: py - (py - y) * scale };
   applyCamera();
   drawOverlay();
+}
+
+/**
+ * 100% is a stop on the ladder, not a step that happens to land nearby.
+ *
+ * The zoom steps multiply by 1.15, so from the 10% a fresh canvas opens at they
+ * run ... 81% -> 94% -> 108% and step straight over 1:1. A design tool whose
+ * zoom cannot reach 1:1 is a tool where every look at the drawing is a scaled
+ * raster, and scaled text is soft text. A step that would cross 100% stops on it
+ * instead, in both directions.
+ */
+function crossesOne(from, to) {
+  return (from < 1 && to > 1) || (from > 1 && to < 1);
 }
 
 function fitAll() {
