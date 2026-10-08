@@ -171,10 +171,33 @@ test("a linear gradient becomes a background-image and a radial one is counted a
   assert.equal(ledger.lost["gradient:radial"], 1);
 });
 
-test("an image fill becomes a background image sized to cover", () => {
-  const style = styleFromNode({ type: "frame", fill: { type: "image", url: "https://example.com/a.jpg", mode: "fill" } }, new Map(), createLedger());
-  assert.match(style, /background-image:url\("https:\/\/example.com\/a.jpg"\)/);
-  assert.match(style, /background-size:cover/);
+test("an image fill's mode picks the background-size that means the same thing", () => {
+  const style = (mode) => styleFromNode(
+    { type: "frame", fill: mode ? { type: "image", url: "https://example.com/a.jpg", mode } : { type: "image", url: "https://example.com/a.jpg" } },
+    new Map(),
+    createLedger(),
+  );
+  assert.match(style("cover"), /background-image:url\("https:\/\/example.com\/a.jpg"\)/);
+  assert.match(style("cover"), /background-size:cover/);
+  assert.match(style("contain"), /background-size:contain/);
+  // Two spellings, both measured: pen's own export of the reference design writes
+  // `background-size: cover` ten times and `background-size: 100% 100%` once.
+  assert.match(style("fill"), /background-size:100% 100%/, "pen's `fill` stretches the image; `cover` crops it");
+  assert.match(style(), /background-size:cover/, "a fill that states no mode is covered, which is what pen exports");
+});
+
+test("an image fill mode this format cannot draw is reported, not rounded to cover", () => {
+  // The reader used to write `cover` for every image fill and count the rest as
+  // unmapped, so a stretched photo shipped cropped — a difference nobody looks
+  // for, in a direction the file never asked for.
+  const ledger = createLedger();
+  const style = styleFromNode(
+    { type: "frame", fill: { type: "image", url: "https://example.com/a.jpg", mode: "tile" } },
+    new Map(),
+    ledger,
+  );
+  assert.ok(!/background-size/.test(style), `a mode we cannot draw must not become a size we never read: ${style}`);
+  assert.deepEqual(ledger.unmapped, { "fillMode:tile": 1 });
 });
 
 test("clip becomes overflow hidden", () => {

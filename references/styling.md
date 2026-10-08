@@ -57,7 +57,7 @@ written `0`, `gap` and never `margin`, and longhand font properties.
 | `white-space` | normal \| nowrap \| pre-wrap |
 | `object-fit` | cover \| contain \| fill |
 | `background-image` | url("photo.png") \| linear-gradient(180deg, #00000000, #000000b3) \| var(--img-hero) |
-| `background-size` | cover \| contain \| auto |
+| `background-size` | cover \| contain \| auto \| 100% 100% |
 | `background-position` | center \| top \| bottom \| left \| right |
 
 ## Value forms
@@ -107,7 +107,7 @@ written `0`, `gap` and never `margin`, and longhand font properties.
 | `white-space` | enum | One of: `normal`, `nowrap`, `pre-wrap`. |
 | `object-fit` | enum | One of: `cover`, `contain`, `fill`. |
 | `background-image` | image | `url("...")` or a `linear-gradient(...)`. The url argument is always quoted, so a `;` inside it cannot split the declaration. |
-| `background-size` | keyword-set | One of: `cover`, `contain`, `auto`. |
+| `background-size` | keyword-set | One of: `cover`, `contain`, `auto`, `100% 100%`. |
 | `background-position` | keyword-set | One of: `center`, `top`, `bottom`, `left`, `right`. |
 
 ## Aliases
