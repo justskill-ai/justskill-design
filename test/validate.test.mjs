@@ -178,11 +178,18 @@ test("a property outside the table is an error that suggests the real one", () =
   assert.match(found.hint, /background-color/);
 });
 
-test("margin is refused and the hint names gap", () => {
-  const doc = file(page(`<div data-id="a" data-type="frame" style="display:flex;margin:16px"></div>`));
-  const found = validateDesign(doc).find((d) => d.code === "style/rejected-property");
+test("margin is in the table, so it validates; a one-sided margin is refused", () => {
+  // Margin is legal. It is not the spacing system — gap and padding are — but a
+  // half-pixel nudge is a real need, and refusing margin outright forced a
+  // wrapper element. The one-sided spellings stay refused in favour of the
+  // shorthand, which is the form that can round trip.
+  const ok = file(page(`<div data-id="a" data-type="frame" style="display:flex;margin:16px"></div>`));
+  assert.ok(!validateDesign(ok).some((d) => d.code === "style/rejected-property"));
+
+  const sided = file(page(`<div data-id="a" data-type="frame" style="display:flex;margin-top:16px"></div>`));
+  const found = validateDesign(sided).find((d) => d.code === "style/rejected-property");
   assert.ok(found);
-  assert.match(found.hint, /gap/);
+  assert.match(found.hint, /margin: 16px 0 0 0/);
 });
 
 test("a bad value reports the property, the value and what to write", () => {
@@ -289,20 +296,20 @@ test("a component loop is detected", () => {
 
 test("newErrors reports only what the edit added", () => {
   const good = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex"></div>`)));
-  const bad = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;margin:1px"></div>`)));
+  const bad = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;margin-top:1px"></div>`)));
   assert.equal(newErrors(good, good).length, 0);
   assert.equal(newErrors(good, bad).length, 1);
   assert.equal(newErrors(bad, bad).length, 0, "a pre-existing error is not new");
 });
 
 test("errorKeys is stable for the same problem", () => {
-  const one = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;margin:1px"></div>`)));
-  const two = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;margin:1px"></div>`)));
+  const one = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;margin-top:1px"></div>`)));
+  const two = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;margin-top:1px"></div>`)));
   assert.deepEqual([...errorKeys(one)], [...errorKeys(two)]);
 });
 
 test("summarize counts errors and warnings", () => {
-  const diagnostics = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;background:#ffffff;margin:1px"></div>`)));
+  const diagnostics = validateDesign(file(page(`<div data-id="a" data-type="frame" style="display:flex;background:#ffffff;margin-left:1px"></div>`)));
   const summary = summarize(diagnostics);
   assert.equal(summary.total, diagnostics.length);
   assert.ok(summary.errors >= 1);

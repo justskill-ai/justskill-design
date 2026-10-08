@@ -105,5 +105,5 @@ Only linear gradients. A radial or a mesh gradient is refused, with the reason n
 | `grid-gap` | The property is named gap. | `gap` |
 | `grid-template-columns` | The format has no grid. Flex covers the same layouts. | `display:flex with flex:1 on the children` |
 | `grid-template-rows` | The format has no grid. Flex covers the same layouts. | `display:flex with flex:1 on the children` |
-| `margin` | The format spaces elements with gap, never with margin. | `gap (on the parent) or padding (on this element)` |
-| `margin-bottom` | The format spaces elements with gap, never with margin. | `gap on the parent` |
+| `margin-bottom` | Write the shorthand: margin: 0 0 8px 0. | `gap on the parent, or margin on this element` |
+| `margin-left` | Write the shorthand: margin: 0 0 0 8px. | `gap on the parent, or margin on this element` |

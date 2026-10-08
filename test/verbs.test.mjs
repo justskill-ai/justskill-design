@@ -102,9 +102,21 @@ test("set refuses a value outside the table, and says what is allowed", () => {
 test("set refuses a property the format does not use, and names the replacement", () => {
   const { dir, file } = workspace();
   try {
-    const r = run(["set", file, "home__card", "--style", "margin:16px"]);
+    const r = run(["set", file, "home__card", "--style", "transform:rotate(3deg)"]);
     assert.equal(r.code, 1);
-    assert.match(r.stdout, /gap/);
+    assert.match(r.stdout, /REFUSED/);
+    assert.equal(readFileSync(file, "utf8"), readFileSync(STARTER, "utf8"));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("set refuses a one-sided margin and offers the shorthand", () => {
+  const { dir, file } = workspace();
+  try {
+    const r = run(["set", file, "home__card", "--style", "margin-top:16px"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stdout, /margin: 16px 0 0 0/);
     assert.equal(readFileSync(file, "utf8"), readFileSync(STARTER, "utf8"));
   } finally {
     rmSync(dir, { recursive: true, force: true });

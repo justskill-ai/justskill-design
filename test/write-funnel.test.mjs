@@ -86,21 +86,25 @@ test("a clean fragment is compiled, applied, and reported", () => {
   assert.deepEqual(after.filter((d) => d.severity === "error"), []);
 });
 
-test("a fragment with margin is refused, and the reason names gap", () => {
-  const result = applyFragment(START, `<div data-id="home__box" data-type="frame" style="display:flex;margin:16px"></div>`, { in: "home__root" });
+test("a fragment with a one-sided margin is refused, and the reason names the shorthand", () => {
+  const result = applyFragment(START, `<div data-id="home__box" data-type="frame" style="display:flex;margin-top:16px"></div>`, { in: "home__root" });
   assert.equal(result.refused, undefined, "an out-of-table property is dropped, not fatal");
   assert.equal(result.compiled.dropped.length, 1);
   const dropped = result.compiled.dropped[0];
-  assert.equal(dropped.prop, "margin");
+  assert.equal(dropped.prop, "margin-top");
   assert.equal(dropped.target, "home__box", "the report names the element it changed");
-  assert.equal(dropped.value, "16px");
-  // The reason carries both halves: what is wrong, and what to write instead.
-  assert.match(dropped.reason, /gap/);
-  // The only margin in the file is the page-frame rule, which the format
-  // requires. The refused declaration must not appear on the element.
+  // The reason says which form to use, and the hint carries the value.
+  assert.match(dropped.reason, /shorthand/);
+  assert.match(dropped.replacement ?? "", /margin/);
   const element = findById(parse(result.text), "home__box");
   assert.equal(getAttr(element, "style"), "display:flex", "the element kept only what the table allows");
-  assert.ok(!/margin/.test(getAttr(element, "style")));
+});
+
+test("a fragment may use a whole margin: it is a property, not a spacing system", () => {
+  const result = applyFragment(START, `<div data-id="home__box" data-type="frame" style="display:flex;margin:-0.5px 0 0 0"></div>`, { in: "home__root" });
+  assert.equal(result.refused, undefined, JSON.stringify(result.refused));
+  assert.equal(result.compiled.dropped.length, 0);
+  assert.match(result.text, /margin:-0.5px 0 0 0/);
 });
 
 test("a fragment with an unsupported value is refused by name", () => {

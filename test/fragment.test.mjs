@@ -338,7 +338,7 @@ test("a nested page is refused", () => {
 test("out-of-table properties are dropped with the table's reason, never in silence", () => {
   const result = compileFragment(
     makeDoc(),
-    '<div data-id="n_card" data-type="frame" style="cursor:pointer;margin:8px;display:flex;border-radius:#ff"></div>',
+    '<div data-id="n_card" data-type="frame" style="cursor:pointer;margin-top:8px;display:flex;border-radius:#ff"></div>',
     { in: "home__root" },
   );
   assert.equal(result.refused.code, "style/bad-length");
@@ -346,14 +346,14 @@ test("out-of-table properties are dropped with the table's reason, never in sile
 
   const kept = compileFragment(
     makeDoc(),
-    '<div data-id="n_card" data-type="frame" style="cursor:pointer;margin:8px;display:flex"></div>',
+    '<div data-id="n_card" data-type="frame" style="cursor:pointer;margin-top:8px;display:flex"></div>',
     { in: "home__root" },
   );
   assert.deepStrictEqual(
     kept.dropped.map((entry) => [entry.prop, entry.reason.split(".")[0]]),
     [
       ["cursor", "The format describes appearance, not interaction"],
-      ["margin", "The format spaces elements with gap, never with margin"],
+      ["margin-top", "A one-sided margin is a second spelling of the same intent"],
     ],
   );
   assert.deepStrictEqual(kept.normalized, []);

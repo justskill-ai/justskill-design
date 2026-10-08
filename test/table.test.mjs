@@ -25,9 +25,12 @@ test("every ordered property has a value grammar", () => {
   }
 });
 
-test("the table is 40 properties and 7 token groups", () => {
+test("the table has no duplicates, and every property has a grammar", () => {
   assert.equal(new Set(CSS_ORDER).size, CSS_ORDER.length, "no duplicate property");
-  assert.equal(CSS_ORDER.length, 40);
+  // The set grew when pen's own export was measured against it: flex-shrink,
+  // margin, outline, outline-offset and font-style are all things a real design
+  // uses, and refusing them forced wrappers for a half-pixel.
+  assert.ok(CSS_ORDER.length >= 40, `the table shrank to ${CSS_ORDER.length}`);
   assert.equal(TOKEN_GROUPS.length, 7);
 });
 
@@ -195,11 +198,26 @@ test("out of table properties are dropped with a reason, never silently", () => 
   for (const item of dropped) assert.ok(item.reason.length > 10, `${item.prop} has a reason`);
 });
 
-test("margin is refused and the reason names gap", () => {
-  const { dropped } = normalize("margin:16px;display:flex");
-  assert.equal(dropped.length, 1);
-  assert.equal(dropped[0].prop, "margin");
-  assert.match(dropped[0].replacement, /gap/);
+test("a property that recently joined the table is not dropped any more", () => {
+  // `margin` used to be refused outright. A real pen export uses it to nudge a
+  // focus ring by half a pixel, and refusing it forced a wrapper element.
+  const { text, dropped } = normalize("margin:-0.5px 0 0 0;outline:1px solid #B8325E;outline-offset:-0.5px;flex-shrink:0");
+  assert.equal(dropped.length, 0, JSON.stringify(dropped));
+  assert.match(text, /flex-shrink:0/);
+  assert.match(text, /margin:-0.5px 0 0 0/);
+  assert.match(text, /outline:1px solid #b8325e/);
+});
+
+test("margin is accepted, and a one-sided margin is refused with the shorthand", () => {
+  // Margin is in the table but it is not the spacing system: gap and padding
+  // are. It is accepted because offsetting an element by a hair is real.
+  const { text, dropped } = normalize("margin:16px;display:flex");
+  assert.equal(dropped.length, 0, "margin is a property now");
+  assert.match(text, /margin:16px/);
+
+  const sided = normalize("margin-top:8px");
+  assert.equal(sided.dropped.length, 1);
+  assert.match(sided.dropped[0].replacement, /margin/, "the replacement names the shorthand to use");
 });
 
 test("the background alias becomes background-color", () => {
@@ -228,7 +246,7 @@ test("normalization reports every change and is idempotent", () => {
 
 test("no declaration is lost: consumed plus reported equals the input count", () => {
   const cases = [
-    "display:flex;cursor:pointer;color:#fff;transform:none;gap:0;margin:1px;--x:1",
+    "display:flex;cursor:pointer;color:#fff;transform:none;gap:0;margin-top:1px;--x:1",
     "background:red;border:1px solid #eee;font-weight:bold",
     "position:absolute;left:0;top:0;opacity:0.5;box-shadow:0 1px 2px #0001",
     "x-unknown:1",
@@ -240,4 +258,44 @@ test("no declaration is lost: consumed plus reported equals the input count", ()
     assert.equal(kept.length + dropped.length, input.length, `declaration count changed for ${css}`);
     assert.ok(normalized.length >= 0);
   }
+});
+
+test("the properties pen's own export needs are all in the table", () => {
+  // This list came from reading the CSS of a real pen export. If one of these
+  // is missing, importing that file produces a design the tool then refuses to
+  // write back, which is the worst of both worlds.
+  for (const property of [
+    "flex-shrink", "margin", "outline", "outline-offset", "font-style",
+    "line-height", "white-space", "letter-spacing", "box-shadow",
+    "border-width", "border-style", "border-color", "box-sizing",
+  ]) {
+    if (property === "box-sizing") continue; // handled by the export reset, not the table
+    assert.ok(isAllowedProperty(property), `${property} is missing from the table`);
+  }
+});
+
+test("flex-shrink accepts the values a real design uses", () => {
+  assert.equal(normalizeValue("flex-shrink", "0").value, "0");
+  assert.equal(normalizeValue("flex-shrink", "1").value, "1");
+  assert.throws(() => normalizeValue("flex-shrink", "banana"), /number/);
+});
+
+test("an outline normalizes to width, style, colour", () => {
+  assert.equal(normalizeValue("outline", "1px solid #B8325E").value, "1px solid #b8325e");
+  assert.equal(normalizeValue("outline", "solid 1px #B8325E").value, "1px solid #b8325e");
+  assert.equal(normalizeValue("outline", "none").value, "none");
+  assert.equal(normalizeValue("outline-offset", "-0.5px").value, "-0.5px");
+});
+
+test("font-style is normal or italic, and nothing else", () => {
+  assert.equal(normalizeValue("font-style", "italic").value, "italic");
+  assert.equal(normalizeValue("font-style", "NORMAL").value, "normal");
+  assert.throws(() => normalizeValue("font-style", "oblique"), /not a value/);
+});
+
+test("a three value margin expands like padding, so it can round trip", () => {
+  assert.equal(normalizeValue("margin", "0 0 16px").value, "0 0 16px 0");
+  assert.equal(normalizeValue("margin", "-0.5px 0 0 0").value, "-0.5px 0 0 0");
+  assert.equal(normalizeValue("margin", "8px 8px 8px 8px").value, "8px");
+  assert.equal(normalizeValue("margin", "8px 0").value, "8px 0");
 });
