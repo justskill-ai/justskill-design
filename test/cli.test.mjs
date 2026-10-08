@@ -396,3 +396,38 @@ test("walkWatch reports fs/not-found for a directory that is not there", () => {
   }
   assert.equal(caught.code, "fs/not-found");
 });
+
+test("set: a repeated --unset is every op, and a single-word property is a property", () => {
+  // Two bugs lived here. A repeated flag kept only its last value, so
+  // `--unset position --unset left --unset top` removed one declaration and said
+  // nothing about the other two. And "a style property has a hyphen" called
+  // `top` an attribute, so the edit was refused with `has no "top" attribute` —
+  // for a declaration the file was carrying.
+  const file = writeFixture("moved.html", starterHtml().replace(
+    'data-canvas="0,0" style="width:390px',
+    'data-canvas="600,2400" style="position:absolute;left:-85px;top:-352px;width:390px',
+  ));
+  const result = run(["set", file, "home", "--attr", "data-canvas=515,2048", "--unset", "position", "--unset", "left", "--unset", "top", "--json"]);
+  assert.equal(result.status, 0, result.stderr);
+  const receipt = JSON.parse(result.stdout);
+  assert.equal(receipt.applied.length, 4, JSON.stringify(receipt.applied));
+  assert.deepEqual(receipt.applied.map((op) => op.prop), ["data-canvas", "style:position", "style:left", "style:top"]);
+
+  const written = readFileSync(file, "utf8");
+  assert.match(written, /data-canvas="515,2048"/);
+  assert.ok(!/position:absolute|left:-85px|top:-352px/.test(written), written.slice(0, 400));
+
+  const validated = run(["validate", file]);
+  assert.equal(validated.status, 0);
+  assert.match(validated.stdout, /0 errors/);
+  assert.ok(!/structure\/page-position/.test(validated.stdout), validated.stdout);
+});
+
+test("set: a repeated --attr sets both attributes", () => {
+  const file = writeFixture("attrs.html", starterHtml());
+  const result = run(["set", file, "home", "--attr", "data-name=Home", "--attr", "data-locked=true", "--json"]);
+  assert.equal(result.status, 0, result.stderr);
+  const written = readFileSync(file, "utf8");
+  assert.match(written, /data-name="Home"/);
+  assert.match(written, /data-locked="true"/);
+});

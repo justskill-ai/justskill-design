@@ -251,3 +251,25 @@ test("the raster route refuses rather than substituting another format", async (
     return true;
   });
 });
+
+test("a page's canvas placement never reaches the deliverable", () => {
+  // A canvas drag once wrote where a page sits as `position:absolute` plus
+  // `left`/`top` on the page itself. The canvas places a page from
+  // `data-canvas` and ignores those declarations, so the file looked right
+  // there — and the shipped page was absolutely positioned at (-85,-352), a
+  // page of content pushed off the top-left corner of its own document.
+  const moved = file(`  <section data-id="home" data-type="page" data-name="首页" data-canvas="600,2400" style="display:flex;flex-direction:column;position:absolute;left:-85px;top:-352px;width:390px;background-color:var(--color-bg)">
+    <p data-id="home__title" data-type="text" style="font-size:32px;color:var(--color-ink)">你好</p>
+  </section>`);
+  const { html } = exportPage(parse(moved));
+  const section = /<section[^>]*>/.exec(html)[0];
+  assert.ok(!/position|left|top/.test(section), section);
+  assert.match(section, /flex-direction:column/, "the page's own layout is kept");
+  assert.match(section, /width:390px/);
+  assert.match(html, />你好</, "the content is still there");
+});
+
+test("a page with no placement of its own is exported byte for byte", () => {
+  const { html } = exportPage(parse(ONE_PAGE));
+  assert.match(html, /<section style="width:390px;height:844px">/);
+});

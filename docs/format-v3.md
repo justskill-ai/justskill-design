@@ -114,12 +114,29 @@
 | `data-icon` | `icon` | 字形名 |
 | `data-icon-library` | `icon` | 目前只有 `lucide` |
 | `data-ref` | `instance` | 组件的 `data-id` |
-| `data-overrides` | `instance` | 字段级覆盖。JSON 文本 |
+| `data-overrides` | `instance` | 字段级覆盖。JSON 文本。字段见 §3.1 |
 | `data-credit` | `image` | 署名。永不渲染 |
 
 `data-id` 规则：匹配 `^[A-Za-z_][A-Za-z0-9_-]{0,63}$`。在整个文件内唯一。自动补 id 时带页名前缀，写成 `home__title`。
 
 `data-id` 不是 HTML 的 `id` 属性。展开实例后 `data-id` 重复是预期行为。
+
+页面的位置只有一种写法：`data-canvas`。在页面自己的 `style` 里写 `position:absolute` 加 `left`/`top` 不算第二种写法。画布按 `data-canvas` 摆页面，所以文件里的那两句在画布上看不出问题。交付物里看得出：单页导出就是整篇文档，没有可定位的参照物，页面会被推出自己的左上角。导出会丢掉那几句声明，校验器报 `structure/page-position`。
+
+### 3.1 覆盖的字段
+
+`data-overrides` 是 JSON 文本。键是组件内某个后代的 `data-id`。值是字段对象，只有四种：
+
+| 字段 | 作用 |
+|---|---|
+| `content` | 换掉该节点的文本 |
+| `style` | 追加声明。同名声明覆盖组件自己的 |
+| `data-*` | 换掉一个属性。例如 `data-icon` |
+| `children` | 换掉该节点的 children。值是 HTML 片段 |
+
+`children` 是唯一的整段替换。`svg` 的几何图形在本格式里是字节，不是名字，所以换字形就是换几何：`data-icon` 和 `children` 要一起写。`content` 写进 `<svg>` 里的文本不在 `<text>` 里，一个字都不画。校验器报 `component/text-override-on-icon`。
+
+`style` 覆盖不了主尺寸。组件的 `width` 比 `align-self:stretch` 更硬，所以让实例跨轴填满要写 `width:100%`。
 
 ## 4. 文档模型
 
@@ -276,10 +293,10 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 |---|---|---|
 | `syntax/` | `lib/parse.mjs` | 未闭合标签、未闭合字符串、坏属性、坏注释 |
 | `style/` | `lib/table.mjs` + `lib/validate.mjs` | 未知属性、未知取值、别名、简写、未知块 |
-| `structure/` | `lib/validate.mjs` | 缺 id、重复 id、缺 type、类型与标签不符、未识别标签、缺必填属性、页在错误位置 |
+| `structure/` | `lib/validate.mjs` | 缺 id、重复 id、缺 type、类型与标签不符、未识别标签、缺必填属性、页在错误位置、页面自己写位置 |
 | `a11y/` | `lib/validate.mjs` | 图片缺 alt、对比度 |
 | `geometry/` | `lib/geometry.mjs` | 溢出、塌陷、裁切 |
-| `component/` | `lib/components.mjs` | 未知组件、循环、未知覆盖目标 |
+| `component/` | `lib/components.mjs` | 未知组件、循环、未知覆盖目标、覆盖里给字形写文本 |
 | `asset/` | `lib/validate.mjs` | 图片缺 src、字体族未知 |
 | `version/` | `lib/validate.mjs` | 缺 `design-schema`、版本不支持 |
 | `ops/` | `lib/ops.mjs` | 坏 op、节点未找到 |

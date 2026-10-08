@@ -228,6 +228,25 @@ test("an override changes one field and leaves the rest following the component"
   assert.match(markup, /color:#111827/, "an unmentioned field still follows the component");
 });
 
+test("an override can replace a glyph, because a glyph here is geometry", () => {
+  // `content` is text, and text inside an `<svg>` that is not inside a `<text>`
+  // draws nothing. A swapped icon therefore ships the new geometry, and the
+  // name moves with it so the label and the drawing agree.
+  const doc = file(`
+    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
+      <div data-id="tile" data-type="component" style="display:flex">
+        <svg data-id="tile__icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M1 1h2v2H1z"></path></svg>
+      </div>
+    </section>
+    <section data-id="home" data-type="page" style="width:1px;height:1px">
+      <div data-id="home__tile" data-type="instance" data-ref="tile" data-overrides='{"tile__icon":{"data-icon":"gem","children":"&lt;path d=\\"M9 3 3 9l9 13 9-13-6-6z\\"&gt;&lt;/path&gt;"}}' style="width:64px"></div>
+    </section>`);
+  const markup = renderModel(doc).pages.find((p) => p.id === "home").markup;
+  assert.match(markup, /data-icon="gem"/, "the name follows the swap");
+  assert.match(markup, /M9 3 3 9l9 13 9-13-6-6z/, "the new geometry is drawn");
+  assert.ok(!markup.includes("M1 1h2v2H1z"), "the component's old glyph is gone");
+});
+
 test("a component made of a component resolves through both levels", () => {
   const doc = file(`
     <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">

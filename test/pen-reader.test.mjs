@@ -20,6 +20,8 @@ import {
   importPen, parsePen, stripJsonComments, createLedger, tokensFromVariables,
   idMapFor, styleFromNode, ledgerLine,
 } from "../lib/readers/pen.mjs";
+import { renderModel } from "../lib/render.mjs";
+import { iconBody } from "../lib/icons.mjs";
 
 const REFERENCE = "/Users/xiguazhi/Developer/MyProjects/jiazheng-mono/design/miniprogram.pen";
 const hasReference = existsSync(REFERENCE);
@@ -160,7 +162,10 @@ test("a linear gradient becomes a background-image and a radial one is counted a
     type: "frame",
     fill: { type: "gradient", gradientType: "linear", rotation: 180, colors: [{ color: "#2E1F2600", position: 0 }, { color: "#2E1F26B3", position: 1 }] },
   }, new Map(), ledger);
-  assert.match(linear, /background-image:linear-gradient\(360deg,#2e1f2600 0%,#2e1f26b3 100%\)/);
+  // 180 means 180. Pen's own exporter writes the node's `rotation` straight
+  // through as the CSS angle, and the two files it was checked against are a
+  // 180deg caption scrim and a 135deg banner.
+  assert.match(linear, /background-image:linear-gradient\(180deg,#2e1f2600 0%,#2e1f26b3 100%\)/);
   const radial = styleFromNode({ type: "frame", fill: { type: "gradient", gradientType: "radial", colors: [{ color: "#000000", position: 0 }, { color: "#ffffff", position: 1 }] } }, new Map(), ledger);
   assert.ok(!/background-image/.test(radial));
   assert.equal(ledger.lost["gradient:radial"], 1);
@@ -287,6 +292,36 @@ test("overrides survive, keyed by the descendant's own id", { skip: !hasReferenc
   assert.ok(totalKeys > 0, "the overrides have keys");
 });
 
+test("an icon override carries the glyph's geometry, not its name as text", { skip: !hasReference }, () => {
+  const { html, ledger } = importPen(reference());
+  const doc = parse(html);
+  const glyphs = new Map();
+  let overrides = 0;
+  const visit = (node) => {
+    if (node.kind === "element" && getAttr(node, "data-type") === "instance") {
+      const raw = getAttr(node, "data-overrides");
+      if (raw) {
+        for (const fields of Object.values(JSON.parse(raw))) {
+          if (!fields || typeof fields !== "object" || !("data-icon" in fields)) continue;
+          overrides += 1;
+          glyphs.set(fields["data-icon"], fields.children);
+        }
+      }
+    }
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(doc);
+  // The reference file swaps a glyph on 18 instances — 8 on 首页, 7 on 月嫂详情,
+  // 3 on 我的 — and the 18 use 16 different names.
+  assert.equal(overrides, 18, `only ${overrides} icon overrides carried geometry`);
+  assert.equal(ledger.converted.iconOverrides, 18);
+  assert.ok(glyphs.has("gem") && glyphs.has("graduation-cap"));
+  for (const [name, body] of glyphs) {
+    assert.match(body, /^<(path|circle|rect|line|polyline|ellipse)/, `${name} has no geometry`);
+    assert.ok(!/^gem$|^\w[\w-]*$/.test(body), `${name} was written as a bare name, which draws nothing inside an <svg>`);
+  }
+});
+
 test("the ledger reads as one line a person can act on", { skip: !hasReference }, () => {
   const { ledger } = importPen(reference());
   const line = ledgerLine(ledger);
@@ -333,6 +368,20 @@ test("an absent layout is a row, not a column", () => {
 
   const none = styleFromNode({ type: "frame", layout: "none" }, new Map(), createLedger(), {});
   assert.ok(!/display:flex/.test(none), "layout none has no flow");
+});
+
+test("both of pen's layout defaults are flex-start, and the export says so", () => {
+  // Every row in the reference file that states no `alignItems` comes out of
+  // pen's own exporter as `align-items: flex-start`, and centring instead moved
+  // each nanny card's text block down by 2px against its 120px photo. Measured
+  // over the 25 artboards: 6.782 → 6.303 mean difference.
+  const row = styleFromNode({ type: "frame", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), {});
+  assert.match(row, /align-items:flex-start/);
+  const column = styleFromNode({ type: "frame", layout: "vertical", gap: 8 }, new Map(), createLedger(), {});
+  assert.match(column, /align-items:flex-start/);
+  // An explicit value still wins.
+  const centred = styleFromNode({ type: "frame", alignItems: "center", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), {});
+  assert.match(centred, /align-items:center/);
 });
 
 test("fill_container is spelled by the parent's axis", () => {
@@ -403,4 +452,60 @@ test("an imported ellipse carries its own radius, so a deliverable keeps it", ()
   const tag = html.slice(at, html.indexOf(">", at));
   assert.match(tag, /data-kind="ellipse"/, tag);
   assert.match(tag, /border-radius:50%/, tag);
+});
+
+test("a ref that fills the cross axis states a size, because stretch loses", () => {
+  // `align-self: stretch` stretches a flex item only while its own cross size is
+  // `auto`. A component states its size, so the master's 320px beat the stretch:
+  // the divider in the reference file's review list came out 320 wide where pen
+  // draws the list's 311.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      {
+        type: "frame", id: "lib", name: "组件库", width: 375, height: 100,
+        children: [{ type: "frame", id: "divider", name: "Divider", reusable: true, width: 320, height: 1, fill: "#F0E1E4" }],
+      },
+      {
+        type: "frame", id: "board", name: "Board", width: 375, height: 812, layout: "vertical", padding: [0, 16, 0, 16],
+        children: [{ type: "ref", id: "used", name: "Divider", ref: "divider", width: "fill_container" }],
+      },
+    ],
+  });
+  const { html } = importPen(pen);
+  const at = html.indexOf('data-id="used"');
+  const tag = html.slice(at, html.indexOf(">", at));
+  assert.match(tag, /data-type="instance"/);
+  assert.match(tag, /width:100%/, tag);
+  assert.ok(!/align-self/.test(tag), `stretch never beats the component's own width: ${tag}`);
+});
+
+test("a swapped glyph survives to the mount, with its name and its geometry together", () => {
+  // The reader writes `data-icon` plus `children`, and the renderer replaces the
+  // children. Half of that pair is a file whose label disagrees with its own
+  // drawing, and neither half alone draws the new glyph.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      {
+        type: "frame", id: "lib", name: "组件库", width: 375, height: 100,
+        children: [{
+          type: "frame", id: "tile", name: "Tile", reusable: true, layout: "vertical", width: 64,
+          children: [{ type: "icon", id: "ico", name: "Icon", icon: "sparkles", library: "lucide", width: 22, height: 22, fill: "#B8325E" }],
+        }],
+      },
+      {
+        type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{ type: "ref", id: "used", name: "Tile", ref: "tile", width: 64, descendants: { ico: { icon: "gem" } } }],
+      },
+    ],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.equal(ledger.converted.iconOverrides, 1);
+  const model = renderModel(parse(html));
+  const board = model.pages.find((p) => p.name === "Board");
+  const firstPath = (name) => /d="([^"]+)"/.exec(iconBody(name))[1];
+  assert.match(board.markup, /data-icon="gem"/, "the name moved with the glyph");
+  assert.ok(board.markup.includes(`d="${firstPath("gem")}"`), "gem's own geometry is drawn");
+  assert.ok(!board.markup.includes(`d="${firstPath("sparkles")}"`), "sparkles is gone from the instance");
 });

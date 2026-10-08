@@ -340,6 +340,26 @@ test("malformed overrides JSON is reported, not thrown", () => {
   assert.ok(codes(doc).includes("component/bad-overrides"));
 });
 
+test("a content override on a glyph is reported, because nothing would draw it", () => {
+  // Text inside an `<svg>` that is not inside a `<text>` draws nothing, so this
+  // patch leaves the icon in the file and the mount blank.
+  const doc = file(page(`
+    <div data-id="card" data-type="component" style="display:flex">
+      <svg data-id="card__icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M1 1h2v2H1z"></path></svg>
+    </div>
+    <div data-id="home__a" data-type="instance" data-ref="card" data-overrides='{"card__icon":{"content":"gem"}}' style="width:1px"></div>`));
+  const found = validateDesign(doc).find((d) => d.code === "component/text-override-on-icon");
+  assert.ok(found, "the erase is silent otherwise");
+  assert.match(found.hint, /children/);
+
+  const geometry = file(page(`
+    <div data-id="card" data-type="component" style="display:flex">
+      <svg data-id="card__icon" data-type="icon" data-icon="gem" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M1 1h2v2H1z"></path></svg>
+    </div>
+    <div data-id="home__a" data-type="instance" data-ref="card" data-overrides='{"card__icon":{"data-icon":"gem","children":"&lt;path d=\\"M3 3h2v2H3z\\"&gt;&lt;/path&gt;"}}' style="width:1px"></div>`));
+  assert.ok(!codes(geometry).includes("component/text-override-on-icon"), "the geometry patch is the way to swap a glyph");
+});
+
 test("a component loop is detected", () => {
   const doc = file(page(`
     <div data-id="a" data-type="component" style="display:flex">
@@ -484,4 +504,16 @@ test("the real icon fixture validates once geometry is the opaque layer", () => 
   const diagnostics = validateDesign(parse(text));
   assert.deepEqual(diagnostics.filter((d) => d.severity === "error"), [],
     `unexpected errors: ${JSON.stringify(diagnostics.filter((d) => d.severity === "error"), null, 2)}`);
+});
+
+test("a page that states its own placement is warned, and pointed at data-canvas", () => {
+  const doc = file(page("", `data-id="home" data-type="page" data-canvas="600,2400" style="display:flex;position:absolute;left:-85px;top:-352px;width:375px"`));
+  const found = validateDesign(doc).find((d) => d.code === "structure/page-position");
+  assert.ok(found, "two spellings for one page is what needs saying");
+  assert.equal(found.severity, "warning");
+  assert.match(found.message, /position, left, top/);
+  assert.match(found.hint, /600,2400/);
+
+  const clean = file(page("", `data-id="home" data-type="page" data-canvas="600,2400" style="display:flex;width:375px"`));
+  assert.ok(!codes(clean).includes("structure/page-position"));
 });

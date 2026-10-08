@@ -176,6 +176,12 @@ The file stores only the reference. The component's markup reaches the export
 and the canvas through the instance. Edit the component once and every instance
 follows; override one field and only that field is pinned.
 
+Four fields exist: `content` (the text), `style` (declarations), `data-*` (one
+attribute) and `children` (the node's markup). A glyph is geometry in this
+format, so swapping one icon is `data-icon` plus `children` together. `content`
+inside an `<svg>` draws nothing, and a `style` override cannot beat the
+component's own `width` — filling across the axis needs `width:100%`.
+
 **Editing a descendant id is editing the component.** In an imported pen file,
 `card__title` appears once, in the library, and 239 instances point at it. That
 is the point — one edit reaches every instance. When the user wants to change

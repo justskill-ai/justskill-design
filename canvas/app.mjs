@@ -794,13 +794,7 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   if (label || event.altKey) {
     const pageBox = target.closest(".page-box");
     if (pageBox) {
-      const box = state.boxes.get(pageBox.dataset.pageId);
-      drag = {
-        kind: "page", id: pageBox.dataset.pageId, element: pageBox,
-        startX: event.clientX, startY: event.clientY,
-        originX: box.position.x, originY: box.position.y,
-        zoom: state.camera.zoom,
-      };
+      drag = pageDrag(pageBox, pageBox.dataset.pageId, event);
       capturePointer(ui.viewport, event.pointerId);
       event.preventDefault();
       return;
@@ -817,12 +811,30 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   const hit = targetFromEvent(event);
   if (hit) {
     select(hit.id);
-    drag = { kind: "maybe-move", id: hit.id, startX: event.clientX, startY: event.clientY, moved: false, element: elementForId(hit.id) };
+    // A page is placed by `data-canvas`, and that is the only spelling for it.
+    // This used to fall through to the frame path below, which writes
+    // `position:absolute` plus `left`/`top`: the canvas ignores those on a page
+    // because it positions one from `data-canvas`, so the file looked right
+    // here while `export` shipped the page pushed off its own top-left corner.
+    drag = hit.kind === "page"
+      ? pageDrag(hit.element, hit.id, event)
+      : { kind: "maybe-move", id: hit.id, startX: event.clientX, startY: event.clientY, moved: false, element: elementForId(hit.id) };
     capturePointer(ui.viewport, event.pointerId);
   } else {
     select(null);
   }
 });
+
+/** A drag that moves a whole page. `data-canvas` is what it commits. */
+function pageDrag(pageBox, id, event) {
+  const box = state.boxes.get(id);
+  return {
+    kind: "page", id, element: pageBox,
+    startX: event.clientX, startY: event.clientY,
+    originX: box?.position?.x ?? 0, originY: box?.position?.y ?? 0,
+    zoom: state.camera.zoom,
+  };
+}
 
 ui.viewport.addEventListener("pointermove", (event) => {
   if (!drag) {
