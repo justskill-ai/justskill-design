@@ -3,3 +3,4 @@ test/.actual/
 *.log
 .DS_Store
 .idea/
+.shots/
