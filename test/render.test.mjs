@@ -11,7 +11,7 @@ import { parse, parseDeclarations } from "../lib/parse.mjs";
 import {
   renderModel, renderNodeHtml, styleMapOf, styleStringOf, resolveTokens,
   canvasPositionOf, expandInstance, componentMap, arrangePages, pageCss, pageTree,
-  canvasMountCss, RenderError, escapeText,
+  canvasMountCss, pagePaperRadius, RenderError, escapeText,
 } from "../lib/render.mjs";
 
 const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827;--space-md:16px;--color-bg:#ffffff}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
@@ -334,6 +334,30 @@ test("the canvas mount zeroes the page's outer margin, and nothing else", () => 
   const page = renderModel(doc);
   assert.ok(mount.startsWith(pageCss(page)), "the canvas adds its rule after the file's rules, and rewrites none of them");
   assert.ok(!/padding|box-sizing|display:flex;flex-direction:column/.test(mount.slice(pageCss(page).length)), "the canvas adds exactly one rule");
+});
+
+test("a page's paper takes the page's own radius, and a token in it is resolved", () => {
+  // The paper sits behind the page. The chrome's own 10px radius under a page
+  // that rounds itself at 24px leaves a white crescent in every corner — a shape
+  // the page never drew.
+  const head = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--radius-card:24px}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
+  const library = renderModel(file(
+    `<section data-id="lib" data-type="page" data-library="true" style="width:460px;border-radius:24px"></section>`,
+    head,
+  ));
+  assert.equal(pagePaperRadius(library.pages[0], library.tokens), "24px");
+
+  // The paper is drawn outside the shadow root, where the file's tokens are not
+  // defined. A `var()` left unresolved computes to nothing and the corner comes
+  // back square, which is exactly the crescent this fixes.
+  const tokenised = renderModel(file(
+    `<section data-id="lib" data-type="page" data-library="true" style="width:460px;border-radius:var(--radius-card)"></section>`,
+    head,
+  ));
+  assert.equal(pagePaperRadius(tokenised.pages[0], tokenised.tokens), "24px");
+
+  const square = renderModel(file(`<section data-id="home" data-type="page" style="width:375px"></section>`));
+  assert.equal(pagePaperRadius(square.pages[0], square.tokens), "", "a square page leaves the paper's own corner alone");
 });
 
 // -- the layer tree -----------------------------------------------------------

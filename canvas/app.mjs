@@ -21,7 +21,7 @@
 
 import { parse, getAttr, pagesOf } from "/lib/parse.mjs";
 import {
-  renderModel, canvasMountCss, renderNodeHtml, styleMapOf, styleStringOf,
+  renderModel, canvasMountCss, pagePaperRadius, renderNodeHtml, styleMapOf, styleStringOf,
   arrangePages, pageTree, resolveTokens, webfontLinks,
 } from "/lib/render.mjs";
 
@@ -274,6 +274,15 @@ function buildPageBox(page) {
   if (box.declaredHeight) element.style.height = `${box.declaredHeight}px`;
   if (page.isLibrary) element.style.outline = "1px dashed #4c8dff66";
 
+  // The paper is the page's own shape. A page can round its own corners — the
+  // component library is a 24px card, not a screen — and the paper sits behind
+  // it: a paper with the chrome's own 10px radius under a 24px page shows a white
+  // crescent in every corner, a shape the page never drew. The page's radius
+  // reaches the paper and the clip, so a page that declares a height is cut at
+  // its own shape and not at the paper's.
+  const pageRadius = pagePaperRadius(page, state.model.tokens);
+  if (pageRadius) element.style.borderRadius = pageRadius;
+
   const label = document.createElement("div");
   label.className = "page-label";
   label.textContent = `${page.name}${page.isLibrary ? " · library" : ""}`;
@@ -284,7 +293,7 @@ function buildPageBox(page) {
   host.style.width = "100%";
   host.style.height = box.declaredHeight ? "100%" : "auto";
   host.style.overflow = box.declaredHeight ? "hidden" : "visible";
-  host.style.borderRadius = "9px";
+  host.style.borderRadius = pageRadius || "9px";
   const root = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   // `canvasMountCss` is the file's rules plus the one rule the canvas owns: a
