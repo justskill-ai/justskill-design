@@ -11,7 +11,7 @@ import { parse, parseDeclarations } from "../lib/parse.mjs";
 import {
   renderModel, renderNodeHtml, styleMapOf, styleStringOf, resolveTokens,
   canvasPositionOf, expandInstance, componentMap, arrangePages, pageCss, pageTree,
-  RenderError, escapeText,
+  canvasMountCss, RenderError, escapeText,
 } from "../lib/render.mjs";
 
 const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827;--space-md:16px;--color-bg:#ffffff}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
@@ -313,6 +313,27 @@ test("a file that states no box model gets no box model from the canvas", () => 
   const css = pageCss(renderModel(doc));
   assert.ok(!/box-sizing/.test(css), `the canvas invented a box model: ${css}`);
   assert.match(css, /section\[data-type="page"\]\{margin:0 0 24px\}/, "the file's page-frame rule still applies");
+});
+
+test("the canvas mount zeroes the page's outer margin, and nothing else", () => {
+  // A page's outer margin is the document flow's business: it is what separates
+  // one page from the next when the file is opened in a browser. The canvas
+  // places pages itself, and the paper it draws is the page's own box. Left in
+  // place, the margin escapes the mount, the paper grows by 24px, and the chrome
+  // paints a white band under every page whose background is not white.
+  const doc = file(
+    `<section data-id="home" data-type="page" style="width:1px;height:1px"></section>`,
+  );
+  const mount = canvasMountCss(renderModel(doc));
+  assert.match(mount, /section\[data-type="page"\]\{margin:0\}/, "the canvas owns where a page sits");
+  assert.ok(
+    mount.indexOf('section[data-type="page"]{margin:0}') > mount.indexOf('section[data-type="page"]{margin:0 0 24px}'),
+    `the canvas's rule must come after the file's, so it wins: ${mount}`,
+  );
+  // Everything else the file declares still reaches the shadow root unchanged.
+  const page = renderModel(doc);
+  assert.ok(mount.startsWith(pageCss(page)), "the canvas adds its rule after the file's rules, and rewrites none of them");
+  assert.ok(!/padding|box-sizing|display:flex;flex-direction:column/.test(mount.slice(pageCss(page).length)), "the canvas adds exactly one rule");
 });
 
 // -- the layer tree -----------------------------------------------------------

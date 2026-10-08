@@ -21,7 +21,7 @@
 
 import { parse, getAttr, pagesOf } from "/lib/parse.mjs";
 import {
-  renderModel, pageCss, renderNodeHtml, styleMapOf, styleStringOf,
+  renderModel, canvasMountCss, renderNodeHtml, styleMapOf, styleStringOf,
   arrangePages, pageTree, resolveTokens, webfontLinks,
 } from "/lib/render.mjs";
 
@@ -287,7 +287,10 @@ function buildPageBox(page) {
   host.style.borderRadius = "9px";
   const root = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
-  style.textContent = pageCss(state.model);
+  // `canvasMountCss` is the file's rules plus the one rule the canvas owns: a
+  // page's outer margin is the document flow's business, and on the canvas the
+  // paper is exactly the page. See that function for what goes wrong without it.
+  style.textContent = canvasMountCss(state.model);
   root.appendChild(style);
 
   // The mount IS the page: same tag, same declarations, same `data-id`. The
