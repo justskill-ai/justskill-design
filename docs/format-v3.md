@@ -89,8 +89,10 @@
 | `text` | `p` `h1` `h2` `h3` `h4` `h5` `h6` `span` | — | 否 |
 | `image` | `img` | `src` `alt` | 否 |
 | `shape` | `div` | `data-kind` | 否 |
-| `icon` | `svg` | `data-icon` `data-icon-library` | 否 |
+| `icon` | `svg` | `data-icon` `data-icon-library` `viewBox` | 否 |
 | `instance` | `div` | `data-ref` | 否 |
+
+`icon` 的 `viewBox` 是必填。几何图形画在 24×24 的格子上，`viewBox` 说出这个格子。没有 `viewBox` 的 `<svg>` 没有坐标系：浏览器不缩放几何，只裁剪它。`target` 的三个圆变成一个弧，`signal` 的五根柱变成一个点。校验器报 `structure/icon-without-viewbox`。
 
 可选属性：
 

@@ -371,7 +371,7 @@ test("no element escapes validation: every element in the file is accounted for"
 
 test("svg geometry is the opaque layer: it is not validated as design elements", () => {
   const doc = file(page(`
-    <svg data-id="home__icon" data-type="icon" data-icon="shield-check" data-icon-library="lucide" style="width:24px;height:24px;color:#111827">
+    <svg data-id="home__icon" data-type="icon" data-icon="shield-check" data-icon-library="lucide" viewBox="0 0 24 24" style="width:24px;height:24px;color:#111827">
       <path d="M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6z"/>
       <circle cx="12" cy="12" r="3"/>
       <title>shield</title>
@@ -379,6 +379,26 @@ test("svg geometry is the opaque layer: it is not validated as design elements",
   const diagnostics = validateDesign(doc);
   assert.deepEqual(diagnostics.filter((d) => d.severity === "error"), [],
     `unexpected errors: ${JSON.stringify(diagnostics.filter((d) => d.severity === "error"), null, 2)}`);
+});
+
+test("an icon with geometry but no viewBox is an error, because it is clipped", () => {
+  // A `<svg>` with no `viewBox` has no coordinate system: the geometry is drawn
+  // in the element's own pixel box. `target`'s three rings then render as one
+  // arc and `signal`'s five bars as a single dot — no warning, no console
+  // message, just a different drawing.
+  const doc = file(page(`
+    <svg data-id="home__icon" data-type="icon" data-icon="target" data-icon-library="lucide" style="width:15px;height:15px">
+      <circle cx="12" cy="12" r="10"></circle>
+    </svg>`));
+  const found = validateDesign(doc).find((d) => d.code === "structure/icon-without-viewbox");
+  assert.ok(found, `expected structure/icon-without-viewbox, got ${codes(doc).join(", ")}`);
+  assert.match(found.hint, /viewBox="0 0 24 24"/);
+});
+
+test("an empty icon needs no viewBox, only geometry does", () => {
+  const doc = file(page(`
+    <svg data-id="home__icon" data-type="icon" data-icon="target" data-icon-library="lucide" style="width:15px;height:15px"></svg>`));
+  assert.ok(!codes(doc).includes("structure/icon-without-viewbox"));
 });
 
 test("an icon with no geometry is a warning with a fix", () => {

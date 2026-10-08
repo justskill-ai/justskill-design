@@ -357,3 +357,19 @@ test("an artboard's own layout reaches the page", () => {
   assert.match(page, /display:flex/);
   assert.match(page, /flex-direction:column/);
 });
+
+test("an imported glyph carries the grid it was drawn on", () => {
+  // Pen stores a glyph by name, and this format stores geometry — which means
+  // the element has to say what coordinate system that geometry is in. Without
+  // `viewBox` the browser does not scale the 24×24 drawing into a 15×15 box, it
+  // clips it.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 375, height: 812,
+      children: [{ type: "icon", id: "ico", name: "Target", icon: "target", library: "lucide", width: 15, height: 15, fill: "#2E1F26" }],
+    }],
+  });
+  const { html } = importPen(pen);
+  assert.match(html, /data-icon="target"[^>]*viewBox="0 0 24 24"/, `the icon has no grid: ${html.slice(html.indexOf("data-icon=\"target\"") - 120, html.indexOf("data-icon=\"target\"") + 160)}`);
+});
