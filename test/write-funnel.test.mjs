@@ -30,7 +30,7 @@ const START = `<!doctype html>
   <meta charset="utf-8">
   <title>funnel</title>
   <meta name="design-schema" content="3.0">
-  <style>:root{ --color-ink:#111827; --space-md:16px }</style>
+  <style>*,*::before,*::after{box-sizing:border-box}\n*{margin:0}\nimg{display:block}\nsvg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}\n:root{ --color-ink:#111827; --space-md:16px }</style>
   <style>section[data-type="page"]{ margin:0 0 24px }</style>
 </head>
 <body>

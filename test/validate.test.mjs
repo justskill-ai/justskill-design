@@ -13,7 +13,7 @@ import { parse } from "../lib/parse.mjs";
 import { validateDesign, summarize, newErrors, errorKeys, collectTokens, componentCycles } from "../lib/validate.mjs";
 import { parseDeclarations } from "../lib/parse.mjs";
 
-const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827;--space-md:16px}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
+const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>*,*::before,*::after{box-sizing:border-box}\n*{margin:0}\nimg{display:block}\nsvg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}\n:root{--color-ink:#111827;--space-md:16px}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
 
 function file(body, head = HEAD) {
   const text = `<!doctype html>\n<html lang="zh">\n${head}\n<body>\n${body}\n</body>\n</html>\n`;
@@ -26,6 +26,23 @@ function page(inner, attrs = 'data-id="home" data-type="page" data-canvas="0,0" 
 
 const codes = (doc, options) => validateDesign(doc, options).map((d) => d.code);
 const errorsOf = (doc, options) => validateDesign(doc, options).filter((d) => d.severity === "error");
+
+// -- the box model the file states about itself -------------------------------
+
+test("a file with no box model is told, because two renderers will disagree", () => {
+  // `width:375px;padding:0 24px` is 423px wide to a browser and 375px wide to a
+  // renderer that injects a reset. The file is the only place that can say which
+  // one it means, so a file that says nothing gets told.
+  const plain = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827}</style></head>`;
+  const found = validateDesign(file(page(""), plain));
+  const reported = found.find((d) => d.code === "style/no-base-rules");
+  assert.ok(reported, `expected style/no-base-rules, got ${found.map((d) => d.code).join(", ")}`);
+  assert.equal(reported.severity, "warning");
+  assert.match(reported.hint, /box-sizing:border-box/);
+
+  const withBase = validateDesign(file(page("")));
+  assert.ok(!withBase.some((d) => d.code === "style/no-base-rules"), "a file that states its box model is left alone");
+});
 
 // -- the clean case -----------------------------------------------------------
 

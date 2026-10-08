@@ -22,7 +22,7 @@
 import { parse, getAttr, pagesOf } from "/lib/parse.mjs";
 import {
   renderModel, pageCss, renderNodeHtml, styleMapOf, styleStringOf,
-  arrangePages, pageTree, resolveTokens,
+  arrangePages, pageTree, resolveTokens, webfontLinks,
 } from "/lib/render.mjs";
 
 // -- wire --------------------------------------------------------------------
@@ -194,18 +194,26 @@ function mountAll() {
   const positions = arrangePages(state.model.pages, { gap: 48, perRow: 4 });
   state.model.pages.forEach((page, index) => {
     const position = positions[index] ?? { x: 0, y: 0 };
+    const declaredHeight = parseFloat(page.height) || 0;
     state.boxes.set(page.id, {
       position,
       width: parseFloat(page.width) || 390,
-      height: parseFloat(page.height) || 844,
+      // The content decides, unless the page declares a height. The number here
+      // is provisional and `measurePageBoxes` replaces it before the camera
+      // fits the view.
+      height: declaredHeight || 844,
+      declaredHeight,
       statements: styleMapOf(page.node),
     });
   });
+
+  applyWebfonts();
 
   ui.canvas.textContent = "";
   for (const page of state.model.pages) {
     ui.canvas.appendChild(buildPageBox(page));
   }
+  measurePageBoxes();
   applyCamera();
   drawOverlay();
 
@@ -213,6 +221,29 @@ function mountAll() {
   ui.revision.textContent = `${state.revision} · ${ms}ms`;
   ui.readonly.hidden = !state.readOnly;
   if (state.readOnly) ui.readonly.title = state.readOnlyReason;
+}
+
+/**
+ * Ask for the same fonts `export` declares.
+ *
+ * A design that wraps differently on the canvas than in the deliverable is a
+ * design the author approved without seeing. The canvas cannot inline a font, so
+ * it requests the same stylesheets the deliverable will, and a machine with no
+ * network falls back exactly as the deliverable would.
+ */
+function applyWebfonts() {
+  for (const link of document.querySelectorAll("link[data-canvas-font]")) link.remove();
+  const hrefs = new Set();
+  for (const page of state.model.pages) {
+    for (const href of webfontLinks(state.model, page)) hrefs.add(href);
+  }
+  for (const href of hrefs) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    link.dataset.canvasFont = "";
+    document.head.appendChild(link);
+  }
 }
 
 function buildPageBox(page) {
@@ -223,7 +254,10 @@ function buildPageBox(page) {
   element.style.left = `${box.position.x}px`;
   element.style.top = `${box.position.y}px`;
   element.style.width = `${box.width}px`;
-  element.style.height = `${box.height}px`;
+  // A page that declares no height is as tall as its content. Pinning it to a
+  // guessed 844 is how a page gets a scrollbar in the file and a hard cut on the
+  // canvas, with the bottom third of the design simply not drawn.
+  if (box.declaredHeight) element.style.height = `${box.declaredHeight}px`;
   if (page.isLibrary) element.style.outline = "1px dashed #4c8dff66";
 
   const label = document.createElement("div");
@@ -232,21 +266,45 @@ function buildPageBox(page) {
   element.appendChild(label);
 
   const host = document.createElement("div");
+  host.className = "page-host";
   host.style.width = "100%";
-  host.style.height = "100%";
-  host.style.overflow = "hidden";
+  host.style.height = box.declaredHeight ? "100%" : "auto";
+  host.style.overflow = box.declaredHeight ? "hidden" : "visible";
   host.style.borderRadius = "9px";
   const root = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   style.textContent = pageCss(state.model);
   root.appendChild(style);
-  const mount = document.createElement("div");
-  mount.style.cssText = "width:100%;height:100%;position:relative";
+
+  // The mount IS the page: same tag, same declarations, same `data-id`. The
+  // canvas used to mount the page's children into a plain block `<div>`, which
+  // threw away `display:flex`, `align-items`, `gap`, `padding` and the
+  // background in one go. Every child with no width of its own then filled the
+  // page instead of hugging its content, and every padded child grew by its own
+  // padding. The file said one thing; the canvas drew another.
+  const mount = document.createElement("section");
+  mount.setAttribute("data-id", page.id);
+  mount.setAttribute("data-type", "page");
+  mount.setAttribute("data-name", page.name);
+  mount.style.cssText = styleStringOf(page.declarations);
   mount.innerHTML = page.markup;
   root.appendChild(mount);
   element.appendChild(host);
 
   return element;
+}
+
+/** The height a page takes on the canvas: its own, or what its content needs. */
+function measurePageBoxes() {
+  for (const page of state.model.pages) {
+    const box = state.boxes.get(page.id);
+    if (!box || box.declaredHeight) continue;
+    const host = ui.canvas.querySelector(`.page-box[data-page-id="${CSS.escape(page.id)}"] .page-host`);
+    const mount = host?.shadowRoot?.querySelector("section[data-type=\"page\"]");
+    if (!mount) continue;
+    const height = mount.getBoundingClientRect().height;
+    if (Number.isFinite(height) && height > 0) box.height = height;
+  }
 }
 
 // -- mapping a click back to a data-id --------------------------------------

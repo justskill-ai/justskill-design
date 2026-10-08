@@ -336,3 +336,42 @@ test("a hand-written self-closing tag keeps its own spelling when nothing change
   const text = `<section data-id="home" data-type="page" style="width:1px;height:1px"><img data-id="b" data-type="image" src="a.png" alt="" style="width:1px;height:1px"/></section>`;
   assert.equal(serialize(parse(text)), text);
 });
+
+// -- raw text inside a style block --------------------------------------------
+
+test("a style block keeps its own bytes: `>` is a selector, not an entity", () => {
+  // The rule that broke: `svg:not([fill]) > path` was written back as
+  // `svg:not([fill]) &gt; path`. An escaped combinator is not a parse error,
+  // not a warning, and not a rule — the browser drops the whole block silently
+  // and the icons render as black silhouettes on one renderer and not another.
+  const text = `<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="design-schema" content="3.0">
+<style>*,*::before,*::after{box-sizing:border-box}
+:root{--color-ink:#111827}</style>
+</head>
+<body>
+<section data-id="home" data-type="page" style="width:390px;height:844px"><svg data-id="i" data-type="icon" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M0 0h24"></path></svg></section>
+</body>
+</html>
+`;
+  const doc = parse(text);
+  assert.equal(serialize(doc), text, "an untouched file is returned as written");
+  const canonical = serializeCanonical(parse(text));
+  assert.ok(canonical.includes("box-sizing:border-box"), "the rule survives");
+  assert.ok(!canonical.includes("&gt;"), `a style block must not be escaped: ${canonical.slice(0, 200)}`);
+  assert.equal(serializeCanonical(parse(canonical)), canonical, "canonical text is stable");
+});
+
+test("an incremental edit inside a style block does not escape it either", () => {
+  const text = `<style>a > b{color:red}\n:root{--x:1px}</style><p data-id="p" data-type="text">hi</p>`;
+  const doc = parse(text);
+  const style = doc.children.find((n) => n.tag === "style");
+  const rule = style.children[0];
+  rule.value = "a > b{color:blue}\n:root{--x:1px}";
+  const out = serialize(doc, doc);
+  assert.ok(out.includes("a > b{color:blue}"), `raw text stays raw: ${out}`);
+  assert.ok(!out.includes("&gt;"), `raw text stays raw: ${out}`);
+});

@@ -265,21 +265,35 @@ test("nested instances that resolve without a cycle expand", () => {
 
 // -- shadow root css ----------------------------------------------------------
 
-test("page CSS carries the token block, the reset and the file's page-frame rule", () => {
-  const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px"></section>`);
-  const model = renderModel(doc, { resolveTokens: false });
-  const css = pageCss(model, { resolveTokens: false });
-  assert.match(css, /:root\{/);
-  assert.match(css, /--color-ink:#111827/);
-  assert.match(css, /box-sizing:border-box/);
-  assert.match(css, /section\[data-type="page"\]\{margin:0 0 24px\}/);
+test("page CSS is the file's own rules, and not a reset the canvas invented", () => {
+  // A shadow root cannot see the document's stylesheets, so the canvas has to
+  // copy them in. What it must NOT do is add rules of its own: a canvas that
+  // supplies its own box model renders a document the file does not describe,
+  // and the author finds out at export time.
+  const base = `<style>*,*::before,*::after{box-sizing:border-box}\n*{margin:0}\n:root{--color-ink:#111827}</style>`;
+  const doc = file(
+    `<section data-id="home" data-type="page" style="width:1px;height:1px"></section>`,
+    `<head><meta charset="utf-8"><meta name="design-schema" content="3.0">${base}</head>`,
+  );
+  const css = pageCss(renderModel(doc));
+  assert.match(css, /box-sizing:border-box/, "the file's box model reaches the shadow root");
+  assert.match(css, /\*\{margin:0\}/, "the file's margin reset reaches the shadow root");
+  assert.match(css, /:host\{--color-ink:#111827\}/, "`:root` matches nothing in a shadow tree, so the tokens go on the host");
+  // An inherited property crosses a shadow boundary. The canvas chrome sets its
+  // own `line-height` on the document, and without this the page's labels inherit
+  // it and every one of them is a pixel taller than in the file.
+  assert.match(css, /:host\{all:initial/, "the page must not inherit the canvas chrome's own type");
+  assert.ok(!/:root\{/.test(css), `:root cannot match inside a shadow root: ${css}`);
 });
 
-test("when tokens are resolved into the markup the shadow CSS omits them", () => {
-  const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px"></section>`);
-  const model = renderModel(doc);
-  const css = pageCss(model);
-  assert.ok(!css.includes("--color-ink"), `token block leaked into the shadow root: ${css}`);
+test("a file that states no box model gets no box model from the canvas", () => {
+  const doc = file(
+    `<section data-id="home" data-type="page" style="width:1px;height:1px"></section>`,
+    `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`,
+  );
+  const css = pageCss(renderModel(doc));
+  assert.ok(!/box-sizing/.test(css), `the canvas invented a box model: ${css}`);
+  assert.match(css, /section\[data-type="page"\]\{margin:0 0 24px\}/, "the file's page-frame rule still applies");
 });
 
 // -- the layer tree -----------------------------------------------------------

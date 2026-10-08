@@ -38,6 +38,25 @@
 
 - 页是 `<section data-type="page">`。页在文件里按文档顺序排列。
 - 令牌块与页框块只能出现在 `<head>` 的一个或两个 `<style>` 里。两个块都要保留。**它们必须合并，不是后者覆盖前者。**
+- 令牌块里，`:root{…}` 之前要写基础规则。基础规则是文件对自己的陈述：
+
+  ```css
+  *,*::before,*::after{box-sizing:border-box}
+  *{margin:0}
+  img{display:block}
+  svg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  ```
+
+  四条规则各堵一个浏览器默认值：
+
+  | 默认值 | 不写会怎样 |
+  |---|---|
+  | `box-sizing:content-box` | `width:375px;padding:0 24px` 变 423px 宽 |
+  | `p` 自带 `margin:1em` | 一行标签高 1em 的两倍 |
+  | SVG `fill` 默认黑 | 描边字形变黑剪影 |
+  | `stroke-width` 默认 1 | 字形比 24 视框下细一半 |
+
+  文件必须自己说。画布与 `export` 只注入文件里写下的规则，不自己造一条。缺基础规则时校验器报 `style/no-base-rules`。`design new` 与 `design import` 会写上。
 - `<body>` 里的 `<style>` 是错误。报 `style/style-in-body`。
 - 页在画布上的位置写在 `data-canvas="x,y"`。
 - 其余元素一律带 `style` 属性。

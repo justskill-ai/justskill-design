@@ -116,8 +116,10 @@ test("a reference fill becomes a var()", () => {
   assert.match(style, /color:var\(--v2-ink\)/);
 });
 
-test("a pill radius becomes 50 percent", () => {
-  assert.match(styleFromNode({ type: "frame", cornerRadius: 9999 }, new Map(), createLedger()), /border-radius:50%/);
+test("a pill radius stays a pixel radius, because 50% draws an ellipse", () => {
+  // A percentage radius measures against both axes, so `50%` on a 375x48 button
+  // is an ellipse and not the pill the author drew.
+  assert.match(styleFromNode({ type: "frame", cornerRadius: 9999 }, new Map(), createLedger()), /border-radius:9999px/);
   assert.match(styleFromNode({ type: "frame", cornerRadius: 24 }, new Map(), createLedger()), /border-radius:24px/);
 });
 
@@ -311,7 +313,7 @@ test("an absent layout is a row, not a column", () => {
   // frames in the reference file, so this is pinned by name.
   const row = styleFromNode({ type: "frame", width: "fill_container", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), { parentIsColumn: true });
   assert.match(row, /flex-direction:row/);
-  assert.match(row, /align-self:stretch/);
+  assert.match(row, /width:100%/);
 
   const column = styleFromNode({ type: "frame", layout: "vertical", gap: 8 }, new Map(), createLedger(), {});
   assert.match(column, /flex-direction:column/);
@@ -328,7 +330,9 @@ test("fill_container is spelled by the parent's axis", () => {
   assert.ok(!/align-self/.test(inRow), `stretching across a row is a height change: ${inRow}`);
 
   const inColumn = styleFromNode({ type: "frame", width: "fill_container", children: [{ type: "text", id: "t" }] }, new Map(), createLedger(), { parentIsColumn: true });
-  assert.match(inColumn, /align-self:stretch/);
+  // `align-self:stretch` is the obvious spelling and the wrong one: the parent's
+  // own `align-items` overrides it, and pen's column default is `flex-start`.
+  assert.match(inColumn, /width:100%/);
   assert.ok(!/flex:1/.test(inColumn), `sharing the main axis of a column is a height change: ${inColumn}`);
 });
 
