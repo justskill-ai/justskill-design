@@ -233,10 +233,10 @@ function mountAll() {
  */
 function applyWebfonts() {
   for (const link of document.querySelectorAll("link[data-canvas-font]")) link.remove();
-  const hrefs = new Set();
-  for (const page of state.model.pages) {
-    for (const href of webfontLinks(state.model, page)) hrefs.add(href);
-  }
+  // One request per family for the whole file. One per PAGE is a request per
+  // page for the same family — ten stylesheets for two families, and the same
+  // face declared more than once.
+  const hrefs = new Set(webfontLinks(state.model));
   for (const href of hrefs) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
