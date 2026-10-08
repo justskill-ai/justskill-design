@@ -126,6 +126,16 @@ test("a pill radius stays a pixel radius, because 50% draws an ellipse", () => {
   assert.match(styleFromNode({ type: "frame", cornerRadius: 24 }, new Map(), createLedger()), /border-radius:24px/);
 });
 
+test("pen's ellipse becomes data-kind plus the one radius that draws an ellipse", () => {
+  // pen's `ellipse` is a true ellipse: `rx` and `ry` differ when the box is not
+  // square, which is exactly what a percentage radius draws. It goes on the node
+  // and not into a `[data-kind="ellipse"]` rule, because `export` strips the
+  // design attributes and the rule would stop matching in the deliverable.
+  const style = styleFromNode({ type: "ellipse", fill: "#FCE7F3" }, new Map(), createLedger());
+  assert.match(style, /background-color:#fce7f3/);
+  assert.match(style, /border-radius:50%/);
+});
+
 test("a stroke becomes a border, and a per-side stroke keeps its sides", () => {
   const uniform = styleFromNode({ type: "frame", stroke: "#8A6E74", strokeWidth: 1 }, new Map(), createLedger());
   assert.match(uniform, /border:1px solid #8a6e74/);
@@ -375,4 +385,22 @@ test("an imported glyph carries the grid it was drawn on", () => {
   });
   const { html } = importPen(pen);
   assert.match(html, /data-icon="target"[^>]*viewBox="0 0 24 24"/, `the icon has no grid: ${html.slice(html.indexOf("data-icon=\"target\"") - 120, html.indexOf("data-icon=\"target\"") + 160)}`);
+});
+
+test("an imported ellipse carries its own radius, so a deliverable keeps it", () => {
+  // `data-kind` alone is not enough: `export` drops every `data-*` attribute, so
+  // a rule keyed on it rounds the node in the file and leaves the shipped page
+  // square. The declaration rides on the element instead.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 375, height: 812,
+      children: [{ type: "ellipse", id: "dot", name: "Avatar", width: 44, height: 44, fill: "#FCE7F3" }],
+    }],
+  });
+  const { html } = importPen(pen);
+  const at = html.indexOf('data-id="dot"');
+  const tag = html.slice(at, html.indexOf(">", at));
+  assert.match(tag, /data-kind="ellipse"/, tag);
+  assert.match(tag, /border-radius:50%/, tag);
 });

@@ -53,10 +53,13 @@
   |---|---|
   | `box-sizing:content-box` | `width:375px;padding:0 24px` 变 423px 宽 |
   | `p` 自带 `margin:1em` | 一行标签高 1em 的两倍 |
+  | `img` 默认 `inline` | 图片下方多出一条基线的空隙 |
   | SVG `fill` 默认黑 | 描边字形变黑剪影 |
   | `stroke-width` 默认 1 | 字形比 24 视框下细一半 |
 
-  文件必须自己说。画布与 `export` 只注入文件里写下的规则，不自己造一条。缺基础规则时校验器报 `style/no-base-rules`。`design new` 与 `design import` 会写上。
+  文件必须自己说。画布与 `export` 只注入文件里写下的规则，不自己造一条。缺基础规则时校验器报 `style/no-base-rules`，只缺其中几条时报 `style/incomplete-base-rules` 并点名缺哪条：只缺一条的文件盒模型是对的，页面看着没错，只有一个字形或一个形状是错的——静默的差别正是这个格式不允许的东西。
+
+  **基础规则的选择器只认元素，不认 `data-*`。** 一条 `[data-kind="ellipse"]{border-radius:50%}` 比 28 个节点各自声明短，但它是错的：`export` 会丢掉设计层的属性，规则在交付物里不再匹配，圆就变成方。节点长什么样，写在节点自己的 `style` 里。
 - `<body>` 里的 `<style>` 是错误。报 `style/style-in-body`。
 - 页在画布上的位置写在 `data-canvas="x,y"`。
 - 其余元素一律带 `style` 属性。
@@ -96,6 +99,8 @@
 
 `icon` 的 `viewBox` 是必填。几何图形画在 24×24 的格子上，`viewBox` 说出这个格子。没有 `viewBox` 的 `<svg>` 没有坐标系：浏览器不缩放几何，只裁剪它。`target` 的三个圆变成一个弧，`signal` 的五根柱变成一个点。校验器报 `structure/icon-without-viewbox`。
 
+`data-kind="ellipse"` 说形状，形状画在节点自己的 `style` 里：`border-radius:50%`。`div` 默认是矩形，圆角是唯一让它变圆的东西，而 `50%` 是唯一画得出椭圆的写法——它按盒子自身的宽高分别计算，所以 60×20 是椭圆，`9999px` 会被截到短边的一半，画成胶囊。校验器报 `style/ellipse-without-radius`。
+
 可选属性：
 
 | 属性 | 用在 | 规则 |
@@ -105,7 +110,7 @@
 | `data-locked` | 任何 | `"true"`。画布不拖动。不产生 CSS |
 | `data-canvas` | `page` | `"x,y"`。画布位置。缺省时画布按栅格排布 |
 | `data-library` | `page` | `"true"`。组件库页，不是交付物 |
-| `data-kind` | `shape` | `rect`（默认）｜`ellipse`｜`line` |
+| `data-kind` | `shape` | `rect`（默认）｜`ellipse`。`ellipse` 要配 `border-radius:50%` |
 | `data-icon` | `icon` | 字形名 |
 | `data-icon-library` | `icon` | 目前只有 `lucide` |
 | `data-ref` | `instance` | 组件的 `data-id` |

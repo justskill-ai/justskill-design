@@ -44,6 +44,50 @@ test("a file with no box model is told, because two renderers will disagree", ()
   assert.ok(!withBase.some((d) => d.code === "style/no-base-rules"), "a file that states its box model is left alone");
 });
 
+test("a file written before a base rule existed is told which rule it is missing", () => {
+  // The box model holds, so nothing about the page looks broken. One glyph
+  // paints as a black silhouette, or one shape has no meaning, and only that
+  // node knows. A difference like that cannot be silent, so the file is told the
+  // rule by name.
+  const before = HEAD.replace("img{display:block}\n", "").replace("</style>", "</style>", 1);
+  const found = validateDesign(file(page(""), before));
+  const reported = found.find((d) => d.code === "style/incomplete-base-rules");
+  assert.ok(reported, `expected style/incomplete-base-rules, got ${found.map((d) => d.code).join(", ")}`);
+  assert.equal(reported.severity, "warning");
+  assert.match(reported.message, /img\{display:block\}/, "the message names the rule to add");
+  assert.match(reported.message, /one base rule/, "a single missing rule is counted in the singular");
+  assert.ok(!found.some((d) => d.code === "style/no-base-rules"), "the file does state a box model");
+
+  // The same rule written in a different spelling is the same rule. Whitespace
+  // and quotes are not part of what the file means.
+  const rewritten = HEAD.replace(
+    "svg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}",
+    "svg:not([data-fill])> :not([fill]):not([stroke]) { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }",
+  );
+  const rewrittenFound = validateDesign(file(page(""), rewritten));
+  assert.ok(!rewrittenFound.some((d) => d.code === "style/incomplete-base-rules"), `a rule is not its spelling: ${rewrittenFound.map((d) => `${d.code} ${d.message}`).join(" | ")}`);
+
+  assert.ok(!validateDesign(file(page(""))).some((d) => d.code === "style/incomplete-base-rules"), "the canonical header is complete");
+});
+
+test("an ellipse that nothing rounds is told, because a div is a rectangle", () => {
+  const body = (style) => page(`    <div data-id="home__dot" data-type="shape" data-kind="ellipse" style="${style}"></div>`);
+  const flat = file(body("width:44px;height:44px;background-color:#fce7f3"));
+  const reported = validateDesign(flat).find((d) => d.code === "style/ellipse-without-radius");
+  assert.ok(reported, "a declared ellipse with no radius draws as a square");
+  assert.equal(reported.severity, "warning");
+  assert.match(reported.hint, /border-radius:50%/);
+
+  const round = file(body("width:44px;height:44px;background-color:#fce7f3;border-radius:50%"));
+  assert.ok(!codes(round).includes("style/ellipse-without-radius"), "a rounded ellipse is left alone");
+
+  // A rule in the head is not a fix. It rounds the node in the file and stops
+  // matching in the deliverable, where the design attributes are gone.
+  const head = HEAD.replace("</style></head>", '</style></head>');
+  const byRule = parse(`<!doctype html>\n<html lang="zh">\n${head}\n<body>\n${body("width:44px;height:44px;background-color:#fce7f3")}\n</body>\n</html>\n`);
+  assert.ok(codes(byRule).includes("style/ellipse-without-radius"), "a data-kind selector cannot ship");
+});
+
 // -- the clean case -----------------------------------------------------------
 
 test("a well formed file validates with no diagnostics", () => {

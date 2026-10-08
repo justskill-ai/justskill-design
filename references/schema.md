@@ -47,7 +47,7 @@ Additional attributes by type:
 |---|---|---|
 | `page` | `data-canvas` | `"x,y"`, the position on the canvas. |
 | `page` | `data-library` | `"true"` marks a component library page, which `export --all` skips. |
-| `shape` | `data-kind` | One of: `rect`, `ellipse`, `line`. |
+| `shape` | `data-kind` | One of: `rect`, `ellipse`. |
 | `icon` | `data-icon` | The glyph name. |
 | `icon` | `data-icon-library` | One of: `lucide`. |
 | `instance` | `data-ref` | The `data-id` of a component. |

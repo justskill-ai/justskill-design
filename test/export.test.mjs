@@ -63,8 +63,21 @@ test("the design layer is stripped: every data-* marker is gone", () => {
   assert.match(html, /你好/, "the content is not");
 });
 
-test("a data-id inside text is not touched", () => {
-  const doc = file(`  <section data-id="home" data-type="page" style="width:1px;height:1px">
+test("an ellipse ships round, because its radius is not a data attribute", () => {
+  // The shape a node is has to survive the stripping. A rule keyed on
+  // `data-kind="ellipse"` would round the node in the file and stop matching in
+  // the deliverable, because `data-kind` is part of the design layer — so a
+  // circle would ship as a square, and the file would be the only place it was
+  // ever a circle.
+  const doc = file(`  <section data-id="home" data-type="page" style="width:390px;height:844px">
+    <div data-id="home__avatar" data-type="shape" data-kind="ellipse" data-name="Avatar" style="width:44px;height:44px;background-color:#fce7f3;border-radius:50%"></div>
+  </section>`);
+  const { html } = exportPage(parse(doc));
+  assert.ok(!/data-kind=/.test(html), "the kind marker is design layer");
+  assert.match(html, /border-radius:50%/, `the deliverable lost the shape: ${html.slice(html.indexOf("<body"))}`);
+});
+
+test("a data-id inside text is not touched", () => {  const doc = file(`  <section data-id="home" data-type="page" style="width:1px;height:1px">
     <p data-id="home__t" data-type="text" style="font-size:12px;color:#111827">see data-id="home" and data-type=frame</p>
   </section>`);
   const { html } = exportPage(parse(doc));
