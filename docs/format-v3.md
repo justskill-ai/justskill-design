@@ -92,6 +92,8 @@
 | `icon` | `svg` | `data-icon` `data-icon-library` `viewBox` | 否 |
 | `instance` | `div` | `data-ref` | 否 |
 
+`font-family` 的末尾要有一个通用族。`"Noto Serif SC"` 单独出现的意思是「Noto Serif SC，或者这台机器的文档默认字体」，而文档默认在多数引擎上是衬线体。装了 webfont 的机器看着对，装不上的机器（离线、走代理、构建机）就是另一个设计。pen 的导出在它写的每个字体族后面都补 `system-ui, sans-serif`，读入器照做。校验器报 `style/no-generic-family`。
+
 `icon` 的 `viewBox` 是必填。几何图形画在 24×24 的格子上，`viewBox` 说出这个格子。没有 `viewBox` 的 `<svg>` 没有坐标系：浏览器不缩放几何，只裁剪它。`target` 的三个圆变成一个弧，`signal` 的五根柱变成一个点。校验器报 `structure/icon-without-viewbox`。
 
 可选属性：

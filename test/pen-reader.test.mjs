@@ -66,7 +66,10 @@ test("variables become tokens, with the group taken from the name", () => {
   assert.equal(tokens.get("--space-md").value, "24px");
   assert.equal(tokens.get("--color-accent").value, "#b8325e", "hex is normalised to lower case");
   assert.equal(tokens.get("--radius-full").value, "9999px");
-  assert.equal(tokens.get("--font-v2-sans").value, '"Noto Sans SC"', "a name without a group gets one");
+  // Pen's own export writes `system-ui, sans-serif` after every family it
+  // emits. A list that ends in a webfont ends in something the machine may not
+  // have, and the fallback is then the document default.
+  assert.equal(tokens.get("--font-v2-sans").value, '"Noto Sans SC", system-ui, sans-serif', "a name without a group gets one, and a family list gets a fallback");
   assert.equal(tokens.get("--color-brand").value, "#111111");
   assert.equal(refs.get("space-md"), "--space-md");
 });

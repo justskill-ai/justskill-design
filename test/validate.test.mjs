@@ -381,6 +381,21 @@ test("svg geometry is the opaque layer: it is not validated as design elements",
     `unexpected errors: ${JSON.stringify(diagnostics.filter((d) => d.severity === "error"), null, 2)}`);
 });
 
+test("a family list with no generic family is told what to write", () => {
+  // `"Noto Serif SC"` alone means "Noto Serif SC, or whatever this machine uses
+  // for text", and that is a serif face on most engines. The design then looks
+  // like a different design on any machine that cannot fetch the webfont.
+  const doc = file(page(`
+    <p data-id="home__t" data-type="text" style="font-family:&quot;Noto Serif SC&quot;;font-size:19px">标题</p>`));
+  const found = validateDesign(doc).find((d) => d.code === "style/no-generic-family");
+  assert.ok(found, `expected style/no-generic-family, got ${codes(doc).join(", ")}`);
+  assert.match(found.hint, /system-ui, sans-serif/);
+
+  const fine = file(page(`
+    <p data-id="home__t" data-type="text" style="font-family:&quot;Noto Serif SC&quot;, system-ui, sans-serif;font-size:19px">标题</p>`));
+  assert.ok(!codes(fine).includes("style/no-generic-family"), "a list that ends in a generic is left alone");
+});
+
 test("an icon with geometry but no viewBox is an error, because it is clipped", () => {
   // A `<svg>` with no `viewBox` has no coordinate system: the geometry is drawn
   // in the element's own pixel box. `target`'s three rings then render as one
