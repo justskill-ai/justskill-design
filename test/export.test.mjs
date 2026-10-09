@@ -273,3 +273,39 @@ test("a page with no placement of its own is exported byte for byte", () => {
   const { html } = exportPage(parse(ONE_PAGE));
   assert.match(html, /<section style="width:390px;height:844px">/);
 });
+
+// -- the document's own surface ----------------------------------------------
+
+test("the document takes the page's own background colour", () => {
+  // A deliverable is one page in a document, and the page covers its own box and
+  // nothing more. A viewport taller than the page shows what is behind it — in
+  // the reference file 13 of 26 pages are shorter than an 812px screen, the
+  // shortest by 339px. Left white, that is a colour the design never chose.
+  const papered = file(`  <section data-id="home" data-type="page" data-name="首页" style="width:390px;background-color:var(--color-bg)">
+    <p data-id="home__title" data-type="text" style="font-size:32px">你好</p>
+  </section>`);
+  const { html } = exportPage(parse(papered));
+  assert.match(html, /<body style="background-color:var\(--color-bg\)">/, html.slice(html.indexOf("<body")));
+
+  // The value is copied, not invented: a page that states no surface gets no
+  // surface on the document, and the deliverable stays byte for byte what it was.
+  const bare = exportPage(parse(ONE_PAGE)).html;
+  assert.match(bare, /<body>\n/, "no colour to copy, no colour to write");
+
+  // `transparent` is not a surface either. Writing it would say the same thing as
+  // writing nothing, in a place a reader has to go and check.
+  const clear = file(`  <section data-id="home" data-type="page" data-name="首页" style="width:390px;background-color:transparent"></section>`);
+  assert.match(exportPage(parse(clear)).html, /<body>\n/);
+});
+
+test("baking the tokens bakes the document's background too", () => {
+  // `--resolve-tokens` drops the token block, so a `var()` left on `<body>` would
+  // refer to nothing and the document would fall back to white — the colour the
+  // page does not use, in the one place this change exists to fix.
+  const papered = file(`  <section data-id="home" data-type="page" data-name="首页" style="width:390px;background-color:var(--color-bg)">
+    <p data-id="home__title" data-type="text" style="font-size:32px;color:var(--color-ink)">你好</p>
+  </section>`);
+  const { html } = exportPage(parse(papered), { resolveTokens: true });
+  assert.match(html, /<body style="background-color:#ffffff">/);
+  assert.ok(!/<style>[\s\S]*:root\{/.test(html), "no token block is left to resolve against");
+});

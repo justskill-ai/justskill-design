@@ -243,6 +243,11 @@ for them; a screenshot taken before a web font arrives is captured in the
 fallback family, where the text wraps at different words and everything below it
 moves.
 
+The HTML deliverable takes the page's own `background-color` onto `<body>`. A
+page covers its own box and nothing more, so a viewport taller than the page
+shows what is behind it: left white, that is a colour the design never chose. A
+page that states no colour, or states `transparent`, keeps a plain document.
+
 ## Working with a `.pen` file
 
 ```sh
