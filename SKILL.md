@@ -291,3 +291,29 @@ One direction only: pen in, design file out. Every run prints a ledger:
 `lost` names what this format has no spelling for. Read it and tell the user,
 rather than letting them find out on the review screen. `--report r.json` writes
 the whole ledger.
+
+Four things the reader translates rather than copies, because the format has no
+spelling for pen's version of them:
+
+- **A glyph is measured.** A `path` node's outline is drawn on its own grid, and
+  that grid becomes the icon's `viewBox` — pen's own export writes
+  `viewBox="0 0 14 14"` on a 366×366 arrow. An outline whose box cannot be
+  measured keeps the node's box, which is what every glyph in the reference file
+  happens to have anyway.
+- **A stroked outline is drawn as a stroke**, on the `<path>`, with
+  `vector-effect: non-scaling-stroke` so the width stays the width pen drew.
+  It is not a `border` on the `<svg>` — that is a ring around a box, not a
+  drawing.
+- **A rotation is baked into the outline** for a `path` node (the ledger counts
+  `bakedRotation`), because the format has no `transform`. Any other rotated node
+  is drawn upright and named in `lost.rotation`.
+- **A line break the author placed survives** as `white-space: pre-line`. Written
+  as a literal newline it is a space, and the line then wraps wherever the font
+  puts it.
+
+The ledger also counts what it rewrote: `themedVariables` (a themeable variable
+takes the document's default theme, which is the entry with no `theme` of its
+own), `hardBreaks`, `pathAsGeometry`, `bakedRotation`. A variable that cannot be
+reduced to one value is left out of the token block and counted as
+`lost.unresolvedVariable` — never written as the string `[object Object]`, which
+is a value that validates and means nothing.

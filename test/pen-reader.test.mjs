@@ -591,10 +591,16 @@ test("pen 2.6 writes a glyph as `icon_font`, and it is the same glyph", () => {
   assert.equal(ledger.converted.iconFont, 1, "the older spelling is counted as the rewrite it is");
 });
 
-test("a pen `path` keeps its own outline, on its own grid", () => {
-  // A `path` node has no glyph name — the outline is the drawing — and its coordinates are
-  // relative to the node's own box, so the box is its viewBox. Drawing it on the set's
-  // 24×24 grid would scale a 19×12 signal indicator into a square and clip it.
+test("a pen `path` keeps its own outline, on the outline's own grid", () => {
+  // A `path` node has no glyph name — the outline is the drawing — and the grid
+  // it is drawn on is the OUTLINE'S box, not the node's. The two are the same for
+  // every glyph in the reference file, which is why the node's box looked right
+  // for so long; they part company the moment an outline is scaled, and pen's own
+  // export settles which one wins: a 366×366 arrow whose outline is 14×14 is
+  // exported as `viewBox="0 0 14 14"` on a 366×366 element. So the outline is
+  // measured. This fixture is one bar — 2.133 × 1.146 in the corner of a
+  // 19.2 × 12.226 node — and it is now scaled into the node's box, as pen scales
+  // it, instead of being drawn at a tenth of its size in one corner.
   const pen = JSON.stringify({
     version: "2.6",
     children: [{
@@ -608,10 +614,151 @@ test("a pen `path` keeps its own outline, on its own grid", () => {
   });
   const { html, ledger } = importPen(pen);
   assert.match(html, /data-icon="cellular-connection"/, "the layer name becomes the glyph name");
-  assert.match(html, /viewBox="0 0 19.2 12.226"/, "the outline's own box is its grid");
+  assert.match(html, /viewBox="17\.067 0 2\.133 1\.146"/, "the outline's own box is its grid");
   assert.match(html, /<path d="M19\.2 1\.14623[^"]*" fill="currentColor" fill-rule="evenodd">/, "the outline is written verbatim, filled, and even-odd");
   assert.equal(ledger.lost["nodeType:path"], undefined, "a path is no longer dropped");
   assert.equal(ledger.converted.pathAsGeometry, 1);
+});
+
+// -- an outline that is stroked, or turned ------------------------------------
+
+test("a stroked path is drawn with its stroke, not with a border around its box", () => {
+  // The arrow from pen's welcome document, at the size pen draws it: a 14×14
+  // outline in a 366×366 node, stroked 50 wide with round ends. It used to import
+  // as a `<svg>` with `border:50px solid` — a square ring around an empty box —
+  // and a `<path fill="currentColor">`, which painted the chevron solid black.
+  // pen's own export of the same node is the reference here: `viewBox="0 0 14 14"`,
+  // `fill:none`, `stroke-width:50` and `vector-effect:non-scaling-stroke`.
+  const pen = JSON.stringify({
+    version: "2.13",
+    children: [{
+      type: "frame", id: "board", name: "Welcome", width: 1000, height: 1458, layout: "none",
+      children: [{
+        type: "path", id: "arrow", x: 267.801, y: 632, width: 366, height: 366,
+        geometry: "M7 0l0 14m7-7l-7 7-7-7",
+        stroke: "#ff8302ff", strokeWidth: 50, strokeLinecap: "round", strokeLinejoin: "round",
+      }],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.match(html, /viewBox="0 0 14 14"/, "the grid is the outline's box, so the drawing scales into the node");
+  assert.match(html, /<path d="M7 0l0 14m7-7l-7 7-7-7" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="50" vector-effect="non-scaling-stroke">/);
+  assert.match(html, /color:#ff8302ff/, "the stroke's paint is the element's colour, and the outline references it");
+  assert.match(html, /overflow:visible/, "half of a 50-wide stroke lies outside the outline");
+  const element = html.slice(html.indexOf("<svg "), html.indexOf("</svg>"));
+  assert.ok(!/border:/.test(element), "a glyph's stroke is not a border on its box");
+  assert.equal(ledger.lost.glyphFill, undefined, "there is no fill to lose");
+});
+
+test("a rotated outline is turned in its own coordinates, and the ledger says so", () => {
+  // This format has no `transform` (the table refuses `transform` and `rotate` by
+  // name), so a turned outline is rewritten rather than wrapped. pen measures
+  // rotation counter-clockwise and CSS measures it clockwise, so the outline is
+  // turned by `-rotation`; pen turns the element about its top-left corner, which
+  // is the viewBox's origin.
+  const pen = JSON.stringify({
+    version: "2.13",
+    children: [{
+      type: "frame", id: "board", name: "Welcome", width: 1000, height: 1458, layout: "none",
+      children: [{
+        type: "path", id: "arrow", x: 267.801, y: 632, width: 366, height: 366, rotation: -45,
+        geometry: "M7 0l0 14m7-7l-7 7-7-7",
+        stroke: "#ff8302ff", strokeWidth: 50, strokeLinecap: "round", strokeLinejoin: "round",
+      }],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  // (7,0) turned 45° clockwise about (0,0) is (4.9497, 4.9497); (7,14) is
+  // (-4.9497, 14.8492).
+  assert.match(html, /<path d="M4\.9497 4\.9497L-4\.9497 14\.8492M4\.9497 14\.8492L-4\.9497 14\.8492L-4\.9497 4\.9497"/);
+  assert.equal(ledger.converted.bakedRotation, 1, "the geometry is no longer the bytes pen wrote, so it is counted");
+  assert.equal(ledger.lost.rotation, undefined, "and it is not also counted as a loss");
+  assert.match(ledger.notes.join("\n"), /rotated -45 degrees/, "the ledger names the node and the angle");
+  assert.match(html, /overflow:visible/, "a turned outline leaves the box it was measured in");
+});
+
+test("a rotation this format cannot express is named, and counted once", () => {
+  // A frame's rotation cannot be baked: every child would have to move with it,
+  // and a child's own placement is a `left`/`top` pair. So it is drawn upright and
+  // the ledger says which node and by how much.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 375, height: 812, layout: "none",
+      children: [{ type: "frame", id: "card", name: "Card", x: 20, y: 20, width: 100, height: 50, rotation: 30, layout: "none" }],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.equal(ledger.lost.rotation, 1);
+  assert.match(ledger.notes.join("\n"), /rotated 30 degrees/);
+  assert.ok(!/transform/.test(html), "and nothing invents a transform");
+});
+
+// -- text, and what it does with a line break ---------------------------------
+
+test("a line break the author placed survives the import", () => {
+  // pen writes a newline in `content` and its own export writes `<br>` for it.
+  // Written as a literal newline it is a space: HTML folds it away and the line
+  // then wraps wherever the font happens to make it fit — a different design on
+  // every machine. `pre-line` is how this format says "keep the breaks I wrote,
+  // and nothing else" — `pre-wrap` also keeps the space before the break, and a
+  // trailing space then counts towards the line's centre: 11px of shift, measured
+  // against pen's own export of the welcome document.
+  const pen = JSON.stringify({
+    version: "2.13",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 1000, height: 1458, layout: "none",
+      children: [
+        { type: "text", id: "two", x: 0, y: 0, width: 923, height: 307, content: "Ask agent to \ndesign something", fill: "#ff8303ff", fontSize: 100, textAlign: "center" },
+        { type: "text", id: "one", x: 0, y: 400, width: 200, height: 40, content: "Single line", fontSize: 16, textGrowth: "fixed-width" },
+      ],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.match(html, /white-space:pre-line"*>Ask agent to/);
+  assert.equal(ledger.converted.hardBreaks, 1, "one text node, one count — not one per newline");
+  // The other text node has no break of its own, so nothing about its wrapping
+  // changes: only the node that wrote one gets the declaration.
+  const single = html.slice(html.indexOf('data-id="one"'), html.indexOf('data-id="one"') + 300);
+  assert.ok(!/pre-line/.test(single), "a text with no break of its own is unchanged");
+  assert.equal((html.match(/pre-line/g) ?? []).length, 1);
+});
+
+// -- variables, and the value a theme starts from -----------------------------
+
+test("a themed variable takes the value of the document's default theme", () => {
+  // pen stores a themeable variable as a list of `{value, theme?}` entries. The
+  // list is not a value: reading it as one wrote the literal string
+  // "[object Object],[object Object]" into the token block, in a file that
+  // validated. The entry with no `theme` of its own is the one every theme starts
+  // from, and it is the one pen's own export inlines.
+  const ledger = createLedger();
+  const { tokens } = tokensFromVariables({
+    "surface-container": {
+      type: "color",
+      value: [
+        { value: "#F2F3F0" },
+        { value: "#111111", theme: { Mode: "Dark" } },
+      ],
+    },
+  }, ledger);
+  assert.equal(tokens.get("--color-surface-container").value, "#f2f3f0");
+  assert.equal(ledger.converted.themedVariables, 1);
+});
+
+test("a variable that is not one value is left out, and named", () => {
+  // The other half: a variable this reader cannot turn into one CSS value must
+  // not become a value that means nothing. Leaving it out leaves its references
+  // visible — the validator says `var()` has no definition — which is a better
+  // failure than a colour that is the string "[object Object]".
+  const ledger = createLedger();
+  const { tokens, refs } = tokensFromVariables({
+    "surface-container": { type: "color", value: [{ theme: { Mode: "Light" }, value: { nested: true } }] },
+  }, ledger);
+  assert.equal(tokens.size, 0, "no token is written");
+  assert.equal(refs.size, 0);
+  assert.equal(ledger.lost.unresolvedVariable, 1);
+  assert.match(ledger.notes.join("\n"), /surface-container/);
 });
 
 test("a glyph name the set does not carry is a visible placeholder, and is counted", () => {

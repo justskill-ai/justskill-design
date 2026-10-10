@@ -152,7 +152,8 @@ What the suite pins, in order of what breaks first if it fails:
 | Normalization | idempotent | idempotent |
 | `.pen` import | 0 errors, empty `unmapped` | **0 errors, `unmapped` empty** |
 | `.pen` import ledger | every loss named | 1 loss in 1541 nodes (`perCornerRadius`) |
-| Tests | — | 369 pass, 0 fail |
+| pen's own export | the same picture | text line boxes and the arrow's four corners within 0.1px, `viewBox` and font identical |
+| Tests | — | 651 pass, 0 fail |
 
 The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
 nodes. It imports to 1515 elements — the ledger counts the nodes that became a
@@ -163,6 +164,19 @@ validates and is already canonical: `examples/miniprogram.html` carries 1541
 being `<svg>` geometry and wrappers that are not design nodes. One node in that
 file has four different corner radii, which this format does not have a spelling
 for, and the ledger says so by name.
+
+The import is measured against pen's own export, not against itself. The welcome
+document pen ships — one 1000×1458 artboard, two text lines, one rotated arrow —
+was exported from pen.dev as HTML and imported here, and the two renderings were
+measured in the same browser: the text's two line boxes agree to 0.05px
+(224.00/551 against 224.05/550.91, and 101.39/796.20 against 101.42/796.16), the
+font is the same Noto Sans face pen's export links (`measureText` 599 against
+598.9), and the arrow's four drawn corners land within 0.1px of where pen's
+`transform: rotate(45deg)` puts them. That measurement is why the reader measures
+a glyph's own box for its `viewBox`, draws a stroked outline as a stroke rather
+than a `border` on its `<svg>`, bakes a rotation into the outline, keeps an
+authored line break as `white-space: pre-line`, and asks for `Noto Sans` instead
+of assuming the machine has it.
 
 The legibility metric means: the first response is always usable, whether it
 accepts the snippet or refuses it with a code, a target and a fix. The 20

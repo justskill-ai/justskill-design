@@ -54,7 +54,7 @@ written `0`, `gap` and never `margin`, and longhand font properties.
 | `color` | #111827 \| var(--color-ink) |
 | `text-align` | left \| center \| right |
 | `text-transform` | uppercase \| lowercase \| capitalize \| none |
-| `white-space` | normal \| nowrap \| pre-wrap |
+| `white-space` | normal \| nowrap \| pre-wrap \| pre-line |
 | `object-fit` | cover \| contain \| fill |
 | `background-image` | url("photo.png") \| linear-gradient(180deg, #00000000, #000000b3) \| var(--img-hero) |
 | `background-size` | cover \| contain \| auto \| 100% 100% |
@@ -104,7 +104,7 @@ written `0`, `gap` and never `margin`, and longhand font properties.
 | `color` | color | Six or eight digit hex, lower case. `transparent` is allowed. `rgb()` and `rgba()` are rewritten to hex. |
 | `text-align` | enum | One of: `left`, `center`, `right`. |
 | `text-transform` | enum | One of: `uppercase`, `lowercase`, `capitalize`, `none`. |
-| `white-space` | enum | One of: `normal`, `nowrap`, `pre-wrap`. |
+| `white-space` | enum | One of: `normal`, `nowrap`, `pre-wrap`, `pre-line`. |
 | `object-fit` | enum | One of: `cover`, `contain`, `fill`. |
 | `background-image` | image | `url("...")` or a `linear-gradient(...)`. The url argument is always quoted, so a `;` inside it cannot split the declaration. |
 | `background-size` | keyword-set | One of: `cover`, `contain`, `auto`, `100% 100%`. |

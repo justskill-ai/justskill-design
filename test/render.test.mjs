@@ -10,7 +10,7 @@ import { parse, parseDeclarations, styleMapOf as parseStyleMapOf } from "../lib/
 import {
   renderModel, renderNodeHtml, styleMapOf, styleStringOf, resolveTokens,
   canvasPositionOf, expandInstance, componentMap, arrangePages, pageCss, pageTree,
-  canvasMountCss, pagePaperRadius, RenderError, escapeText,
+  canvasMountCss, pagePaperRadius, RenderError, escapeText, webfontLinks,
 } from "../lib/render.mjs";
 
 const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827;--space-md:16px;--color-bg:#ffffff}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
@@ -132,6 +132,42 @@ test("a file with no page-frame block still renders", () => {
   const model = renderModel(doc);
   assert.equal(model.pages.length, 1);
   assert.ok(typeof model.pageFrame === "string");
+});
+
+// -- the fonts a page asks for ------------------------------------------------
+
+test("a family a machine may not have is requested, exactly as pen's export does", () => {
+  // The canvas and the deliverable are the same design only if they ask for the
+  // same faces, and neither is the design the author approved if the face they
+  // both fall back to has different metrics — the same text wraps at a different
+  // word and every box below it moves. `Noto Sans`, `Inter` and `Roboto` are
+  // names a design tool hands you, not faces a stock machine has, so they are
+  // requested. `test/pen-reader.test.mjs` carries the measurement that made this
+  // worth fixing: 488.47px against pen's 550.91px for one line of the same text.
+  const doc = file(`<section data-id="home" data-type="page" style="width:390px;height:844px"><p data-id="home__t" data-type="text" style="font-family:&quot;Noto Sans&quot;, system-ui, sans-serif;font-weight:500;font-size:100px">hi</p></section>`);
+  assert.deepEqual(webfontLinks(renderModel(doc)), [
+    "https://fonts.googleapis.com/css2?family=Noto+Sans:wght@500&display=swap",
+  ]);
+});
+
+test("a family a machine does have is left to the machine", () => {
+  // The other half of the rule: asking Google for Helvetica would be a request
+  // that can only make the render worse, and a CJK face is megabytes the design
+  // never asked for.
+  const latin = file(`<section data-id="home" data-type="page" style="width:390px;height:844px"><p data-id="home__t" data-type="text" style="font-family:&quot;Helvetica Neue&quot;, sans-serif;font-size:14px">hi</p></section>`);
+  assert.deepEqual(webfontLinks(renderModel(latin)), []);
+  const cjk = file(`<section data-id="home" data-type="page" style="width:390px;height:844px"><p data-id="home__t" data-type="text" style="font-family:&quot;PingFang SC&quot;, system-ui, sans-serif;font-size:14px">你好</p></section>`);
+  assert.deepEqual(webfontLinks(renderModel(cjk)), []);
+  const generic = file(`<section data-id="home" data-type="page" style="width:390px;height:844px"><p data-id="home__t" data-type="text" style="font-family:system-ui, sans-serif;font-size:14px">hi</p></section>`);
+  assert.deepEqual(webfontLinks(renderModel(generic)), []);
+});
+
+test("a family reached through a token is requested by name", () => {
+  const head = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--font-body:"JetBrains Mono", system-ui, sans-serif}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
+  const doc = file(`<section data-id="home" data-type="page" style="width:390px;height:844px"><p data-id="home__t" data-type="text" style="font-family:var(--font-body);font-weight:400;font-size:14px">hi</p></section>`, head);
+  assert.deepEqual(webfontLinks(renderModel(doc)), [
+    "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap",
+  ]);
 });
 
 test("a library page is marked, and every page is in document order", () => {

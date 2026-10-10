@@ -442,6 +442,8 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 | `lib/spans.mjs` | 区间替换与重叠检查 | Teammate |
 | `lib/levenshtein.mjs` | 距离与建议 | Teammate |
 | `lib/detect.mjs` | 扩展名加内容嗅探，选读取器 | Teammate |
+| `lib/svg-path.mjs` | `d` 的包围盒与旋转（纯函数，无 `node:` 导入） | Lead |
+| `lib/readers/pen.mjs` | pen 导入与 ledger | Lead |
 | `lib/node/fs.mjs` | 读、原子写、哈希 | Teammate |
 | `lib/node/cli.mjs` | 入口判定、参数解析 | Teammate |
 | `design.mjs` + `lib/node/verbs/*.mjs` | 动词面 | Teammate |
@@ -449,6 +451,18 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 | `test/` | 每个模块各自写自己的测试 | 各自 |
 
 并行规则：一个文件只有一个所有者。需要别的模块时按本文档的接口调用，不改别人的文件。
+
+### 9.1 pen 导入的五条规则
+
+读入器把 pen 的模型翻成本格式的拼法，翻不动的一律进 ledger。五处不是直译，各有依据：
+
+| 规则 | 写法 | 依据 |
+|---|---|---|
+| 字形坐标 | `viewBox` 是**轮廓自身**的墨水盒（`lib/svg-path.mjs` 精确求极值），量不出来时回落节点盒 | pen 自己的导出对 366×366 的节点写 `viewBox="0 0 14 14"`：网格是轮廓的，元素把它放大到节点盒。用节点盒当网格时，一支 14×14 的箭头会被画成 14px |
+| 轮廓的描边 | 写在 `<path>` 上：`fill="none" stroke="currentColor" stroke-width="…" vector-effect="non-scaling-stroke"`，`<svg>` 上写 `color` 与 `overflow:visible` | pen 的导出在同一元素上写的正是这三个属性。`border` 是方框的语义，`applyStroke` 只对非字形节点生效 |
+| 旋转 | `path` 节点的轮廓绕 viewBox 原点转 `-rotation` 度后写回 `d`（pen 逆时针为正、CSS 顺时针为正，pen 转的是元素左上角），计 `converted.bakedRotation`；其余节点无法表达，计 `lost.rotation` | 本格式没有 `transform`（`REJECTED_PROPERTIES` 点名拒绝 `transform` 与 `rotate`） |
+| 硬换行 | `content` 含换行时写 `white-space:pre-line`，计 `converted.hardBreaks` | 等价于 pen 导出写的 `<br>`：保留换行、折叠空格。`pre-wrap` 还保留空格，行尾空格会参与居中——实测偏离 pen 的导出 11px |
+| 主题变量 | `value` 是数组时取不带 `theme` 的那一项（pen 导出内联的就是它），计 `converted.themedVariables`；整项取不出一个值时**不写**该令牌并计 `lost.unresolvedVariable` | 数组不是值：按值读会写出字符串 `[object Object],[object Object]`，文件还能通过校验。留空比留错好，引用它的地方会由校验器报 `var()` 无定义 |
 
 ## 10. 硬约束
 
