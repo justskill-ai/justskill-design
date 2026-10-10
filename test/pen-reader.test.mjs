@@ -1,7 +1,7 @@
 /**
  * The `.pen` reader, against the real thing.
  *
- * The reference file is 705 KB, 19692 lines, 26 artboards and 1541 nodes. It is
+ * The reference file is 706 KB, 19698 lines, 26 artboards and 1541 nodes. It is
  * the acceptance test for this reader: if the import reports a clean ledger and
  * the result validates, the mapping covers what pen actually writes. A synthetic
  * fixture would only cover what I remembered.
@@ -13,6 +13,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { parse, getAttr, findById, pagesOf } from "../lib/parse.mjs";
 import { validateDesign } from "../lib/validate.mjs";
@@ -23,6 +25,7 @@ import {
 import { renderModel } from "../lib/render.mjs";
 import { iconBody } from "../lib/icons.mjs";
 
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REFERENCE = "/Users/xiguazhi/Developer/MyProjects/jiazheng-mono/design/miniprogram.pen";
 const hasReference = existsSync(REFERENCE);
 const reference = () => readFileSync(REFERENCE, "utf8");
@@ -101,6 +104,74 @@ test("a vertical frame becomes a flex column with its gap", () => {
   assert.match(style, /padding:28px/);
 });
 
+test("a direct child of a page knows its parent's axis", () => {
+  // `fill_container` means "share the main axis" in a row and "stretch across" in a column,
+  // and the two are different declarations. The artboard loop built its child context by
+  // hand and left the axis out, so every direct child of a page was read as if its parent's
+  // axis were unknown and `fill_container` fell back to `width:100%`. On a row page that is
+  // wrong by exactly the width of the sibling before it: the Swiss Clean dashboard's content
+  // took the full 1440px beside its 240px sidebar and the page's `overflow:hidden` cut those
+  // 240px off the right edge — the Export button and half the last metric card.
+  //
+  // It hid for as long as it did because all 25 pages of the reference file have
+  // `layout: vertical`, and in a column `100%` and `stretch` happen to agree.
+  const styleOf = (html, id) => (new RegExp(`data-id="${id}"[^>]*style="([^"]*)"`).exec(html) ?? [])[1] ?? "";
+
+  const row = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "row", name: "Dashboard", width: 1440, height: 900,
+      children: [
+        { type: "frame", id: "side", name: "Sidebar", width: 240, height: "fill_container", layout: "vertical" },
+        { type: "frame", id: "content", name: "Content", width: "fill_container", height: "fill_container", layout: "vertical" },
+      ],
+    }],
+  });
+  const built = importPen(row).html;
+  assert.match(styleOf(built, "side"), /width:240px/);
+  assert.match(styleOf(built, "content"), /flex:1 1 0%/, `in a row, fill_container shares the main axis: ${styleOf(built, "content")}`);
+  assert.ok(!/width:100%/.test(styleOf(built, "content")), "it must not take the page's whole width beside a sibling");
+
+  // The same child on a column page stretches across, which is what `100%` already was —
+  // the reason the reference file never showed the defect.
+  const column = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "col", name: "Page", width: 402, height: 900, layout: "vertical",
+      children: [{ type: "frame", id: "inner", name: "Content", width: "fill_container", layout: "vertical" }],
+    }],
+  });
+  assert.match(styleOf(importPen(column).html, "inner"), /width:100%/, "in a column, fill_container stretches");
+});
+
+test("a `layout:none` frame places its children where pen put them", () => {
+  // Pen positions these children by their own x and y; CSS positions them by `left`/`top`
+  // inside a containing block. Reading `none` as "write no declarations" left every child a
+  // block box, so children that overlap in pen stacked in the file: the status bar's
+  // battery fill rendered below the battery body instead of inside it.
+  const parent = styleFromNode({ type: "frame", layout: "none", width: 27, height: 13 }, new Map(), createLedger());
+  assert.match(parent, /position:relative/, "the frame has to be the containing block");
+
+  const child = styleFromNode({ type: "shape", x: 2, y: 2, width: 21, height: 9 }, new Map(), createLedger(), { parentLayoutNone: true });
+  assert.match(child, /position:absolute/);
+  assert.match(child, /left:2px/);
+  assert.match(child, /top:2px/);
+
+  // A child that is in flow is not placed: the same node under a row stays a flex item.
+  const flowed = styleFromNode({ type: "shape", x: 2, y: 2, width: 21, height: 9 }, new Map(), createLedger(), { parentIsRow: true });
+  assert.ok(!/position:absolute/.test(flowed), "a child in flow must not be pulled out of it");
+});
+
+test("the ledger calls `layout:none` a conversion only when it converts something", () => {
+  // It was counted under `converted`, whose own definition is "a value was rewritten to the
+  // one spelling this format allows", while nothing at all was written for those frames.
+  // The count and the rewrite have to be one decision, so this asserts both together.
+  const ledger = createLedger();
+  const style = styleFromNode({ type: "frame", layout: "none", width: 27, height: 13 }, new Map(), ledger);
+  assert.equal(ledger.converted.layoutNone, 1);
+  assert.match(style, /position:relative/, "counted as converted, so something is converted");
+});
+
 test("space_between becomes space-between, and start becomes flex-start", () => {
   const style = styleFromNode({ type: "frame", layout: "vertical", justifyContent: "space_between", alignItems: "start" }, new Map(), createLedger());
   assert.match(style, /justify-content:space-between/);
@@ -136,6 +207,31 @@ test("pen's ellipse becomes data-kind plus the one radius that draws an ellipse"
   const style = styleFromNode({ type: "ellipse", fill: "#FCE7F3" }, new Map(), createLedger());
   assert.match(style, /background-color:#fce7f3/);
   assert.match(style, /border-radius:50%/);
+});
+
+test("a stroke with no paint is not drawn, and the ledger says so", () => {
+  // `border` needs a colour, and a paint-less stroke has none. Defaulting to black — which
+  // this did — invents a line the design does not have. The evidence is in the reference
+  // artboards: every painted stroke follows its page (the same battery border is #000000 on
+  // the light pages and #ffffff on the dark ones, and the nine notification buttons carry
+  // nine different colours), while the 18 paint-less ones are the identical
+  // `{align:"inside",thickness:1}` on all nine styles. Structure, not design — and the
+  // invented line hides exactly where nobody looks, because black on #141417 is invisible
+  // and black on white is a box.
+  const painted = styleFromNode({ type: "frame", stroke: { thickness: 2, fill: "#000000" } }, new Map(), createLedger());
+  assert.match(painted, /border:2px solid #000000/, "a stroke that has a paint is drawn as one");
+
+  const bare = createLedger();
+  const style = styleFromNode({ type: "frame", width: 402, stroke: { align: "inside", thickness: 1 } }, new Map(), bare);
+  assert.ok(!/border/.test(style), `a paint-less stroke draws nothing, got: ${style}`);
+  assert.equal(bare.lost.strokeWithoutPaint, 1, "a silent skip would be a silent loss");
+
+  // A paint-less per-side stroke is the same decision, and the same single count.
+  const sides = createLedger();
+  const perSide = styleFromNode({ type: "frame", stroke: { thickness: { right: 1 } } }, new Map(), sides);
+  assert.ok(!/border/.test(perSide), `a paint-less divider draws nothing, got: ${perSide}`);
+  assert.equal(sides.lost.strokeWithoutPaint, 1);
+  assert.equal(sides.converted.perSideStroke, undefined, "and it is not also counted as a conversion");
 });
 
 test("a stroke becomes a border, and a per-side stroke keeps its sides", () => {
@@ -234,7 +330,7 @@ test("the real reference file imports with a clean ledger", { skip: !hasReferenc
   // What is lost is only what this format has no spelling for. The list is
   // closed on purpose: a new loss must be a deliberate decision, not a surprise
   // a user discovers after importing.
-  const ALLOWED_LOSSES = /^(innerShadow|gradient:|nodeType:|topLevelType:|imageFill|disabledFill|perCornerRadius|cornerRadiusArrayLength)/;
+  const ALLOWED_LOSSES = /^(innerShadow|gradient:|nodeType:|topLevelType:|imageFill|disabledFill|perCornerRadius|cornerRadiusArrayLength|strokeWithoutPaint)/;
   for (const name of Object.keys(ledger.lost)) {
     assert.match(name, ALLOWED_LOSSES, `unexpected loss: ${name}`);
   }
@@ -258,6 +354,33 @@ test("the import is deterministic", { skip: !hasReference }, () => {
   const twice = importPen(reference());
   assert.equal(once.html, twice.html, "two imports of one file are the same bytes");
   assert.deepEqual(once.ledger, twice.ledger);
+});
+
+/**
+ * The committed example is a fresh import of the reference file, byte for byte.
+ *
+ * It was not, for a while. `examples/miniprogram.html` had ten gradients at `360deg` and
+ * seven at `315deg` where the reader now writes `180deg` and `225deg` — exactly the output
+ * of the `rotation + 180` formula this module's own comment calls 90 degrees wrong — and
+ * eighteen overrides that wrote text into an `<svg>` instead of swapping the glyph. Every
+ * other test passed: the ledger tests above check counts and losses, and the rename tests
+ * take their baseline from whatever the file happens to contain. Nothing compared the
+ * artifact to the reader, so it drifted for as long as nobody looked at it.
+ *
+ * Regenerate with:
+ *
+ *   node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram
+ */
+test("the committed example is what the reader produces today", { skip: !hasReference }, () => {
+  const committed = readFileSync(join(ROOT, "examples", "miniprogram.html"), "utf8");
+  const fresh = importPen(reference(), { title: "miniprogram" }).html;
+  assert.notEqual(committed.length, 0, "examples/miniprogram.html is empty");
+  assert.equal(
+    committed,
+    fresh,
+    "examples/miniprogram.html is stale; regenerate it with:\n"
+      + "  node design.mjs import pen " + REFERENCE + " -o examples/miniprogram.html --title miniprogram",
+  );
 });
 
 test("artboard positions become data-canvas, and names survive", { skip: !hasReference }, () => {
@@ -441,6 +564,70 @@ test("an artboard's own layout reaches the page", () => {
   assert.match(page, /justify-content:flex-end/, "a bottom sheet needs its artboard's alignment");
   assert.match(page, /display:flex/);
   assert.match(page, /flex-direction:column/);
+});
+
+test("pen 2.6 writes a glyph as `icon_font`, and it is the same glyph", () => {
+  // The reference file is 2.6 and spells every one of its 233 glyphs this way; the test
+  // below covers 2.19's `icon`. Both draw the same thing, so both have to be read. Until
+  // they were, all 233 were dropped in silence — and `unmapped: {}` still said that
+  // nothing was unknown, because an unknown *node type* was counted somewhere else.
+  const pen = JSON.stringify({
+    version: "2.6",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 375, height: 812,
+      children: [{
+        type: "icon_font", id: "ico", name: "notifIcon", iconFontName: "bell",
+        iconFontFamily: "lucide", width: 22, height: 22, fill: "#FFFFFF",
+      }],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.match(html, /data-icon="bell"/, "the glyph name survives as the label");
+  assert.match(html, /data-icon-library="lucide"/, "the library in 2.6's spelling is the same library");
+  assert.match(html, /viewBox="0 0 24 24"/, "a named glyph is drawn on the set's grid");
+  assert.match(html, /<path d="[^"]+"/, "the geometry is the drawing; the name is only its label");
+  assert.match(html, /color:#ffffff/, "a fill on a glyph is a colour, not a background");
+  assert.equal(ledger.lost["nodeType:icon_font"], undefined, "an icon_font is no longer an unknown node type");
+  assert.equal(ledger.converted.iconFont, 1, "the older spelling is counted as the rewrite it is");
+});
+
+test("a pen `path` keeps its own outline, on its own grid", () => {
+  // A `path` node has no glyph name — the outline is the drawing — and its coordinates are
+  // relative to the node's own box, so the box is its viewBox. Drawing it on the set's
+  // 24×24 grid would scale a 19×12 signal indicator into a square and clip it.
+  const pen = JSON.stringify({
+    version: "2.6",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 375, height: 812,
+      children: [{
+        type: "path", id: "sig", name: "Cellular Connection", width: 19.2, height: 12.226,
+        geometry: "M19.2 1.14623c0-0.63304-0.47756-1.14623-1.06667-1.14623l-1.06666 0z",
+        fill: "#000000ff", fillRule: "evenodd",
+      }],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.match(html, /data-icon="cellular-connection"/, "the layer name becomes the glyph name");
+  assert.match(html, /viewBox="0 0 19.2 12.226"/, "the outline's own box is its grid");
+  assert.match(html, /<path d="M19\.2 1\.14623[^"]*" fill="currentColor" fill-rule="evenodd">/, "the outline is written verbatim, filled, and even-odd");
+  assert.equal(ledger.lost["nodeType:path"], undefined, "a path is no longer dropped");
+  assert.equal(ledger.converted.pathAsGeometry, 1);
+});
+
+test("a glyph name the set does not carry is a visible placeholder, and is counted", () => {
+  // The other half of the two tests above: a name that is not in the set must not become a
+  // silent hole. This is the guarantee that made the 233 missing icons worth fixing.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{
+      type: "frame", id: "board", name: "Board", width: 375, height: 812,
+      children: [{ type: "icon", id: "ico", name: "Nope", icon: "not-a-real-glyph", library: "lucide", width: 15, height: 15 }],
+    }],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.match(html, /<rect [^>]*stroke="currentColor"/, "a placeholder is drawn, not nothing");
+  assert.equal(ledger.lost.glyphNotInSet, 1);
+  assert.match(ledger.notes.join("\n"), /not-a-real-glyph/, "and the ledger names it");
 });
 
 test("an imported glyph carries the grid it was drawn on", () => {

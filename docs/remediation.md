@@ -7,7 +7,7 @@
 ## 0. 结果
 
 ```
-node --test "test/*.test.mjs"            → 546 通过 / 0 失败（连跑 3 次）
+node --test "test/*.test.mjs"            → 557 通过 / 0 失败
 node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 ```
 
@@ -16,18 +16,20 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 | 已跟踪文件被修改 | 36（+1836 / −350） |
 | 新增文件 | 13（约 2860 行，其中 8 个测试文件约 1900 行） |
 | 删除文件 | 1（`lib/pointer.mjs`，70 行无人调用） |
-| 测试 | 436 → 546 |
+| 测试 | 436 → 557 |
 
 零 npm 依赖、纯 ESM、无构建步骤，这三条没被破坏。
 
-**真实文件诊断数**（改动前后必须一致，唯一有意变化见 §3.9）：
+**导入的账本**（§3.22）：`pencil-demo.pen` 2935 个节点 **零丢失**，`lost` 只剩 7 个已知的圆角；修复前同一份文件丢 260 个（233 个图标 + 27 条矢量路径）。
+
+**真实文件诊断数**（改动前后必须一致，两处有意变化见 §3.9 与 §3.20）：
 
 | 文件 | 诊断数 |
 |---|---|
 | `examples/design.html` | 0 |
-| `examples/miniprogram.html` | 18 |
+| `examples/miniprogram.html` | 18 → **0**（§3.20） |
 | `test/fixtures/real/pen-pages.html` | 65 |
-| `test/fixtures/real/open-design-components.html` | 111 → **141** |
+| `test/fixtures/real/open-design-components.html` | 111 → **141**（§3.9） |
 
 ## 1. 这一轮在治什么
 
@@ -126,7 +128,7 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 
 **改法**：新增 `lib/node/verbs/rename.mjs`（`data-ref` 级联 → `data-overrides` 键级联 → 最后才是 `set data-id`）；`set --attr data-id=…` 改为拒绝并指向 `rename`。
 
-**实测**（真实文件 `examples/miniprogram.html`，351,325 字节，23 组件 / 239 实例 / 140 覆盖）：
+**实测**（真实文件 `examples/miniprogram.html`，356,109 字节，23 组件 / 239 实例 / 140 覆盖）：
 
 | 改谁 | 改动处数 | 字节差 | 新增错误 |
 |---|---|---|---|
@@ -271,6 +273,154 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 
 **改法**：`refuse()` 改用共享的 `refusedReceipt()`；`refusedReceipt` 顺带透传 `suggestion`。**测试**：`test/verbs.test.mjs`（+2 条）。
 
+### 3.19 【计划外】`import pen --stdout` 把账本写进了 stdout
+
+**症状**：`node design.mjs import pen x.pen --stdout > design.html` 产出的不是设计文件 —— 末尾多出账本那一行（110 字节）。
+
+**证据**：`lib/node/verbs/import.mjs` 的 stdout 分支先 `process.stdout.write(html)`，再 `out(ledgerLine(ledger), {quiet})`，而 `out()` 默认写 stdout。`export --stdout` 与所有 `--json` 路径都是干净的，只有这一条被污染；而 `out()` 本来就接受 `stream`。
+
+**改法**：**stdout 只承载文档，所有报告走 stderr。** `out()` 本来就接受 `stream`，所以修法是一个实参；`--json` 也一并走 stderr（原来它在这个分支里被静默忽略）。USAGE 写明这条规则。不改成"干脆不打印"是因为账本是这个动词的重点 —— 静默的导入正是用户丢掉一个渐变的方式。
+
+**为什么它能活下来**：`import` **动词一个 CLI 测试都没有**。读取器的测试直接调 `importPen()`，够不到动词的旗标处理。所以修的同时补上了动词的第一批测试（3 条，走 `spawnSync` 跑真命令行）。
+
+**测试**：`test/verbs.test.mjs` 的 "import pen --stdout writes a design file and nothing else"（断言 stdout 能 `parse`、零 error、以 `<\/html>` 收尾，且账本出现在 stderr）与 "import pen --stdout --json keeps the JSON off stdout as well"。变异测试：把账本行放回 stdout，两条立刻变红。
+
+### 3.20 【计划外】提交的示例是旧读取器的产物
+
+**症状**：`examples/miniprogram.html` 与"同一份 `.pen` 现在导入出来的结果"不同，差 514 行。
+
+**证据**（三处，都是系统性的）：
+
+| | 旧的示例 | 参考文件说的 | 现在的读取器 |
+|---|---|---|---|
+| 渐变角度（10 个 `rotation:180`） | `360deg` | 180 | **180deg** |
+| 渐变角度（7 个 `rotation:135`） | `315deg` | 225 | **225deg** |
+| `align-items`（226 行） | `center` | 节点没有 `alignItems` 键 | **`flex-start`**（pen 的默认值） |
+| 图标覆盖（18 处） | `{"whAKg":{"content":"gem"}}` —— 把文字写进 `<svg>` | 换图标是换字形 | **`{"whAKg":{"data-icon":"gem","children":"<path …/>"}}`** |
+
+`360deg` 与 `315deg` 正是 `rotation + 180` 的输出，而 `lib/readers/pen.mjs` 自己的注释写着那个公式"只对 180 度正确、对其余全部差 90 度"。那 18 处图标覆盖就是旧示例里 18 条 `component/text-override-on-icon` 错误的来源 —— 而账本里的 `converted.iconOverrides: 18` 一直记着这 18 次转换，两边的数目早就对上了。
+
+**为什么一直没被发现**：`test/pen-reader.test.mjs` 把**账本**钉得很死（26 页 / 23 组件 / 239 实例 / 允许的损失清单 / 两次导入字节相同 / 0 errors），但**没有钉任何一个渲染出来的 CSS 值**；`test/rename.test.mjs` 的基线是**从文件本身读的**（这形状是对的 —— 改名不该新增任何错误）。于是"读取器错了 90 度"和"产物错了 90 度"都没有测试看得见。
+
+**改法**：
+1. **重新生成**（走工具，不手改）：
+   `node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram`
+   结果 355,958 字节（§3.22 的定位修复后为 356,109），`0 errors, 0 warnings — valid`，`canonical`，26 页 / 23 组件 / 239 实例 / 140 覆盖全部保持；改名级联的实测数字与旧文件完全一致（组件根 66 处改动 / 字节差 0，后代 36 处 / +36 字节）。
+2. **补上真正该有的那条检查**：`test/pen-reader.test.mjs` 新增 "the committed example is what the reader produces today"，逐字节比对提交的示例与新鲜导入，失败时**打印重新生成的命令**。它随参考文件一起 `skip`（那个 `.pen` 在另一个仓库里）。
+3. 诊断数 18 → 0 是有意变化：那 18 条错误描述的覆盖本身已经被读取器修掉了。
+
+**验证**：把旧示例放回去，新测试立刻变红并给出可执行的修复命令；换回新示例即绿。
+
+
+### 3.21 【计划外】`import pen --help` 把 `--title` 的默认值写错了
+
+**症状**：USAGE 写 `--title <name>  file title (default: the source name)`，而实测不带 `--title` 时标题是 `imported`。
+
+**证据**：`lib/node/verbs/import.mjs` 传的是 `title: values.title`（缺省即 `undefined`），而 `lib/readers/pen.mjs` 的链条是 `options.title ?? json.name ?? "imported"` —— 它取的是 **pen 文档自己的 `name` 字段**，不是源文件名；这个 `.pen` 没有顶层 `name`，所以落到字面量 `imported`。提交的示例里是 `<title>miniprogram</title>`，因为生成它的人（以及 `test/pen-reader.test.mjs`）显式传了 `--title miniprogram`。
+
+**改法**：**把链条补成三步，并让 USAGE 说实话。** `lib/readers/pen.mjs` 现在是 `options.title ?? json.name ?? options.fallbackTitle ?? "imported"`，而动词把源文件名作为 `fallbackTitle` 传下去 —— 这是读取器无从知道的一件事（它拿到的是**文本**，不是路径）。USAGE 改成"默认取 pen 文档自己的 `name`，否则取源文件名"。
+
+选这条而不是"只改文档"，是因为 `<title>imported</title>` 对读文件的人没有任何信息量；而把优先级放在读取器里（而不是让动词先填空）保住了正确的顺序：文档给自己起的名字比它恰好存成的文件名更准。
+
+**测试**：`test/verbs.test.mjs` 的 "import pen titles the file from the document, then from the file name" 覆盖三步（文档的 `name` → 源文件名 → 显式 `--title`）。变异测试：把回退改回字面量 `imported`，立刻变红。
+
+### 3.22 【计划外】读取器只认 pen 2.19 的写法，2.6 的整类节点被静默丢弃
+
+**症状**：导入 `pencil-demo.pen`（1.28 MB，`version: 2.6`）时账本报 260 个节点丢失：`nodeType:icon_font×233`、`nodeType:path×27`。产物里这 260 个 id **一个都不存在** —— 不是空壳，是彻底没有，画布上那 233 个图标和 27 条矢量路径全部消失。
+
+**根因**：同一个概念，pen 有两个年代的两种拼法，读取器只有新的一种：
+
+| | pen 2.6 | pen 2.19 |
+|---|---|---|
+| 字形 | `icon_font` + `iconFontName` + `iconFontFamily` | `icon` + `icon` + `library` |
+| 矢量轮廓 | `path` + `geometry`（SVG 路径字符串） | —— |
+
+`TYPE_MAP` 里没有 `icon_font` 和 `path`，`dataTypeFor()` 返回 `null`，于是 `count(lost, "nodeType:…")` 之后直接返回空字符串。
+
+**三处改法**（都在 `lib/readers/pen.mjs`）：
+
+1. **`icon_font` → `icon`**：名字取 `node.icon ?? node.iconFontName`，库取 `node.library ?? node.iconFontFamily ?? "lucide"`，几何走**已有的** `hasIcon`/`iconBody`（读取器为 2.19 的 `icon` 节点早就实现了这条路径）。实测这个文件用到的 **233 个字形名 100% 命中**内置的 67 个字形，全部 `lucide`。
+2. **`path` → `icon` + 自带几何**：`geometry` 原样写成 `<path d="…" fill="currentColor">`（`fillRule: evenodd` 时补 `fill-rule`）。**`viewBox` 用它自己的盒子**而不是字形的 24×24 网格 —— 路径坐标是相对节点自身盒子的（`M19.2 …` 正好等于 `width: 19.2`），套 24×24 会把一个 19×12 的状态栏图标缩放后裁掉。`fill="currentColor"` 是必需的：基础规则会把"没有 `data-fill`、子元素也没有 `fill`"的 svg 子元素画成描边，而 pen 的 `path` 是**实心**轮廓。
+3. **`layout:none` 恢复定位**：pen 用子元素自己的 `x`/`y` 摆放它们，CSS 用包含块里的 `left`/`top`。原来 `layout:none` 只被计数、不写任何声明，于是子元素成了普通块级盒**上下堆叠** —— 状态栏那颗电池的电量矩形被挤到外壳**下面**。现在父帧写 `position:relative`、带 `x`/`y` 的子元素写 `position:absolute;left:Npx;top:Npx`。实测这份文件：31 个帧、49 个子元素。
+
+**顺手修账本**：`layoutNone` 原来记在 `converted` 下，按账本自己的定义（"a value was rewritten to the one spelling this format allows"）却什么都没改写 —— **在最不可信的地方夸大了保真度**，而 `unmapped: {}` 会让读账本的人以为导入是忠实的。现在 `layoutNone` 与那句 `position:relative` 是同一次决定（测试把两者钉在一起），并新增三条名副其实的账目：`iconFont`、`pathAsGeometry`、`absoluteChild`。
+
+**结果**（同一个文件，同一份 `.pen`）：
+
+| | 修复前 | 修复后 |
+|---|---|---|
+| `nodes` / `sourceNodes` | 2675 / 2935（**丢 260**） | **2935 / 2935（零丢失）** |
+| `lost` | `icon_font×233, path×27, perCornerRadius×7` | **`perCornerRadius×7`** |
+| 产物里能找到的图标 / 路径 id | 0/233、0/27 | **233/233、27/27** |
+| 校验 | 0 errors, 0 warnings | 0 errors, 0 warnings |
+| 文件大小 | 516,761 字节 | 610,485 字节 |
+
+**为什么能活下来**：`nodeType:` 是一个"允许的损失"前缀（`test/pen-reader.test.mjs` 的白名单正则里有它），所以丢一整类节点**不会让任何测试变红**；而 `unmapped: {}` 说的是"没有未识别的**属性**"，不是"没有丢**节点**"。两个绿灯合起来掩盖了一次 8.9% 的静默丢失。
+
+**测试**：`test/pen-reader.test.mjs` 新增 5 条**合成**测试（不依赖那个在别的仓库里的参考文件，所以在任何机器上都跑）：2.6 的字形拼法、`path` 自带轮廓与自己的网格、不在字形表里的名字必须是**可见占位符**并被记账、`layout:none` 的父子定位、以及"账本只在真改写时才叫它 converted"。六次变异测试（把每一处修复单独拆掉）全部按预期变红。
+
+**连带**：参考文件 `miniprogram.pen` 里有 1 个 `layout:none` 帧（4 个重叠头像），所以 `examples/miniprogram.html` 也随之前进 —— 那 4 个头像现在真的叠在一起（各 26px、错开 17px），而不是竖排成 104px。示例已重新生成（356,109 字节），§3.20 那条守卫继续成立。
+
+
+### 3.23 【计划外】没有画笔的描边被默认成黑色，凭空画出一条线
+
+**症状**（用户报的）：画布上「Habit Tracker — Swiss Expressive」多出三条线 —— `9:41` 外面一个框、搜索框下面一条下划线、两列指标中间一条竖线。
+
+**根因**：`applyStroke` 里这一行把**没有颜色的描边默认成黑色**：
+
+```js
+color = node.stroke.fill ?? node.stroke.color ?? "#000000";
+```
+
+pen 的 `stroke` 可以只有 `{align, thickness}` 而**没有画笔**（这份文件里 55 个节点如此，其中 `tuuyE`"Time" 就是 `9:41` 那个框、`GneJp`"metric1_2" 是那条竖线）。格式的 `border` 需要一个颜色，于是读取器**发明**了一个。
+
+**证据**（这份文件把同一套设计画了 9 遍，风格从 Swiss Expressive 到 Bauhaus Digital，正好当差分实验）：
+
+| | 有画笔的描边（263 个） | 无画笔的描边（55 个） |
+|---|---|---|
+| 电池 "Border" | 亮色页 `#000000ff`、暗色页 `#ffffffff` —— **跟着主题走** | — |
+| `notifBtn` | 每页不同：`2px #000000`、`1px #3A3A3C`、`1.5px #E4E4E7`、`1px #2A2B30`、`1px #333333`，另有 4 页根本没有描边 | — |
+| 状态栏 `Time` / `Levels` | — | 9 种风格 × 18 个实例**字节完全相同**的 `{align:"inside",thickness:1}` |
+
+会跟着主题变的是设计；9 套配色字体全不同、而这一处一字不差的是**结构性残留**（而且没有任何主题能给它上色）。它还偏偏挑地方藏：黑色压在 `#141417` 上看不见，落在白底上就是一个框 —— 所以暗色页没人发现，一亮色页就现形。
+
+**改法**：没有画笔就不画，并**记账**（`lost.strokeWithoutPaint`，这份文件 55 条）。不静默跳过是因为账本的职责就是把"少画了什么"说出来；格式确实没有"没有颜色的边框"这种拼法，所以它归 `lost` 而不是 `converted`。
+
+**结果**：三条线全部消失（整个文件 `border-right` 出现 0 次），而**铃铛那个方框保留** —— `notifBtn2` 的 `{thickness:2, fill:"#000000"}` 有画笔、且每页颜色不同，那是设计。
+
+**连带的确认**：参考文件 `miniprogram.pen` 的描边全部带画笔（`strokeWithoutPaint: 0`），所以 `examples/miniprogram.html` **逐字节未变**，§3.20 的守卫继续成立。
+
+**测试**：`test/pen-reader.test.mjs` 新增一条 —— 有画笔的画、无画笔的不画且计数、无画笔的单边描边同样处理且不重复计入 `converted.perSideStroke`；损失白名单里正式登记 `strokeWithoutPaint`。变异测试：把 `?? "#000000"` 放回去，测试立刻变红。
+
+
+### 3.24 【计划外】页面的直接子节点不知道父轴，`fill_container` 退化成 `width:100%`
+
+**症状**（用户报的）：画布上「Dashboard — Swiss Clean」的右侧被切掉 —— Export 按钮、第四张指标卡「Avg. Order Value $127.40」都只显示一半。同一页在 pen 里完整。
+
+**根因**：`renderNode` 递归时会给子节点算好父轴，但**页面那一层是手写的、漏了**：
+
+```js
+// 递归路径（对的）
+.map((child) => renderNode(child, refs, ledger, { ...context, parentIsRow: …, parentIsColumn: …, parentLayoutNone: … }))
+// 页面路径（漏了）
+.map((child) => renderNode(child, refs, ledger, context))
+```
+
+于是 `widthValue()` 收到 `parentIsRow === undefined`，把 `fill_container` 退化成 `width:100%`。这一页是**行**（左侧 240 的侧栏 + `fill_container` 的 Content），所以 Content 拿到整页 1440px、还带 `flex-shrink:0`，240 + 1440 = 1680 —— 而页面自己有 `overflow:hidden`（`pageStyle` 写的），于是右边 240px 被**裁掉**。
+
+实测（画布里的实时几何）：**96 个元素越界**，最宽的那个超出 240px —— 与"侧栏宽度"分毫不差。
+
+**为什么一直没被发现**：参考文件 `miniprogram.pen` 里 25 个含 `fill_container` 子节点的页面**全部是列**（`layout: vertical`），而列里 `width:100%` 与 `stretch` **语义等价** —— 所以那份文件 38 处退化全都无害。这份文件有**行页面**，缺陷才现形。
+
+**改法**：把"子节点该知道父节点的什么"抽成一个函数 `childContext(node, context)`，两个调用点都用它 —— 病根是同一件事写在两处、其中一处忘了。顺手改掉一个**遮蔽**：`renderNode` 里的局部变量 `childContext` 与函数同名（它其实是"这个节点自己的样式上下文"），改名 `styleContext`；否则新函数在那一层不可见。
+
+**结果**：Dashboard 那 96 个越界全部消失；Content 现在是 `min-width:0;flex:1 1 0%`（= 1200，行内共享主轴）✓。**参考文件逐字节未变** —— 正如上面预测，列页面的 `100%` 与 `FILL_ACROSS` 分支写出的声明相同，所以 `examples/miniprogram.html` 不需要重新生成，§3.20 的守卫继续成立。
+
+**剩下 12 个越界不是缺陷**：都在 Habit Tracker 那三页的「Programs Scroll」行 —— 两张 200px 卡加 12px 间距 = 412px，放进一个 350px 的盒子。pen 的数据里这一行没有滚动标记（`clip`/`scroll` 键都没有），也就是说**设计本身**就比盒子宽，静止状态下 pen 同样在画板边缘裁掉。格式没有滚动模型（交付物是静态的），所以渲染一致。
+
+**测试**：`test/pen-reader.test.mjs` 新增一条 —— 行页面里 `fill_container` 子节点必须是 `flex:1 1 0%` 且不得出现 `width:100%`，列页面里必须是 `width:100%`（把"为什么参考文件看不出来"也钉住）。变异测试：把页面那一层换回裸 `context`，立刻变红。
+
+
 ---
 
 ## 4. 我改错的三处（对我自己判断的订正）
@@ -335,4 +485,4 @@ node design.mjs validate examples/design.html
 | 纯度拆分 | `lib/export-svg.mjs`、`lib/node/export-svg.mjs`（新）、`lib/raster.mjs`、`lib/node/raster-run.mjs` |
 | 契约与设计 | `docs/format-v3.md`、`docs/plan.md`、`SKILL.md`、`README.md` |
 | evals | `evals/evals.json` |
-| 新测试 | `test/contract.test.mjs`、`test/purity.test.mjs`、`test/evals.test.mjs`、`test/tokens.test.mjs`、`test/rename.test.mjs`、`test/migrate.test.mjs`、`test/icon-fragment.test.mjs`、`test/skill-doc.test.mjs` |
+| 新测试 | `test/contract.test.mjs`、`test/purity.test.mjs`、`test/evals.test.mjs`、`test/tokens.test.mjs`、`test/rename.test.mjs`、`test/migrate.test.mjs`、`test/icon-fragment.test.mjs`、`test/skill-doc.test.mjs`；另在 `test/pen-reader.test.mjs` 补了一条守卫（§3.20），`test/verbs.test.mjs` 补了 4 条（§3.18、§3.19、§3.21） |

@@ -16,7 +16,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parse, getAttr, findById } from "../lib/parse.mjs";
+import { parse, getAttr, findById, pagesOf } from "../lib/parse.mjs";
+import { validateDesign } from "../lib/validate.mjs";
 import { serialize } from "../lib/serialize.mjs";
 import { applyOps } from "../lib/ops.mjs";
 
@@ -328,4 +329,92 @@ test("add's human refusal and its JSON refusal agree about the code", () => {
   assert.match(human.stdout, /REFUSED/);
   assert.match(human.stdout, new RegExp(receipt.refused.code.replace("/", "\\/")));
   assert.match(human.stdout, /was not changed\./);
+});
+
+// -- import pen: the verb's flags had no test at all --------------------------
+
+/**
+ * A `.pen` document small enough to read, with or without a name of its own.
+ *
+ * Every test below goes through the command line, because that is where the two defects
+ * this section exists for lived: `--stdout` appended the ledger line to the document, and
+ * a document with no `name` was titled literally `imported`. The reader's own tests call
+ * `importPen()` directly, so neither was reachable from them.
+ */
+function penDoc(options = {}) {
+  const doc = {
+    version: "2.19",
+    children: [
+      {
+        type: "frame", id: "p1", name: "Page", x: 0, y: 0, width: 390, height: 844,
+        children: [
+          { type: "text", id: "t1", name: "Title", content: "hi", width: "fill_container", height: 40 },
+        ],
+      },
+    ],
+  };
+  if (options.name !== undefined) doc.name = options.name;
+  return JSON.stringify(doc, null, 2);
+}
+
+test("import pen --stdout writes a design file and nothing else", () => {
+  const { dir } = workspace();
+  const pen = join(dir, "sample.pen");
+  writeFileSync(pen, penDoc({ name: "Sample" }));
+
+  const { code, stdout, stderr } = run(["import", "pen", pen, "--stdout"]);
+  assert.equal(code, 0, stderr);
+
+  // The whole of stdout is the document. This used to end with a sentence about pages,
+  // so `--stdout > design.html` produced a file that was not a design file — and a pipe
+  // cannot tell a line of HTML from a line of ledger.
+  const doc = parse(stdout);
+  assert.equal(pagesOf(doc).length, 1);
+  assert.deepEqual(validateDesign(doc).filter((d) => d.severity === "error"), []);
+  assert.match(stdout.trimEnd(), /<\/html>$/);
+
+  // The ledger still reaches a person, on the stream a pipe does not consume.
+  assert.match(stderr, /1 pages/);
+});
+
+test("import pen --stdout --json keeps the JSON off stdout as well", () => {
+  const { dir } = workspace();
+  const pen = join(dir, "sample.pen");
+  writeFileSync(pen, penDoc({ name: "Sample" }));
+
+  const { code, stdout, stderr } = run(["import", "pen", pen, "--stdout", "--json"]);
+  assert.equal(code, 0, stderr);
+  assert.match(stdout.trimEnd(), /<\/html>$/);
+  const report = JSON.parse(stderr);
+  assert.equal(report.ok, true);
+  assert.equal(report.out, null, "nothing was written to a file, and the report says so");
+  assert.equal(report.ledger.pages, 1);
+});
+
+test("import pen titles the file from the document, then from the file name", () => {
+  const { dir } = workspace();
+  const titleOf = (name) => {
+    const text = readFileSync(name, "utf8");
+    return (/<title>([^<]*)<\/title>/.exec(text) ?? [])[1];
+  };
+
+  // The pen document's own name wins over the file name it happens to live in.
+  const named = join(dir, "named.pen");
+  writeFileSync(named, penDoc({ name: "Ledger Sample" }));
+  const first = join(dir, "first.html");
+  assert.equal(run(["import", "pen", named, "-o", first, "--quiet"]).code, 0);
+  assert.equal(titleOf(first), "Ledger Sample");
+
+  // No name in the document: the file name. It used to be the literal word "imported",
+  // which tells a reader of the file nothing about what it is.
+  const anon = join(dir, "anon.pen");
+  writeFileSync(anon, penDoc());
+  const second = join(dir, "second.html");
+  assert.equal(run(["import", "pen", anon, "-o", second, "--quiet"]).code, 0);
+  assert.equal(titleOf(second), "anon");
+
+  // And an explicit --title beats both.
+  const third = join(dir, "third.html");
+  assert.equal(run(["import", "pen", named, "-o", third, "--title", "Chosen", "--quiet"]).code, 0);
+  assert.equal(titleOf(third), "Chosen");
 });

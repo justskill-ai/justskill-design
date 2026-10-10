@@ -210,9 +210,11 @@ test("a broken data-overrides is left byte for byte", () => {
 
 test("the real 239-instance file keeps a clean ledger", () => {
   // The cascade, measured on the file the `.pen` importer produces: 23
-  // components, 239 instances, 140 overrides. It already has 18
-  // `component/text-override-on-icon` errors, and the count of those is the
-  // baseline — a rename may not add an error of any kind.
+  // components, 239 instances, 140 overrides. The baseline is read from the file
+  // rather than pinned here, because a rename may not add an error of any kind
+  // whatever the file already contains. (It carried 18
+  // `component/text-override-on-icon` errors until the example was regenerated;
+  // that is what made a dynamic baseline the right shape.)
   const dir = mkdtempSync(join(tmpdir(), "sd-rename-real-"));
   const file = join(dir, "miniprogram.html");
   copyFileSync(REAL, file);
