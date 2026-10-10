@@ -11,7 +11,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, rmSync, cpSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync, rmSync, cpSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -417,4 +417,42 @@ test("import pen titles the file from the document, then from the file name", ()
   const third = join(dir, "third.html");
   assert.equal(run(["import", "pen", named, "-o", third, "--title", "Chosen", "--quiet"]).code, 0);
   assert.equal(titleOf(third), "Chosen");
+});
+
+/**
+ * The import gate, asked to do what its own message says.
+ *
+ * It read the diagnostics the reader returns, which are the parser's, so it
+ * caught malformed HTML and nothing else. A `.pen` whose every `ref` pointed at
+ * a node that does not exist imported clean, exited 0, and wrote a document the
+ * very next `validate` refuses — the one case the gate exists for.
+ */
+test("an import that would not validate is refused, and writes nothing", () => {
+  const { dir } = workspace();
+  const pen = join(dir, "ghost.pen");
+  const out = join(dir, "ghost.html");
+  try {
+    writeFileSync(pen, JSON.stringify({
+      version: "2.19",
+      name: "ghost",
+      children: [{
+        type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{ type: "ref", id: "used", name: "Card", ref: "ghost" }],
+      }],
+    }, null, 2));
+
+    const refused = run(["import", "pen", pen, "-o", out]);
+    assert.equal(refused.code, 1, `expected a refusal: ${refused.stdout}${refused.stderr}`);
+    assert.match(refused.stdout, /REFUSED/, refused.stdout);
+    assert.match(refused.stdout, /component\/unknown-ref/, "the refusal names the defect, not just its count");
+    assert.equal(existsSync(out), false, "a refused import writes no file");
+
+    // The same command on a file that resolves still imports, so the gate
+    // refuses this document and not the shape of it.
+    writeFileSync(pen, penDoc({ name: "ok" }));
+    assert.equal(run(["import", "pen", pen, "-o", out, "--quiet"]).code, 0);
+    assert.ok(existsSync(out), "a clean file still imports");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
