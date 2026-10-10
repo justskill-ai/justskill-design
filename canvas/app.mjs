@@ -26,6 +26,13 @@ import {
 } from "/lib/render.mjs";
 import { collectTokens, lintContrast } from "/lib/validate.mjs";
 import { lintGeometry, overhangOf, MAX_REPORTED_PER_CODE } from "/lib/geometry.mjs";
+import {
+  newView, pageRoots, isOpen, toggleNode, openPath, visibleNodes, hasChildren, pathTo,
+  expandAll, collapseAll,
+} from "./tree.mjs";
+import {
+  groupedFields, controlFor, valuesFor, hintFor, rangeFor, scrubFor, isNumericValue,
+} from "./groups.mjs";
 
 // -- wire --------------------------------------------------------------------
 
@@ -84,6 +91,17 @@ const state = {
   canUndo: false,
   canRedo: false,
   busy: false,
+  // The layer tree: the nested nodes, what is open, and which row has the keyboard.
+  tree: [],
+  treeView: newView(),
+  treeFocus: null,
+  revealedFor: null,
+  lastSelection: null,
+  // Set by a selection made on the canvas: the row has to be opened to and
+  // scrolled to even when the selection did not change.
+  expandRow: false,
+  // The inspector sections the user folded shut, by section id.
+  folded: new Set(),
 };
 
 /** Counts mounts, so a font callback from a replaced mount can be ignored. */
@@ -93,8 +111,15 @@ const ui = {
   viewport: document.getElementById("viewport"),
   canvas: document.getElementById("canvas"),
   overlay: document.getElementById("overlay"),
-  pageList: document.getElementById("page-list"),
-  layerList: document.getElementById("layer-list"),
+  layerTree: document.getElementById("layer-tree"),
+  treeExpand: document.getElementById("tree-expand"),
+  treeCollapse: document.getElementById("tree-collapse"),
+  panelLeft: document.getElementById("panel-left"),
+  panelRight: document.getElementById("panel-right"),
+  dividerLeft: document.getElementById("divider-left"),
+  dividerRight: document.getElementById("divider-right"),
+  toggleLeft: document.getElementById("toggle-left"),
+  toggleRight: document.getElementById("toggle-right"),
   inspector: document.getElementById("inspector"),
   selectionName: document.getElementById("selection-name"),
   fileName: document.getElementById("file-name"),
@@ -185,6 +210,221 @@ function fitAll() {
   drawOverlay();
 }
 
+// -- panels ------------------------------------------------------------------
+
+/**
+ * Panel geometry: which panels are open, and how wide.
+ *
+ * This is chrome state and it stays chrome state. It is not written into the
+ * design file, it is not sent to the service, and it takes no part in a commit:
+ * opening a panel is not an edit, and a design file that changed because someone
+ * resized a sidebar would break the one promise this whole tool is built on.
+ *
+ * It is remembered in `localStorage`, keyed per browser rather than per file —
+ * which panel you like open is a fact about you, not about the document. A
+ * browser that refuses (private mode throws on write) gets the defaults every
+ * time: mildly annoying, never broken.
+ */
+const PANEL_KEY = "skill-design.canvas.panels";
+const PANEL_MIN = 160;
+const PANEL_GUTTER = 6; // must match the `--gutter-*` default in styles.css
+const PANEL_DEFAULT = { left: 240, right: 260 };
+
+const panels = {
+  left: { open: true, width: PANEL_DEFAULT.left },
+  right: { open: true, width: PANEL_DEFAULT.right },
+};
+
+function loadPanels() {
+  let saved = null;
+  try {
+    saved = JSON.parse(localStorage.getItem(PANEL_KEY) ?? "null");
+  } catch {
+    saved = null; // no storage, or something else owns that key
+  }
+  for (const side of ["left", "right"]) {
+    const entry = saved?.[side];
+    if (!entry) continue;
+    if (typeof entry.open === "boolean") panels[side].open = entry.open;
+    if (Number.isFinite(entry.width)) panels[side].width = entry.width;
+  }
+  // Read first, clamp after: a remembered width is clamped against the *other*
+  // remembered width, whichever order the two happen to be read in.
+  reclampPanels();
+}
+
+function savePanels() {
+  try {
+    localStorage.setItem(PANEL_KEY, JSON.stringify(panels));
+  } catch {
+    /* the canvas works without remembering anything */
+  }
+}
+
+/** The narrowest centre column that is still a canvas. */
+const CANVAS_MIN = 160;
+
+/**
+ * Never narrower than a usable column, and never so wide that the canvas — or
+ * the other panel — is squeezed out of the window.
+ *
+ * The ceiling used to be half the window per side, which is a rule that only
+ * holds while one panel is open. Two panels at half the window add up to more
+ * than the window: the centre track resolves to zero, and `overflow: hidden`
+ * then hides the canvas and the two buttons that live on it, with the state
+ * written to `localStorage` for the next visit. Measured against the space that
+ * is actually left, the two sides cannot starve the middle.
+ */
+function clampPanel(side, width) {
+  const other = side === "left" ? "right" : "left";
+  const otherTrack = panels[other].open ? panels[other].width + PANEL_GUTTER : 0;
+  const ceiling = Math.max(PANEL_MIN, window.innerWidth - otherTrack - PANEL_GUTTER - CANVAS_MIN);
+  return Math.round(Math.min(Math.max(width, PANEL_MIN), ceiling));
+}
+
+/**
+ * Bring both panels back inside the window.
+ *
+ * Two passes, because the ceiling of one side is computed from the other: a
+ * shrink on the right can be what makes room on the left.
+ */
+function reclampPanels() {
+  withPanelGeometry(() => {
+    for (const side of ["left", "right"]) panels[side].width = clampPanel(side, panels[side].width);
+    for (const side of ["right", "left"]) panels[side].width = clampPanel(side, panels[side].width);
+  });
+}
+
+/** The horizontal space the left panel takes from the viewport, in pixels. */
+function leftTrackWidth() {
+  return panels.left.open ? panels.left.width + PANEL_GUTTER : 0;
+}
+
+/**
+ * Run a geometry change and keep the drawing where it was on screen.
+ *
+ * The canvas is anchored to the viewport's top-left corner, and collapsing or
+ * resizing the left panel moves exactly that corner — so the whole design slides
+ * sideways with it. A panel is chrome: changing one must not move the thing
+ * being designed. The correction is the change in the left track, measured
+ * rather than assumed, and the right panel needs none because it moves no
+ * corner.
+ */
+function withPanelGeometry(change) {
+  const before = leftTrackWidth();
+  change();
+  applyPanels();
+  const after = leftTrackWidth();
+  if (after !== before) {
+    state.camera.x -= after - before;
+    applyCamera();
+  }
+  drawOverlay();
+}
+
+/**
+ * Write the geometry into the four variables the layout reads.
+ *
+ * `#stage` sizes its tracks from them and `.drawer` anchors its edges to them.
+ * A collapsed panel sets its own to 0, gutter included: a hidden panel that
+ * leaves a 6px slot behind is a hidden panel you can still see.
+ */
+function applyPanels() {
+  const root = document.documentElement.style;
+  for (const side of ["left", "right"]) {
+    const { open, width } = panels[side];
+    root.setProperty(`--panel-${side}`, open ? `${width}px` : "0px");
+    root.setProperty(`--gutter-${side}`, open ? `${PANEL_GUTTER}px` : "0px");
+  }
+  ui.panelLeft.hidden = !panels.left.open;
+  ui.panelRight.hidden = !panels.right.open;
+  ui.dividerLeft.hidden = !panels.left.open;
+  ui.dividerRight.hidden = !panels.right.open;
+  // A focusable `separator` is a widget, and a widget reports its value. Written
+  // here rather than in the HTML so the bounds have one definition: `PANEL_MIN`
+  // and the same ceiling `clampPanel` uses.
+  for (const [side, divider] of [["left", ui.dividerLeft], ["right", ui.dividerRight]]) {
+    divider.setAttribute("aria-valuenow", String(panels[side].width));
+    divider.setAttribute("aria-valuemin", String(PANEL_MIN));
+    divider.setAttribute("aria-valuemax", String(Math.max(PANEL_MIN, Math.round(window.innerWidth / 2))));
+  }
+  for (const [side, button] of [["left", ui.toggleLeft], ["right", ui.toggleRight]]) {
+    button.setAttribute("aria-pressed", String(panels[side].open));
+    button.classList.toggle("off", !panels[side].open);
+    button.title = `${panels[side].open ? "Hide" : "Show"} the ${side === "left" ? "layers panel" : "inspector"} (${side === "left" ? "⌘\\" : "⇧⌘\\"})`;
+  }
+}
+
+function setPanelWidth(side, width, { remember = true } = {}) {
+  withPanelGeometry(() => { panels[side].width = clampPanel(side, width); });
+  if (remember) savePanels();
+}
+
+function togglePanel(side) {
+  withPanelGeometry(() => { panels[side].open = !panels[side].open; });
+  savePanels();
+}
+
+/**
+ * A panel edge, dragged.
+ *
+ * Pointer capture is what makes this feel like an edge instead of a 6px strip:
+ * the pointer is free to leave the divider, and the width still follows it. The
+ * keyboard gets the same two keys the divider's `separator` role implies, so the
+ * layout is not mouse-only.
+ */
+function initDivider(side, element) {
+  const outward = side === "left" ? 1 : -1; // which way grows this panel
+  let dragging = null;
+
+  element.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    dragging = { pointerId: event.pointerId, startX: event.clientX, startWidth: panels[side].width };
+    capturePointer(element, event.pointerId);
+    element.classList.add("dragging");
+    event.preventDefault();
+  });
+
+  element.addEventListener("pointermove", (event) => {
+    if (!dragging || event.pointerId !== dragging.pointerId) return;
+    setPanelWidth(side, dragging.startWidth + (event.clientX - dragging.startX) * outward, { remember: false });
+  });
+
+  const end = (event) => {
+    if (!dragging || event.pointerId !== dragging.pointerId) return;
+    dragging = null;
+    element.classList.remove("dragging");
+    try { element.releasePointerCapture(event.pointerId); } catch { /* already released */ }
+    savePanels();
+  };
+  element.addEventListener("pointerup", end);
+  element.addEventListener("pointercancel", end);
+
+  element.addEventListener("dblclick", () => setPanelWidth(side, PANEL_DEFAULT[side]));
+
+  element.addEventListener("keydown", (event) => {
+    const step = event.shiftKey ? 40 : 8;
+    if (event.key === "ArrowLeft") setPanelWidth(side, panels[side].width - step * outward);
+    else if (event.key === "ArrowRight") setPanelWidth(side, panels[side].width + step * outward);
+    else return;
+    event.preventDefault();
+    // And it stops here. The canvas nudges the selected element on the same two
+    // keys, so a resize keypress that was allowed to bubble resized a panel *and*
+    // committed a one-pixel move — a write from a gesture that is supposed to
+    // touch nothing but chrome.
+    event.stopPropagation();
+  });
+}
+
+function wirePanels() {
+  loadPanels();
+  applyPanels();
+  initDivider("left", ui.dividerLeft);
+  initDivider("right", ui.dividerRight);
+  ui.toggleLeft.addEventListener("click", () => togglePanel("left"));
+  ui.toggleRight.addEventListener("click", () => togglePanel("right"));
+}
+
 // -- load and mount ----------------------------------------------------------
 
 async function loadDocument({ keepCamera = false } = {}) {
@@ -205,6 +445,7 @@ async function loadDocument({ keepCamera = false } = {}) {
 
   mountAll();
   if (!keepCamera) fitAll();
+  buildTree();
   renderChrome();
 }
 
@@ -704,45 +945,7 @@ function drawOverlay() {
 
 function renderChrome() {
   ui.fileName.textContent = state.file;
-  ui.pageList.textContent = "";
-  for (const page of state.model.pages) {
-    const item = document.createElement("li");
-    item.dataset.pageId = page.id;
-    if (state.selection === page.id) item.classList.add("selected");
-    const name = document.createElement("span");
-    name.textContent = page.name;
-    item.appendChild(name);
-    const badge = document.createElement("span");
-    badge.className = "badge";
-    badge.textContent = page.isLibrary ? "library" : `${state.boxes.get(page.id).width}×${Math.round(state.boxes.get(page.id).height)}`;
-    item.appendChild(badge);
-    item.addEventListener("click", () => select(page.id, { reveal: true }));
-    ui.pageList.appendChild(item);
-  }
-
-  ui.layerList.textContent = "";
-  const current = state.selection ? findPageOfId(state.selection) : state.model.pages[0]?.id;
-  const page = state.model.pages.find((p) => p.id === current) ?? state.model.pages[0];
-  if (page) {
-    for (const row of pageTree(page.node)) {
-      const item = document.createElement("li");
-      item.dataset.nodeId = row.id;
-      item.style.paddingLeft = `${10 + row.depth * 12}px`;
-      if (state.selection === row.id) item.classList.add("selected");
-      const label = document.createElement("span");
-      label.className = "label";
-      label.textContent = row.name || row.id || `(${row.tag})`;
-      const type = document.createElement("span");
-      type.className = "type";
-      type.textContent = row.type ?? row.tag;
-      item.appendChild(label);
-      item.appendChild(type);
-      item.addEventListener("click", () => select(row.id, { reveal: true }));
-      item.addEventListener("mouseenter", () => { state.hovering = row.id; drawOverlay(); });
-      item.addEventListener("mouseleave", () => { state.hovering = null; drawOverlay(); });
-      ui.layerList.appendChild(item);
-    }
-  }
+  renderLayerTree();
 
   document.getElementById("undo").disabled = !state.canUndo || state.readOnly;
   document.getElementById("redo").disabled = !state.canRedo || state.readOnly;
@@ -755,6 +958,294 @@ function renderChrome() {
   renderInspector();
 }
 
+// -- the layer tree ----------------------------------------------------------
+
+/**
+ * Rebuild the nested tree from the model.
+ *
+ * Called when the document changes, not when the selection does: `pageTree()`
+ * walks every element of every page, and doing that on each selection change
+ * (which the first version of this panel did, at more than ten times the data)
+ * is a walk whose result nobody edited.
+ */
+function buildTree() {
+  state.tree = state.model ? pageRoots(state.model.pages, (page) => pageTree(page.node)) : [];
+}
+
+/**
+ * The two buttons in the Layers header.
+ *
+ * They are the standing intent — "everything open" or "everything closed" — not
+ * a loop over the rows that are open right now. That is what makes them O(1) on
+ * a file with three thousand rows, and what makes an expanded branch survive:
+ * the exceptions a person made with a chevron stay exceptions.
+ */
+ui.treeExpand.addEventListener("click", () => {
+  expandAll(state.treeView);
+  renderLayerTree();
+});
+
+ui.treeCollapse.addEventListener("click", () => {
+  collapseAll(state.treeView);
+  renderLayerTree();
+});
+
+/** id -> <li>, rebuilt with the tree, so focus and scrolling need no selector. */
+let treeRows = new Map();
+
+function renderLayerTree() {
+  const hadFocus = ui.layerTree.contains(document.activeElement);
+  // A row selected from the canvas has to be reachable — a selection hidden
+  // inside a closed ancestor looks like a panel that lost it. Opened on a
+  // *change* of selection, and on an explicit `expand` from the canvas, but not
+  // on every render: doing that re-opened an ancestor the user had just
+  // collapsed, because the chevron's own click renders the tree it folded, and
+  // the chevron became a control that did nothing.
+  const pending = state.expandRow;
+  if (state.selection && (pending || state.selection !== state.lastSelection)) {
+    openPath(state.tree, state.selection, state.treeView);
+  }
+  state.lastSelection = state.selection;
+  state.expandRow = false;
+
+  ui.layerTree.textContent = "";
+  treeRows = new Map();
+
+  if (state.tree.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "tree-empty";
+    empty.textContent = state.model ? "No pages." : "Loading…";
+    ui.layerTree.appendChild(empty);
+    return;
+  }
+
+  const visible = visibleNodes(state.tree, state.treeView);
+  // Roving tabindex: exactly one row carries the tab stop, and it is the row the
+  // arrow keys are standing on.
+  if (!state.treeFocus || !visible.some((node) => node.id === state.treeFocus)) {
+    state.treeFocus = state.selection && visible.some((node) => node.id === state.selection)
+      ? state.selection
+      : visible[0]?.id ?? null;
+  }
+
+  // Rendered by recursing from the roots, not by walking the flat visible list:
+  // the list contains a node *and* its descendants, so drawing from it would
+  // draw every subtree once for the node and once for each of its ancestors.
+  appendTreeItems(ui.layerTree, state.tree);
+
+  const selected = state.selection ? treeRows.get(state.selection) : null;
+  if (selected && (pending || state.revealedFor !== state.selection)) {
+    state.revealedFor = state.selection;
+    selected.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+  // Focus is only taken back if the tree had it: after an edit the canvas
+  // re-renders, and stealing focus out of an inspector field mid-typing would
+  // close the field the user is working in.
+  if (hadFocus && state.treeFocus) treeRows.get(state.treeFocus)?.focus({ preventScroll: true });
+}
+
+/**
+ * Append a list of nodes, and the children of the ones that are open.
+ *
+ * The rows are a real nesting — a `<ul>` inside the `<li>` it belongs to — not
+ * the flat list with `padding-left: depth * 13px` this panel used to draw. A flat
+ * list looks the same and cannot be collapsed, and collapse is the reason the
+ * panel exists.
+ */
+function appendTreeItems(list, nodes) {
+  for (const node of nodes) {
+    const open = isOpen(node, state.treeView);
+    const item = document.createElement("li");
+    item.className = "tree-item";
+    item.setAttribute("role", "treeitem");
+    item.setAttribute("aria-level", String(node.depth + 1));
+    item.setAttribute("aria-selected", String(state.selection === node.id));
+    if (hasChildren(node)) item.setAttribute("aria-expanded", String(open));
+    if (node.hidden) item.dataset.hidden = "true";
+    item.dataset.nodeId = node.id;
+    item.tabIndex = state.treeFocus === node.id ? 0 : -1;
+    item.appendChild(treeRow(node));
+
+    if (open) {
+      const children = document.createElement("ul");
+      children.className = "tree-children";
+      // A `treeitem`'s children are a group, not a list: the role is what makes
+      // the nesting legible to anything that reads the tree rather than sees it.
+      children.setAttribute("role", "group");
+      appendTreeItems(children, node.children);
+      item.appendChild(children);
+    }
+
+    treeRows.set(node.id, item);
+    list.appendChild(item);
+  }
+}
+
+function treeRow(node) {
+  const row = document.createElement("div");
+  row.className = "tree-row";
+
+  // The chevron is decorative: the state it shows is `aria-expanded` on the
+  // item, which is what the keyboard and the screen reader read.
+  const chevron = document.createElement("span");
+  if (hasChildren(node)) chevron.className = "chevron";
+  else chevron.className = "chevron leaf";
+  chevron.setAttribute("aria-hidden", "true");
+  row.appendChild(chevron);
+
+  const label = document.createElement("span");
+  label.className = "tree-label";
+  label.textContent = node.name || node.id || `(${node.tag})`;
+  row.appendChild(label);
+
+  const type = document.createElement("span");
+  type.className = "tree-type";
+  type.textContent = node.type ?? node.tag;
+  row.appendChild(type);
+
+  if (node.kind === "page") {
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = pageBadge(node);
+    row.appendChild(badge);
+  }
+  return row;
+}
+
+function pageBadge(node) {
+  if (node.isLibrary) return "library";
+  const box = state.boxes.get(node.id);
+  return box ? `${box.width}×${Math.round(box.height)}` : "";
+}
+
+function treeNodeFor(id) {
+  const path = pathTo(state.tree, id);
+  if (path.length === 0) return null;
+  let nodes = state.tree;
+  let found = null;
+  for (const step of path) {
+    found = nodes.find((node) => node.id === step) ?? null;
+    if (!found) return null;
+    nodes = found.children;
+  }
+  return found;
+}
+
+function setHovering(id) {
+  if (state.hovering === id) return;
+  state.hovering = id;
+  drawOverlay();
+}
+
+/**
+ * Nothing in the canvas is text to select while the canvas is being dragged.
+ *
+ * Cancelling the press suppresses the mouse events a selection would start from,
+ * and `.panning` turns off selection for the chrome — but `user-select` does not
+ * cross a shadow boundary, and the design's own text lives on the other side of
+ * one. So the gesture gets a third guard, on the event the selection itself
+ * fires. Scoped to a drag in progress: outside one, selecting a string in a page
+ * still works the way it did.
+ */
+ui.viewport.addEventListener("selectstart", (event) => {
+  if (drag || ui.viewport.classList.contains("panning")) event.preventDefault();
+});
+
+/**
+ * Rows are one delegated listener, not one per row.
+ *
+ * An imported design can be thousands of rows; two listeners each is a cost paid
+ * on every render, and the row identity is already in `data-node-id`.
+ */
+/**
+ * The item a pointer event is really over.
+ *
+ * A child list is a `<ul>` inside the parent `<li>`, so the 13px indent band
+ * beside a nested row belongs to the *parent's* item. Resolving `.tree-item`
+ * alone therefore selected the parent when someone clicked just left of a child
+ * — the canvas jumping to a different element than the one under the pointer —
+ * and hover outlined the parent too. A row is what a row is; the band between
+ * rows is nobody's, and does nothing.
+ */
+function rowItemOf(target) {
+  return target?.closest?.(".tree-row")?.closest(".tree-item") ?? null;
+}
+
+ui.layerTree.addEventListener("mouseover", (event) => {
+  setHovering(rowItemOf(event.target)?.dataset.nodeId ?? null);
+});
+ui.layerTree.addEventListener("mouseleave", () => setHovering(null));
+
+ui.layerTree.addEventListener("click", (event) => {
+  const item = rowItemOf(event.target);
+  const id = item?.dataset.nodeId;
+  if (!id) return;
+  const node = treeNodeFor(id);
+  if (!node) return;
+  state.treeFocus = id;
+
+  if (event.target.closest?.(".chevron") && hasChildren(node)) {
+    // The chevron opens; it does not select. Selecting on the way to a chevron
+    // is how a tree jumps the canvas to a different element than the one asked for.
+    toggleNode(node, state.treeView);
+    renderLayerTree();
+    return;
+  }
+  item.focus({ preventScroll: true });
+  select(id, { reveal: true });
+});
+
+/**
+ * The keys the tree owns, and only those.
+ *
+ * The canvas already listens on `window` for the arrow keys — they nudge the
+ * selected element one pixel, and that is a write to the file — so a key the
+ * tree handles has to stop here. Declaring the set is what makes that true in
+ * both directions: `⌘Z`, `Delete` and `Escape` still mean what they mean
+ * everywhere else, and an arrow key pressed on a leaf, where the tree can do
+ * nothing with it, is still an arrow key the tree consumed. Letting that one
+ * fall through moved an element in the design by one pixel — a write nobody
+ * asked for, from a keypress that looked inert.
+ */
+const TREE_KEYS = new Set(["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight", "Home", "End", "Enter", " "]);
+
+ui.layerTree.addEventListener("keydown", (event) => {
+  if (!TREE_KEYS.has(event.key)) return;
+  event.preventDefault();
+  event.stopPropagation();
+
+  const visible = visibleNodes(state.tree, state.treeView);
+  if (visible.length === 0) return;
+  const at = Math.max(0, visible.findIndex((node) => node.id === state.treeFocus));
+  const node = visible[at];
+  const standOn = (next) => {
+    state.treeFocus = next;
+    renderLayerTree();
+    treeRows.get(next)?.focus({ preventScroll: true });
+  };
+
+  switch (event.key) {
+    case "ArrowDown": standOn(visible[Math.min(visible.length - 1, at + 1)].id); break;
+    case "ArrowUp": standOn(visible[Math.max(0, at - 1)].id); break;
+    case "ArrowRight":
+      if (hasChildren(node) && !isOpen(node, state.treeView)) { toggleNode(node, state.treeView); renderLayerTree(); }
+      else if (hasChildren(node)) standOn(visible[at + 1].id);
+      break;
+    case "ArrowLeft": {
+      const path = pathTo(state.tree, node.id);
+      if (hasChildren(node) && isOpen(node, state.treeView)) { toggleNode(node, state.treeView); renderLayerTree(); }
+      else if (path.length > 1) standOn(path[path.length - 2]);
+      break;
+    }
+    case "Home": standOn(visible[0].id); break;
+    case "End": standOn(visible[visible.length - 1].id); break;
+    case "Enter":
+    case " ":
+      select(node.id, { reveal: true });
+      break;
+  }
+});
+
 /**
  * The count on the Problems button.
  *
@@ -766,15 +1257,6 @@ function renderProblemCount() {
   const errors = state.diagnostics.filter((d) => d.severity === "error").length;
   ui.problemCount.textContent = String(state.diagnostics.length);
   ui.problemCount.classList.toggle("has-errors", errors > 0);
-}
-
-function findPageOfId(id) {
-  for (const page of state.model.pages) {
-    if (page.id === id) return page.id;
-    const rows = pageTree(page.node);
-    if (rows.some((row) => row.id === id)) return page.id;
-  }
-  return state.model.pages[0]?.id ?? null;
 }
 
 function renderProblems() {
@@ -809,7 +1291,7 @@ function renderProblems() {
     row.appendChild(code);
     row.appendChild(message);
     if (diagnostic.target) {
-      row.addEventListener("click", () => select(diagnostic.target, { reveal: true }));
+      row.addEventListener("click", () => select(diagnostic.target, { reveal: true, expand: true }));
     }
     ui.problemList.appendChild(row);
   }
@@ -817,8 +1299,19 @@ function renderProblems() {
 
 // -- inspector ---------------------------------------------------------------
 
-const NUMERIC = /^-?\d+(\.\d+)?(px|%)?$/;
-
+/**
+ * The inspector: the selected element's own properties, in sections.
+ *
+ * Every row here edits one declaration of the selected element, and every edit
+ * goes through `commit` — the same funnel the CLI writes through. There is no
+ * second write path, so a value typed here is refused exactly when the CLI would
+ * refuse it, and the refusal names the same reason.
+ *
+ * Only the properties the element actually carries are drawn. A property that is
+ * not in the file is not a row: an empty field would be a promise that writing
+ * it adds the declaration and an empty value is the same as no value, which is
+ * not true of this format. (Adding a property is a separate feature.)
+ */
 function renderInspector() {
   ui.inspector.textContent = "";
   const id = state.selection;
@@ -840,14 +1333,39 @@ function renderInspector() {
     return;
   }
 
-  const type = getAttr(node, "data-type") ?? node.tag;
   ui.selectionName.textContent = `${getAttr(node, "data-name") || id}`;
+  ui.inspector.appendChild(identityBlock(id, node));
 
+  const styleMap = styleMapOf(node);
+  for (const section of groupedFields(styleMap.keys())) {
+    ui.inspector.appendChild(sectionBlock(id, section, styleMap));
+  }
+
+  if (node.kind === "element" && ["p", "h1", "h2", "h3", "h4", "h5", "h6", "span"].includes(node.tag)) {
+    ui.inspector.appendChild(contentBlock(id, node));
+  }
+}
+
+function sectionHead(id, label, folded) {
+  const head = document.createElement("button");
+  head.type = "button";
+  head.className = "section-head";
+  head.dataset.section = id;
+  head.setAttribute("aria-expanded", String(!folded));
+  head.textContent = label;
+  return head;
+}
+
+function focusSectionHead(id) {
+  ui.inspector.querySelector(`.section-head[data-section="${id}"]`)?.focus();
+}
+
+function identityBlock(id, node) {
   const identity = document.createElement("dl");
   identity.className = "attrs";
   for (const [label, value] of [
     ["data-id", id],
-    ["data-type", type],
+    ["data-type", getAttr(node, "data-type") ?? node.tag],
     ["tag", node.tag],
   ]) {
     const dt = document.createElement("dt");
@@ -857,111 +1375,223 @@ function renderInspector() {
     identity.appendChild(dt);
     identity.appendChild(dd);
   }
-  ui.inspector.appendChild(identity);
-
-  const styleMap = styleMapOf(node);
-  if (styleMap.size) {
-    const heading = document.createElement("div");
-    heading.className = "group";
-    heading.textContent = "Style";
-    ui.inspector.appendChild(heading);
-    for (const [property, value] of styleMap) {
-      ui.inspector.appendChild(buildField(id, node, property, value));
-    }
-  }
-
-  if (node.kind === "element" && ["p", "h1", "h2", "h3", "h4", "h5", "h6", "span"].includes(node.tag)) {
-    const heading = document.createElement("div");
-    heading.className = "group";
-    heading.textContent = "Text";
-    ui.inspector.appendChild(heading);
-    const text = (node.children ?? []).filter((c) => c.kind === "text").map((c) => c.value).join("");
-    const field = document.createElement("div");
-    field.className = "field";
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = text;
-    input.disabled = state.readOnly;
-    input.addEventListener("change", () => {
-      commit([{ op: "set", target: id, prop: "text", value: input.value }]);
-    });
-    field.appendChild(input);
-    ui.inspector.appendChild(field);
-  }
+  return identity;
 }
 
-function buildField(id, node, property, value) {
+/**
+ * One section: a heading that folds it, and a body of rows.
+ *
+ * Folding is remembered in `state.folded`, not in the DOM: the inspector is
+ * rebuilt on every selection, and a `<details>` that closed itself again on the
+ * next click would be a control that forgets what it was told.
+ */
+function sectionBlock(id, section, styleMap) {
+  const wrap = document.createElement("div");
+  wrap.className = "section";
+  const folded = state.folded.has(section.id);
+  if (folded) wrap.classList.add("folded");
+
+  const head = sectionHead(section.id, section.label, folded);
+  head.addEventListener("click", () => {
+    if (state.folded.has(section.id)) state.folded.delete(section.id);
+    else state.folded.add(section.id);
+    renderInspector();
+    // The rebuild replaced the button that was just pressed, so a keyboard user
+    // would lose their place on every fold. The tree restores focus the same way.
+    focusSectionHead(section.id);
+  });
+  wrap.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "section-body";
+  for (const row of section.rows) {
+    const line = document.createElement("div");
+    line.className = "field-grid";
+    for (const property of row) line.appendChild(buildField(id, property, styleMap.get(property)));
+    body.appendChild(line);
+  }
+  wrap.appendChild(body);
+  return wrap;
+}
+
+/**
+ * The text of a text element, which is not a declaration and so is its own row.
+ *
+ * Foldable like any other section, under the id `content` — not `text`, which is
+ * the Text section's id and would fold two different things with one click.
+ */
+function contentBlock(id, node) {
+  const wrap = document.createElement("div");
+  wrap.className = "section";
+  const folded = state.folded.has("content");
+  if (folded) wrap.classList.add("folded");
+
+  const head = sectionHead("content", "Content", folded);
+  head.addEventListener("click", () => {
+    if (state.folded.has("content")) state.folded.delete("content");
+    else state.folded.add("content");
+    renderInspector();
+    focusSectionHead("content");
+  });
+  wrap.appendChild(head);
+
+  const body = document.createElement("div");
+  body.className = "section-body";
+  const field = document.createElement("div");
+  field.className = "field";
+  const label = document.createElement("label");
+  label.textContent = "text";
+  label.htmlFor = "field-content";
+  field.appendChild(label);
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.id = "field-content";
+  input.value = (node.children ?? []).filter((child) => child.kind === "text").map((child) => child.value).join("");
+  input.disabled = state.readOnly;
+  input.addEventListener("change", () => {
+    commit([{ op: "set", target: id, prop: "text", value: input.value }]);
+  });
+  field.appendChild(input);
+  body.appendChild(field);
+  wrap.appendChild(body);
+  return wrap;
+}
+
+/**
+ * One property, with the editor its grammar asks for.
+ *
+ * `controlFor` reads the property's declared kind out of `lib/table.mjs`; this
+ * function is the only place that turns a kind into an element. The rule for
+ * every branch is the same: never lose a value. A `select` that does not list the
+ * current value gets the current value added to it, so an unusual spelling stays
+ * visible and stays selectable instead of silently snapping to the first option.
+ */
+function buildField(id, property, value) {
   const field = document.createElement("div");
   field.className = "field";
   const label = document.createElement("label");
   label.textContent = property;
+  label.title = hintFor(property);
   field.appendChild(label);
 
-  const isColor = property === "color" || property === "background-color" || property === "border-color";
   const bare = String(value);
-  const varMatch = /^var\((--[A-Za-z0-9_-]+)\)$/.exec(bare);
+  const control = controlFor(property);
 
-  if (isColor && /^#[0-9a-fA-F]{6,8}$/.test(bare)) {
+  if (control === "segmented" || control === "select") {
+    const values = valuesFor(property);
+    const options = values.includes(bare) ? values : [...values, bare];
+    if (control === "segmented") {
+      field.appendChild(segmentedControl(id, property, bare, options));
+    } else {
+      // A segmented control is a group and names itself; a `select` is a control
+      // and needs the label to point at it.
+      const select = selectControl(id, property, bare, options);
+      label.htmlFor = select.id;
+      field.appendChild(select);
+    }
+    return field;
+  }
+
+  if (control === "color" && /^#[0-9a-fA-F]{6,8}$/.test(bare)) {
     const input = document.createElement("input");
     input.type = "color";
+    input.id = `field-${property}`;
     input.value = bare.slice(0, 7);
     input.disabled = state.readOnly;
     input.addEventListener("change", () => {
       commit([{ op: "set", target: id, prop: `style:${property}`, value: input.value }]);
     });
+    label.htmlFor = input.id;
     field.appendChild(input);
-    const raw = document.createElement("div");
-    raw.className = "value-line";
-    raw.textContent = bare;
-    field.appendChild(raw);
+    field.appendChild(valueLine(bare));
     return field;
   }
 
-  if (varMatch) {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = bare;
-    input.disabled = state.readOnly;
-    input.addEventListener("change", () => {
-      commit([{ op: "set", target: id, prop: `style:${property}`, value: input.value }]);
-    });
-    field.appendChild(input);
-    const resolved = resolveTokens(bare, state.model.tokens);
-    if (resolved !== bare) {
-      const line = document.createElement("div");
-      line.className = "value-line";
-      line.textContent = `→ ${resolved}`;
-      field.appendChild(line);
-    }
-    return field;
-  }
-
-  if (NUMERIC.test(bare)) {
-    const input = document.createElement("input");
-    input.type = "text";
-    input.value = bare;
-    input.className = "scrub";
-    input.disabled = state.readOnly;
-    input.title = "Drag left or right to change, or type a value";
-    input.addEventListener("change", () => {
-      commit([{ op: "set", target: id, prop: `style:${property}`, value: input.value }]);
-    });
-    attachScrub(input, (next) => {
-      commit([{ op: "set", target: id, prop: `style:${property}`, value: next }]);
-    });
-    field.appendChild(input);
-    return field;
-  }
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = bare;
-  input.disabled = state.readOnly;
-  input.addEventListener("change", () => {
-    commit([{ op: "set", target: id, prop: `style:${property}`, value: input.value }]);
+  const input = textControl(id, property, bare, {
+    // A number input sanitizes what it cannot parse to the empty string, which
+    // would hide a value the file really carries (`opacity: var(--fade)`).
+    type: control === "number" && isNumericValue(bare) ? "number" : "text",
+    scrub: scrubFor(property, bare),
+    ...rangeFor(property),
   });
+  label.htmlFor = input.id;
   field.appendChild(input);
+
+  // A token is worth showing twice: once as what the file says, once as what the
+  // browser resolved it to. `var(--color-ink)` is the intent; `#111827` is the
+  // colour, and a designer checking contrast needs both.
+  const resolved = resolveTokens(bare, state.model.tokens);
+  if (resolved !== bare) field.appendChild(valueLine(`→ ${resolved}`));
   return field;
+}
+
+function valueLine(text) {
+  const line = document.createElement("div");
+  line.className = "value-line";
+  line.textContent = text;
+  return line;
+}
+
+function textControl(id, property, value, { type = "text", scrub = false, min, max } = {}) {
+  const input = document.createElement("input");
+  input.type = type;
+  input.id = `field-${property}`;
+  input.value = value;
+  input.disabled = state.readOnly;
+  const hint = hintFor(property);
+  if (hint) {
+    input.placeholder = hint;
+    input.title = hint;
+  }
+  if (min !== undefined) input.min = String(min);
+  if (max !== undefined) input.max = String(max);
+
+  const send = (next) => commit([{ op: "set", target: id, prop: `style:${property}`, value: next }]);
+  input.addEventListener("change", () => send(input.value));
+  if (scrub) {
+    input.className = "scrub";
+    input.title = "Drag left or right to change, or type a value";
+    attachScrub(input, send);
+  }
+  return input;
+}
+
+function segmentedControl(id, property, value, options) {
+  const group = document.createElement("div");
+  group.className = "seg";
+  group.setAttribute("role", "group");
+  group.setAttribute("aria-label", property);
+  for (const option of options) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "seg-option";
+    if (option === value) button.classList.add("active");
+    button.textContent = option;
+    button.disabled = state.readOnly;
+    button.addEventListener("click", () => {
+      commit([{ op: "set", target: id, prop: `style:${property}`, value: option }]);
+    });
+    group.appendChild(button);
+  }
+  return group;
+}
+
+function selectControl(id, property, value, options) {
+  const select = document.createElement("select");
+  select.id = `field-${property}`;
+  select.disabled = state.readOnly;
+  for (const option of options) {
+    const entry = document.createElement("option");
+    entry.value = option;
+    entry.textContent = option;
+    if (option === value) entry.selected = true;
+    select.appendChild(entry);
+  }
+  select.addEventListener("change", () => {
+    commit([{ op: "set", target: id, prop: `style:${property}`, value: select.value }]);
+  });
+  return select;
 }
 
 /**
@@ -975,12 +1605,16 @@ function attachScrub(input, onCommit) {
   let startX = 0;
   let startValue = 0;
   let unit = "";
+  let original = "";
+  let moved = false;
   let active = false;
 
   input.addEventListener("pointerdown", (event) => {
     if (event.button !== 0) return;
     active = true;
+    moved = false;
     startX = event.clientX;
+    original = input.value;
     const match = /^(-?\d+(?:\.\d+)?)(.*)$/.exec(input.value.trim());
     startValue = match ? Number(match[1]) : 0;
     unit = match ? match[2] : "";
@@ -990,6 +1624,7 @@ function attachScrub(input, onCommit) {
 
   input.addEventListener("pointermove", (event) => {
     if (!active) return;
+    if (event.clientX !== startX) moved = true;
     const delta = Math.round((event.clientX - startX) / 2);
     input.value = `${startValue + delta}${unit}`;
   });
@@ -998,6 +1633,14 @@ function attachScrub(input, onCommit) {
     if (!active) return;
     active = false;
     try { input.releasePointerCapture(event.pointerId); } catch { /* released */ }
+    if (!moved) {
+      // A press that never moved is a press, not a drag. The value goes back
+      // exactly as the file spells it — `0.50` is not rewritten to `0.5`, and
+      // `var(--space-md)` cannot be re-read as `0` — so touching a field can
+      // never be the thing that changed it.
+      input.value = original;
+      return;
+    }
     const next = input.value.trim();
     if (next !== `${startValue}${unit}`) onCommit(next);
   });
@@ -1017,12 +1660,32 @@ function findNode(id) {
 
 // -- selection ---------------------------------------------------------------
 
+/**
+ * Select an element.
+ *
+ * `reveal` pans the canvas to it; `expand` opens the layer tree down to it. They
+ * are two different questions and the answer differs by who asked: a row click
+ * in the tree needs the canvas moved but the tree is already there, while a pick
+ * on the canvas — or a row in the Problems drawer — has to open the tree, even
+ * when the element was already the selection. Without that second half, picking
+ * the same element twice, or picking it after "collapse all", leaves the panel
+ * showing nothing selected, which reads as a panel that missed the click.
+ */
 function select(id, options = {}) {
   state.selection = id;
   if (options.reveal) reveal(id);
+  if (options.expand) state.expandRow = true;
   renderChrome();
+  // The outline is drawn from `state.selection`, so a selection that does not
+  // redraw it leaves the canvas boxing whatever was selected before. A click on
+  // the canvas forces the redraw by moving the pointer over a different element
+  // first; a row in the Problems drawer never touches the canvas at all, so it
+  // was the case that showed it — the drawer named one element and the canvas
+  // went on highlighting another, for as long as the pointer stayed off the page.
+  drawOverlay();
 }
 
+/** Bring an element into view. Camera only: `select` redraws the overlay once. */
 function reveal(id) {
   const element = elementForId(id);
   if (!element) return;
@@ -1034,7 +1697,6 @@ function reveal(id) {
   state.camera.x += rect.left + rect.width / 2 - (box.left + box.width / 2);
   state.camera.y += rect.top + rect.height / 2 - (box.top + box.height / 2);
   applyCamera();
-  drawOverlay();
 }
 
 // -- writes ------------------------------------------------------------------
@@ -1100,6 +1762,10 @@ function capturePointer(element, pointerId) {
 
 ui.viewport.addEventListener("pointerdown", (event) => {
   const target = event.target;
+  // The panel toggles sit on the canvas but they are not the canvas. Without
+  // this the click falls through to "nothing was hit", which clears the
+  // selection — folding a panel away would also throw away what was selected.
+  if (target?.closest?.(".viewport-toggle")) return;
   const handle = target?.classList?.contains("handle") ? target : null;
 
   if (handle && state.selection) {
@@ -1125,15 +1791,27 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   }
 
   if (target === ui.viewport || target === ui.canvas) {
-    drag = { kind: "pan", startX: event.clientX, startY: event.clientY, originX: state.camera.x, originY: state.camera.y };
+    // The background is the one place with nothing under it, so a press here is
+    // a candidate for "clear the selection" — but only if the pointer never
+    // moves. Panning the canvas is not a way of saying "select nothing".
+    drag = {
+      kind: "pan", startX: event.clientX, startY: event.clientY,
+      originX: state.camera.x, originY: state.camera.y, moved: false,
+    };
     ui.viewport.classList.add("panning");
     capturePointer(ui.viewport, event.pointerId);
+    // Cancel the press. Without this the pointer drag is *also* the browser's
+    // text selection gesture, and panning the canvas drags a blue smear across
+    // every string in the design. (Cancelling `pointerdown` suppresses the
+    // compatibility mouse events the selection would start from; `user-select`
+    // on `.panning` is the belt to this pair of braces.)
+    event.preventDefault();
     return;
   }
 
   const hit = targetFromEvent(event);
   if (hit) {
-    select(hit.id);
+    select(hit.id, { expand: true });
     // A page is placed by `data-canvas`, and that is the only spelling for it.
     // This used to fall through to the frame path below, which writes
     // `position:absolute` plus `left`/`top`: the canvas ignores those on a page
@@ -1171,9 +1849,17 @@ ui.viewport.addEventListener("pointermove", (event) => {
   }
 
   if (drag.kind === "pan") {
+    if (Math.abs(event.clientX - drag.startX) > 3 || Math.abs(event.clientY - drag.startY) > 3) drag.moved = true;
     state.camera.x = drag.originX + (event.clientX - drag.startX);
     state.camera.y = drag.originY + (event.clientY - drag.startY);
     applyCamera();
+    // The overlay is a *sibling* of the canvas, not a child of it: it is
+    // positioned in viewport pixels and does not inherit the camera transform.
+    // Moving the camera therefore has to redraw it, or the canvas slides out
+    // from under a selection box that stays exactly where it was — a blue
+    // rectangle marking nothing. Every other camera move (wheel, zoom, fit,
+    // reveal) already redraws; this one was the exception.
+    drawOverlay();
     return;
   }
 
@@ -1215,6 +1901,15 @@ ui.viewport.addEventListener("pointerup", (event) => {
   const current = drag;
   drag = null;
   ui.viewport.classList.remove("panning");
+
+  // A press on the empty canvas that did not pan is a click on nothing, and
+  // clicking nothing clears the selection — the same thing `Escape` does. The
+  // three-pixel threshold is the same one an element drag uses: a click always
+  // arrives with a pixel or two of jitter, and a jittery click is still a click.
+  if (current.kind === "pan") {
+    if (!current.moved) select(null);
+    return;
+  }
 
   if (current.kind === "page" && current.moved) {
     const { x, y } = current.moved;
@@ -1266,7 +1961,18 @@ ui.viewport.addEventListener("wheel", (event) => {
 window.addEventListener("keydown", (event) => {
   const inField = ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
   if (inField) return;
+  if ((event.metaKey || event.ctrlKey) && event.code === "Backslash") {
+    // The layout, from the keyboard: ⌘\ is the layers panel, ⇧⌘\ the inspector.
+    // The *physical* key is what is checked, not `event.key`: with shift held the
+    // same key reports `|`, and a shortcut that stops working when you press the
+    // modifier it is documented with is a shortcut nobody can use.
+    event.preventDefault();
+    togglePanel(event.shiftKey ? "right" : "left");
+    return;
+  }
   if (event.key === " ") {
+    // A focused button activates on space, and that keypress is the button's.
+    if (document.activeElement?.tagName === "BUTTON") return;
     ui.viewport.classList.add("move-mode");
     event.preventDefault();
     return;
@@ -1288,6 +1994,12 @@ window.addEventListener("keydown", (event) => {
   }
   const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
   if (arrows[event.key] && state.selection) {
+    // The nudge is the one branch that writes, so it gets the second guard: the
+    // tree and the panel edges handle the arrow keys themselves and stop their
+    // own events, and this is what keeps a leaked keypress from moving a design
+    // by one pixel. Only the nudge — Delete, ⌘Z, Escape and ⌘\ have to keep
+    // working while a row in the tree has focus, and none of them nudges.
+    if (event.target?.closest?.("#layer-tree, .divider")) return;
     event.preventDefault();
     const step = event.shiftKey ? 10 : 1;
     const [dx, dy] = arrows[event.key];
@@ -1449,7 +2161,13 @@ function subscribe() {
   events.onerror = () => { /* EventSource reconnects on its own */ };
 }
 
-window.addEventListener("resize", () => drawOverlay());
+window.addEventListener("resize", () => {
+  // A window narrow enough to squeeze a panel re-clamps it, so a remembered
+  // 700px inspector cannot cover the design on a laptop screen — and the
+  // re-clamp goes through the same geometry path as a drag, so giving a column
+  // width back does not slide the drawing sideways with the viewport edge.
+  reclampPanels();
+});
 window.addEventListener("beforeunload", () => {
   navigator.sendBeacon(`/api/bye?t=${encodeURIComponent(TOKEN)}`);
 });
@@ -1465,6 +2183,7 @@ window.addEventListener("error", (event) => {
  * nothing is the worst possible failure mode, because it looks like a design
  * with no pages.
  */
+wirePanels();
 loadDocument()
   .then(subscribe)
   .catch(async (error) => {

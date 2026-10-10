@@ -16,6 +16,23 @@
   --chrome-accent: #4c8dff;
   --chrome-danger: #ff6b6b;
   --chrome-warn: #f0b429;
+
+  /*
+   * The three columns, in one place.
+   *
+   * `#stage` reads these for its tracks, `.drawer` reads them for its left and
+   * right edge, and the panel code writes them. A hard-coded `240px` in two
+   * rules is how a drawer ends up 240px wide over a panel that is no longer
+   * there — which is exactly what the first version of this layout did.
+   *
+   * `--gutter-*` is the width of the drag handle, and it goes to 0 with the
+   * panel: a hidden panel must leave neither a column nor a gap behind.
+   */
+  --panel-left: 240px;
+  --panel-right: 260px;
+  --gutter-left: 6px;
+  --gutter-right: 6px;
+
   color-scheme: dark;
 }
 
@@ -98,23 +115,55 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 #stage {
   flex: 1;
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) 260px;
+  grid-template-columns:
+    var(--panel-left) var(--gutter-left)
+    minmax(0, 1fr)
+    var(--gutter-right) var(--panel-right);
   min-height: 0;
 }
 
+/*
+ * Every column is named, not placed.
+ *
+ * The five children are laid into the five tracks in order — until one of them
+ * is `hidden` and drops out of the grid, at which point the rest shuffle one
+ * track to the left: the canvas lands in the zero-width panel track and
+ * disappears, and the inspector takes the `1fr`. Naming the columns is what
+ * makes hiding a panel a change of width instead of a change of layout.
+ */
+#panel-left { grid-column: 1; }
+#divider-left { grid-column: 2; }
+.viewport { grid-column: 3; }
+#divider-right { grid-column: 4; }
+#panel-right { grid-column: 5; }
+
 .panel {
   background: var(--chrome-panel);
-  border-right: 1px solid var(--chrome-line);
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
 }
 
-.panel.right { border-right: 0; border-left: 1px solid var(--chrome-line); }
+.panel.left { border-right: 1px solid var(--chrome-line); }
+.panel.right { border-left: 1px solid var(--chrome-line); }
+
+/*
+ * A `hidden` panel is taken off screen by the one `[hidden]` rule at the foot of
+ * this sheet.
+ *
+ * It was spelled out here first, per class — `.panel[hidden]`, `.divider[hidden]`,
+ * `.viewport-toggle[hidden]` — and that list is how the Problems drawer stayed on
+ * screen: the drawer is given a `display` too, and it was written before the list
+ * was. One rule at the end cannot go stale that way.
+ */
 
 .panel-head {
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
   border-bottom: 1px solid var(--chrome-line);
   color: var(--chrome-dim);
   font-size: 11px;
@@ -123,50 +172,175 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   flex: none;
 }
 
-.panel-body { padding: 10px; overflow: auto; min-height: 0; }
+/*
+ * The two buttons in the Layers header: expand all, collapse all.
+ *
+ * Icons rather than words, because the header is 240px wide and
+ * `text-transform: uppercase` turns any label into a shout that does not fit
+ * beside "LAYERS". The tooltip and the accessible name carry the meaning.
+ */
+.head-actions { display: flex; gap: 2px; }
 
-/* -- pages and layers ------------------------------------------------------- */
-
-.pages, .layers {
-  margin: 0;
-  padding: 4px 0;
-  list-style: none;
-  overflow: auto;
-  min-height: 0;
+.head-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  color: var(--chrome-dim);
 }
 
-.layers { flex: 1; border-top: 1px solid var(--chrome-line); }
-.pages { flex: none; max-height: 32%; }
+.head-button:hover { color: var(--chrome-ink); background: #232830; }
+.head-button svg { display: block; }
 
-.pages li, .layers li {
-  padding: 4px 10px;
+.panel-scroll { flex: 1; min-height: 0; overflow: auto; }
+
+.panel-body { padding: 10px; }
+
+/* -- panel divider ---------------------------------------------------------- */
+
+/*
+ * A 6px handle with a 1px hairline down its middle.
+ *
+ * The hairline is a background layer, not a border: a border would take a pixel
+ * off the grab area and the line would jump a pixel sideways when the pointer
+ * landed on it. `touch-action: none` is what lets a finger drag the edge
+ * instead of scrolling the panel under it.
+ */
+.divider {
+  position: relative;
+  width: 100%;
+  cursor: col-resize;
+  background: linear-gradient(var(--chrome-line), var(--chrome-line)) center / 1px 100% no-repeat;
+  touch-action: none;
+}
+
+.divider:hover, .divider.dragging { background: var(--chrome-accent) center / 2px 100% no-repeat; }
+
+.divider:focus-visible { outline: 1px solid var(--chrome-accent); outline-offset: -1px; }
+
+/* -- panel toggles ---------------------------------------------------------- */
+
+.viewport-toggle {
+  position: absolute;
+  top: 8px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  background: #23272fdd;
+  color: var(--chrome-dim);
+}
+
+.viewport-toggle.left { left: 8px; }
+.viewport-toggle.right { right: 8px; }
+
+.viewport-toggle:hover { color: var(--chrome-ink); }
+.viewport-toggle[aria-pressed="true"] { color: var(--chrome-ink); }
+.viewport-toggle.off { color: var(--chrome-dim); opacity: 0.75; }
+
+.viewport-toggle svg { display: block; }
+
+/* -- the layer tree --------------------------------------------------------- */
+
+/*
+ * One tree, pages at its root. The nesting is real: a `<ul>` inside the `<li>`
+ * is the child list, so the indent is the browser's, not `depth * 12px` on a
+ * flat list. A flat list can be indented to look nested; it cannot be collapsed,
+ * and collapse is the whole reason this panel exists.
+ */
+.tree, .tree-children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree-children { padding-left: 13px; }
+
+.tree-item { min-width: 0; }
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 4px;
   cursor: default;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
-.pages li:hover, .layers li:hover { background: #232830; }
+.tree-row:hover { background: #232830; }
 
-.pages li.selected, .layers li.selected {
+.tree-item[aria-selected="true"] > .tree-row {
   background: #2b3444;
   box-shadow: inset 2px 0 0 var(--chrome-accent);
 }
 
-.pages li .badge, .layers li .badge {
-  font-size: 10px;
-  color: var(--chrome-dim);
-  border: 1px solid var(--chrome-line);
-  border-radius: 4px;
-  padding: 0 4px;
+.tree-item:focus-visible { outline: none; }
+.tree-item:focus-visible > .tree-row { outline: 1px solid var(--chrome-accent); outline-offset: -1px; }
+
+/*
+ * The chevron is drawn, not typed. A glyph would inherit whatever the system
+ * font does with `▸`, and it would have to be rewritten on every expand; a
+ * rotated triangle is one rule keyed off `aria-expanded`, the attribute that
+ * already has to be right for the keyboard and the screen reader.
+ */
+.chevron {
   flex: none;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--chrome-dim);
+  border-radius: 3px;
 }
 
-.layers li .type { color: var(--chrome-dim); font-size: 11px; flex: none; }
-.layers li .label { overflow: hidden; text-overflow: ellipsis; }
+.chevron::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transform: rotate(0deg);
+  transition: transform 90ms linear;
+}
+
+.tree-item[aria-expanded="true"] > .tree-row > .chevron::before { transform: rotate(90deg); }
+
+.chevron.leaf::before { display: none; }
+.chevron:hover { color: var(--chrome-ink); background: #303743; }
+
+.tree-label { overflow: hidden; text-overflow: ellipsis; }
+
+.tree-type {
+  flex: none;
+  color: var(--chrome-dim);
+  font-size: 11px;
+}
+
+/* A hidden element keeps its row, greyed: it is still in the file, and a layer
+   list that drops it would make the next edit a guess. */
+.tree-item[data-hidden="true"] > .tree-row > .tree-label { color: var(--chrome-dim); text-decoration: line-through; }
+
+.tree-item .badge {
+  flex: none;
+  margin-left: auto;
+  padding-left: 6px;
+  font-size: 10px;
+  color: var(--chrome-dim);
+}
+
+.tree-empty { padding: 8px 10px; color: var(--chrome-dim); }
 
 /* -- viewport --------------------------------------------------------------- */
 
@@ -180,7 +354,14 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   min-width: 0;
 }
 
-.viewport.panning { cursor: grabbing; }
+/*
+ * While the canvas is being dragged, nothing on it is text to select.
+ *
+ * `user-select: none` on the viewport is inherited into the pages' shadow roots,
+ * so it covers the design's own text as well as the chrome — which is what stops
+ * a pan from leaving a blue smear over every string in the file.
+ */
+.viewport.panning { cursor: grabbing; user-select: none; }
 .viewport.move-mode { cursor: move; }
 
 .canvas {
@@ -254,13 +435,16 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 
 /* -- inspector -------------------------------------------------------------- */
 
-.field { margin-bottom: 8px; }
+.field { margin-bottom: 8px; min-width: 0; }
 
 .field label {
   display: block;
   color: var(--chrome-dim);
   font-size: 11px;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field input[type="text"], .field input[type="number"], .field select, .field textarea {
@@ -282,11 +466,93 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   border-radius: 5px;
 }
 
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/*
+ * One row, two columns — used when a section has a pair of properties.
+ *
+ * `1fr 1fr` and a single child is a child in the first column, which is what an
+ * unpaired property wants: half a row would be a misleading amount of space for
+ * a value that has no partner.
+ */
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 6px;
+  min-width: 0;
+}
+
+/* -- inspector sections ----------------------------------------------------- */
+
+.section { margin-bottom: 4px; border-top: 1px solid var(--chrome-line); }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 7px 2px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--chrome-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.section-head:hover { color: var(--chrome-ink); background: none; }
+
+/* A triangle that turns: the fold is visible before it is used. */
+.section-head::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-right: 6px;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transform: rotate(90deg);
+  transition: transform 90ms linear;
+}
+
+.section.folded .section-head::before { transform: rotate(0deg); }
+
+.section-body { padding-bottom: 6px; }
+.section.folded .section-body { display: none; }
+
+/* -- segmented control ------------------------------------------------------ */
+
+/*
+ * Two or three short alternatives as buttons. `justify-content` has five values
+ * and gets a dropdown instead; the rule lives in `canvas/groups.mjs`.
+ */
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background: #14171c;
+  border: 1px solid var(--chrome-line);
+  border-radius: 6px;
+}
+
+.seg-option {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 2px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--chrome-dim);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seg-option:hover { background: #232830; }
+.seg-option.active { background: var(--chrome-accent); color: #0d1117; }
 
 .scrub { cursor: ew-resize; }
-
-.group { margin: 12px 0 6px; color: var(--chrome-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
 
 .value-line {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -298,7 +564,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 .empty { color: var(--chrome-dim); }
 .muted { color: var(--chrome-dim); }
 
-dl.attrs { margin: 0; }
+dl.attrs { margin: 0 0 6px; }
 dl.attrs dt { color: var(--chrome-dim); font-size: 11px; }
 dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; word-break: break-all; }
 
@@ -306,8 +572,8 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
 
 .drawer {
   position: absolute;
-  left: 240px;
-  right: 260px;
+  left: calc(var(--panel-left) + var(--gutter-left));
+  right: calc(var(--panel-right) + var(--gutter-right));
   bottom: 0;
   max-height: 42%;
   display: flex;
@@ -382,3 +648,20 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
 }
 
 .toast.refused { border-color: var(--chrome-danger); }
+
+/* -- hidden ----------------------------------------------------------------- */
+
+/*
+ * `hidden` means hidden, whatever else this sheet says about the element.
+ *
+ * The browser's own `[hidden] { display: none }` lives in the user-agent sheet,
+ * and every author rule beats it however low its specificity — so `.drawer {
+ * display: flex }` left the Problems drawer on screen with the attribute set. It
+ * covered the bottom 42% of the canvas the moment the file loaded, its Close
+ * button closed nothing, and the empty fix textarea sat under every report.
+ *
+ * Written once, at the end, so no rule above it can beat it and no element given
+ * a `display` later can be missed — which is what a per-class list of `[hidden]`
+ * selectors did.
+ */
+[hidden] { display: none !important; }

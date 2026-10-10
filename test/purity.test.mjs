@@ -189,19 +189,40 @@ test("every module the canvas imports is reachable over HTTP, and none is node-o
   assert.ok(seen.size > 5, `only ${seen.size} modules walked; the entry point moved?`);
 });
 
+/**
+ * Every `lib/` module the canvas names has to export what the canvas asks for.
+ *
+ * The path is resolved rather than pattern-matched: the canvas reached the table
+ * through `../lib/table.mjs` — a relative specifier, which the browser resolves
+ * to `/lib/table.mjs` — and a check that only looked at specifiers beginning
+ * `/lib/` would have waved that import through, leaving a typo to fail in the
+ * browser and nowhere else.
+ */
 test("every name the canvas imports from /lib/ is really exported", async () => {
   const missing = [];
+  const checked = [];
   for (const file of filesIn(CANVAS, ".mjs")) {
     const source = read(file);
-    for (const match of source.matchAll(/import\s*\{([^}]+)\}\s*from\s*["'](\/lib\/[^"']+)["']/g)) {
+    for (const match of source.matchAll(/import\s*\{([^}]+)\}\s*from\s*["']([^"']+)["']/g)) {
+      const target = servedPath(match[2], file);
+      if (!target || !target.startsWith("lib/")) continue;
       const names = match[1].split(",").map((name) => name.trim().split(/\s+as\s+/)[0]).filter(Boolean);
-      const module = await import(new URL(`../${match[2].slice(1)}`, import.meta.url));
+      const module = await import(new URL(`../${target}`, import.meta.url));
+      checked.push(target);
       for (const name of names) {
         if (!(name in module)) missing.push(`${relative(ROOT, file)} imports { ${name} } from ${match[2]}`);
       }
     }
   }
   assert.deepEqual(missing, [], `the canvas would fail to import:\n  ${missing.join("\n  ")}`);
+  // And a scan that resolves nothing passes vacuously — which is exactly how the
+  // relative specifier stayed unchecked. At least one module here is reached by a
+  // path that is not spelled `/lib/`.
+  assert.ok(checked.length >= 5, `only ${checked.length} imports were resolved; the scan is not looking`);
+  assert.ok(
+    checked.some((target) => target === "lib/table.mjs"),
+    "no relative `lib/` import was resolved; the check is back to matching only `/lib/` spellings",
+  );
 });
 
 test("a static route is served from the whitelist, never from a joined path", () => {
@@ -278,6 +299,62 @@ test("every class the canvas builds is styled, or is a marker something looks up
     return !looked;
   });
   assert.deepEqual(orphans, [], `styled by nothing and queried by nothing: ${orphans.join(", ")}`);
+});
+
+/**
+ * An element the canvas ships `hidden` is really off screen.
+ *
+ * The browser's own `[hidden] { display: none }` is a user-agent rule, and every
+ * author rule beats it whatever the specificity. So an element this sheet gives a
+ * `display` to stays on screen with the attribute set, and the code reading
+ * `hidden` believes a lie. It did: `.drawer { display: flex }` held the Problems
+ * drawer over the bottom 42% of the canvas from the moment a file loaded, with a
+ * Close button that closed nothing and an empty fix textarea under every report.
+ * The sheet spelled `hidden` out per class instead — `.panel[hidden]`,
+ * `.divider[hidden]`, `.viewport-toggle[hidden]` — and the drawer was written
+ * after that list was. Nothing checked, so nothing failed.
+ *
+ * A hider is a rule that turns a `[hidden]` element off. It wins over a rule that
+ * gives the same element a display when it is `!important` or comes later in the
+ * sheet, which is the whole difference between a universal rule at the foot of
+ * the sheet and a list of classes that goes stale.
+ */
+test("an element the canvas ships hidden is really hidden", () => {
+  const css = read(join(CANVAS, "styles.css")).replace(/\/\*[\s\S]*?\*\//g, "");
+  const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match, at) => ({
+    at,
+    selectors: match[1].split(",").map((selector) => selector.trim()).filter(Boolean),
+    body: match[2],
+  }));
+  const hiders = rules.filter((rule) => /(?:^|;)\s*display\s*:\s*none/.test(rule.body));
+  const wins = (hider, rule) => /!important/.test(hider.body) || hider.at > rule.at;
+  const covers = (hider, token) => hider.selectors.some(
+    (selector) => selector === "[hidden]" || (selector.includes("[hidden]") && selector.includes(token)),
+  );
+
+  const hidden = [];
+  for (const match of read(join(CANVAS, "index.html")).matchAll(/<([a-z][\w-]*)\b([^>]*?)\shidden(?:\s[^>]*)?>/g)) {
+    const [, tag, attrs] = match;
+    const id = /\sid="([^"]+)"/.exec(attrs)?.[1];
+    const classes = (/\sclass="([^"]+)"/.exec(attrs)?.[1] ?? "").split(/\s+/).filter(Boolean);
+    hidden.push({ tag, tokens: [...classes.map((name) => `.${name}`), ...(id ? [`#${id}`] : [])] });
+  }
+  assert.ok(hidden.length >= 5, `only ${hidden.length} hidden elements found; the scan is not looking`);
+
+  const uncovered = [];
+  for (const element of hidden) {
+    for (const token of element.tokens) {
+      // Every rule that gives this element a display, and so keeps it on screen.
+      const shown = rules.filter((rule) => rule.selectors.includes(token)
+        && /(?:^|;)\s*display\s*:/.test(rule.body) && !/display\s*:\s*none/.test(rule.body));
+      if (shown.length === 0) continue; // the attribute alone is enough here
+      if (!shown.every((rule) => hiders.some((hider) => wins(hider, rule) && covers(hider, token)))) {
+        uncovered.push(`${token} (${element.tag})`);
+      }
+    }
+  }
+  assert.deepEqual(uncovered, [],
+    `given a display and shipped hidden, so they never leave the screen: ${uncovered.join(", ")}`);
 });
 
 /* ------------------------------------------------------------------ *

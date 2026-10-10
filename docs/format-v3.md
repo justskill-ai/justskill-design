@@ -410,7 +410,7 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 
 直接 `import` 这张表的就是下面这些模块，一个不多（测试不算）：
 
-`lib/fragment.mjs`（片段编译）、`lib/validate.mjs`（校验）、`lib/geometry.mjs`（几何检查：读长度、padding、border 与 gap 的取值语法）、`lib/tokens.mjs`（令牌的名字、组与单位）、`lib/normalize.mjs`（归一化）、`lib/render.mjs`（渲染；画布经它间接读表）、`lib/export-html.mjs`（导出）、`lib/readers/pen.mjs`（pen 导入）、`lib/node/verbs/set.mjs`、`lib/node/verbs/rename.mjs` 与 `lib/node/write-verbs.mjs`（CLI 写入）、`scripts/gen-references.mjs`（生成 `references/` 里的文档）。
+`lib/fragment.mjs`（片段编译）、`lib/validate.mjs`（校验）、`lib/geometry.mjs`（几何检查：读长度、padding、border 与 gap 的取值语法）、`lib/tokens.mjs`（令牌的名字、组与单位）、`lib/normalize.mjs`（归一化）、`lib/render.mjs`（渲染；画布经它间接读表）、`canvas/groups.mjs`（画布检查器的分组与控件：属性归到哪一组、控件由 `kind` 决定，都是直接读表）、`lib/export-html.mjs`（导出）、`lib/readers/pen.mjs`（pen 导入）、`lib/node/verbs/set.mjs`、`lib/node/verbs/rename.mjs` 与 `lib/node/write-verbs.mjs`（CLI 写入）、`scripts/gen-references.mjs`（生成 `references/` 里的文档）。
 
 **`lib/ops.mjs` 不在这张表里，这是有意的。** 它是每个模块都依赖的引擎，所以宁可自己重写三个 `data-type` 名字也不 import 这张表 —— 表里某个条目被改名时，它仍要能加载。令牌 op 因此只要求名字以 `--` 开头，组别与单位由 `lib/tokens.mjs` 判定（见 §4.4）。
 

@@ -227,7 +227,16 @@ node design.mjs serve design.html
 
 Prints a URL and opens it. The user drags; changes go through the same funnel as
 your commands, so a drag cannot write something `validate` would refuse. If a
-drag is refused, the canvas shows what it would have introduced.
+drag is refused, the canvas shows what it would have introduced. Clicking the
+empty canvas clears the selection; dragging it pans.
+
+The canvas has three columns: a layer tree (every page, its elements nested,
+opening fully collapsed, with expand-all and collapse-all in the header — picking
+an element on the canvas opens the tree down to it and selects that row), the
+design, and the selected element's properties in sections. The right panel only ever shows properties the element already has —
+it cannot add a declaration the file does not carry, so use `set` for that. Either
+panel folds away with `⌘\` / `⇧⌘\` or the button on the canvas edge, and either
+edge drags to resize; that state lives in the browser, never in the file.
 
 Close the tab and the service exits. The user can also `set` from the command
 line while the canvas is open: both writers re-read the file first.

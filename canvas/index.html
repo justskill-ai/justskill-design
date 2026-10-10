@@ -31,22 +31,64 @@
 </header>
 
 <main id="stage">
-  <aside class="panel left">
-    <div class="panel-head">Pages</div>
-    <ul class="pages" id="page-list"></ul>
-    <div class="panel-head">Layers</div>
-    <ul class="layers" id="layer-list"></ul>
+  <aside class="panel left" id="panel-left">
+    <div class="panel-head">
+      <span>Layers</span>
+      <span class="head-actions">
+        <button type="button" class="head-button" id="tree-expand" title="Expand every page and element" aria-label="Expand every page and element">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m7 6 5 5 5-5" />
+            <path d="m7 13 5 5 5-5" />
+          </svg>
+        </button>
+        <button type="button" class="head-button" id="tree-collapse" title="Collapse everything" aria-label="Collapse everything">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m17 11-5-5-5 5" />
+            <path d="m17 18-5-5-5 5" />
+          </svg>
+        </button>
+      </span>
+    </div>
+    <div class="panel-scroll">
+      <ul class="tree" id="layer-tree" role="tree" aria-label="Pages and their elements"></ul>
+    </div>
   </aside>
+
+  <div class="divider" id="divider-left" role="separator" aria-orientation="vertical" aria-label="Resize the layers panel" tabindex="0"></div>
 
   <div class="viewport" id="viewport">
     <div class="canvas" id="canvas"></div>
     <div class="overlay" id="overlay"></div>
+    <!--
+      The two panel controls live on the canvas, not in the panels.
+
+      A button that folds a panel away has to survive the panel being folded
+      away. Put it in the panel's header and it leaves with the panel; put it in
+      the top bar and it is nowhere near the edge it moves. On the canvas it is
+      in the same place in both states, which is the whole requirement.
+    -->
+    <button type="button" class="viewport-toggle left" id="toggle-left" aria-pressed="true" aria-controls="panel-left" title="Hide the layers panel (⌘\)">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="2.5" fill="none" stroke="currentColor"/>
+        <rect x="3.4" y="4.2" width="3.6" height="7.6" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
+    <button type="button" class="viewport-toggle right" id="toggle-right" aria-pressed="true" aria-controls="panel-right" title="Hide the inspector (⇧⌘\)">
+      <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="2.5" fill="none" stroke="currentColor"/>
+        <rect x="9" y="4.2" width="3.6" height="7.6" rx="1" fill="currentColor"/>
+      </svg>
+    </button>
   </div>
 
-  <aside class="panel right">
+  <div class="divider" id="divider-right" role="separator" aria-orientation="vertical" aria-label="Resize the inspector" tabindex="0"></div>
+
+  <aside class="panel right" id="panel-right">
     <div class="panel-head" id="selection-name">Nothing selected</div>
-    <div class="panel-body" id="inspector">
-      <p class="empty">Click an element on the canvas, or a row in the layer tree.</p>
+    <div class="panel-scroll">
+      <div class="panel-body" id="inspector">
+        <p class="empty">Click an element on the canvas, or a row in the layer tree.</p>
+      </div>
     </div>
   </aside>
 </main>
