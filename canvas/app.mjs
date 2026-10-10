@@ -201,10 +201,20 @@ function fitAll() {
     1.5,
     Math.max(0.1, Math.min((rect.width - pad * 2) / (maxX - minX || 1), (rect.height - pad * 2) / (maxY - minY || 1))),
   );
+  /*
+   * The middle of every page, put in the middle of the viewport.
+   *
+   * This used to anchor the drawing's top-left corner `pad` pixels from the
+   * viewport's top-left, which is only centred when the pages and the window have
+   * the same shape. They rarely do — a phone-shaped column of artboards in a wide
+   * window left the whole right half empty and every page pinned to the corner,
+   * which reads as a canvas that failed to fit rather than one that fitted the
+   * wrong way.
+   */
   state.camera = {
     zoom,
-    x: pad - minX * zoom,
-    y: pad - minY * zoom,
+    x: rect.width / 2 - ((minX + maxX) / 2) * zoom,
+    y: rect.height / 2 - ((minY + maxY) / 2) * zoom,
   };
   applyCamera();
   drawOverlay();
