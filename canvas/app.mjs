@@ -525,27 +525,6 @@ function contrastDiagnostics(doc) {
 }
 
 /**
- * What the browser can prove and the arithmetic cannot.
- *
- * `lib/geometry.mjs` works on the file, so it is blind to anything that needs a
- * measurement: a run of text, the intrinsic size of an image, an instance whose
- * component it has not expanded. Here the page is mounted, so every one of those
- * has a real box. This pass reads them.
- *
- * Three traps, each one a way to report something untrue:
- *
- *   - **Zoom.** `applyCamera` puts `transform: scale(zoom)` on `ui.canvas`, so
- *     every rectangle is in screen pixels. Both rectangles are scaled the same way,
- *     so the comparison itself does not care — but the numbers in the message do, so
- *     everything is divided back to CSS pixels first.
- *   - **Expanded instances.** `expandInstance` copies a component's subtree into
- *     the page, so the component's `data-id`s appear more than once. An op never
- *     addresses a copy, so a finding about one would name an element the writer
- *     cannot edit. A repeated id is skipped.
- *   - **Sub-pixel layout.** A fraction of a pixel of overhang is rounding, not a
- *     defect. `lib/geometry.mjs` holds the tolerance.
- */
-/**
  * The box an absolutely positioned element is really laid out against.
  *
  * A child in flow is laid out by its parent, so the parent is the box to compare
@@ -567,6 +546,27 @@ function containingBlockOf(element) {
   return null;
 }
 
+/**
+ * What the browser can prove and the arithmetic cannot.
+ *
+ * `lib/geometry.mjs` works on the file, so it is blind to anything that needs a
+ * measurement: a run of text, the intrinsic size of an image, an instance whose
+ * component it has not expanded. Here the page is mounted, so every one of those
+ * has a real box. This pass reads them.
+ *
+ * Three traps, each one a way to report something untrue:
+ *
+ *   - **Zoom.** `applyCamera` puts `transform: scale(zoom)` on `ui.canvas`, so
+ *     every rectangle is in screen pixels. Both rectangles are scaled the same way,
+ *     so the comparison itself does not care — but the numbers in the message do, so
+ *     everything is divided back to CSS pixels first.
+ *   - **Expanded instances.** `expandInstance` copies a component's subtree into
+ *     the page, so the component's `data-id`s appear more than once. An op never
+ *     addresses a copy, so a finding about one would name an element the writer
+ *     cannot edit. A repeated id is skipped.
+ *   - **Sub-pixel layout.** A fraction of a pixel of overhang is rounding, not a
+ *     defect. `lib/geometry.mjs` holds the tolerance.
+ */
 function measuredGeometryDiagnostics() {
   const zoom = state.camera.zoom || 1;
   const mounted = [];
@@ -1298,12 +1298,6 @@ ui.viewport.addEventListener("selectstart", (event) => {
 });
 
 /**
- * Rows are one delegated listener, not one per row.
- *
- * An imported design can be thousands of rows; two listeners each is a cost paid
- * on every render, and the row identity is already in `data-node-id`.
- */
-/**
  * The item a pointer event is really over.
  *
  * A child list is a `<ul>` inside the parent `<li>`, so the 13px indent band
@@ -1317,6 +1311,12 @@ function rowItemOf(target) {
   return target?.closest?.(".tree-row")?.closest(".tree-item") ?? null;
 }
 
+/**
+ * Rows are one delegated listener, not one per row.
+ *
+ * An imported design can be thousands of rows; two listeners each is a cost paid
+ * on every render, and the row identity is already in `data-node-id`.
+ */
 ui.layerTree.addEventListener("mouseover", (event) => {
   const item = rowItemOf(event.target);
   setHovering(item?.dataset.nodeId ?? null, item ? pageIdOfTreeRow(item) : null);
