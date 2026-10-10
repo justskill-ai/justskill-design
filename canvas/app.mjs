@@ -1996,6 +1996,17 @@ function pageDrag(pageBox, id, event) {
   };
 }
 
+/**
+ * Every gesture that moves geometry redraws the boxes, or they do not move.
+ *
+ * The overlay is a *sibling* of the canvas, not a child of it: it is positioned
+ * in viewport pixels and inherits neither the camera transform nor the page's
+ * position. So a camera move, a page drag, an element drag and a resize all have
+ * to redraw it — and each of them forgot at some point, which is a blue
+ * rectangle that stays exactly where it was while the design slides out from
+ * under it. The cost is one measured box per pointer move, which is what the
+ * pan branch has been paying since it was fixed.
+ */
 ui.viewport.addEventListener("pointermove", (event) => {
   if (!drag) {
     const hit = targetFromEvent(event);
@@ -2008,12 +2019,6 @@ ui.viewport.addEventListener("pointermove", (event) => {
     state.camera.x = drag.originX + (event.clientX - drag.startX);
     state.camera.y = drag.originY + (event.clientY - drag.startY);
     applyCamera();
-    // The overlay is a *sibling* of the canvas, not a child of it: it is
-    // positioned in viewport pixels and does not inherit the camera transform.
-    // Moving the camera therefore has to redraw it, or the canvas slides out
-    // from under a selection box that stays exactly where it was — a blue
-    // rectangle marking nothing. Every other camera move (wheel, zoom, fit,
-    // reveal) already redraws; this one was the exception.
     drawOverlay();
     return;
   }
@@ -2025,6 +2030,7 @@ ui.viewport.addEventListener("pointermove", (event) => {
     drag.element.style.left = `${x}px`;
     drag.element.style.top = `${y}px`;
     drag.moved = { x, y };
+    drawOverlay();
     return;
   }
 
@@ -2034,6 +2040,7 @@ ui.viewport.addEventListener("pointermove", (event) => {
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
     if (drag.moved && drag.element) {
       drag.element.style.translate = `${dx / state.camera.zoom}px ${dy / state.camera.zoom}px`;
+      drawOverlay();
     }
     return;
   }
@@ -2048,6 +2055,10 @@ ui.viewport.addEventListener("pointermove", (event) => {
     drag.element.style.width = `${width}px`;
     drag.element.style.height = `${height}px`;
     drag.pending = { width, height };
+    // The four handles are children of the selection box. Without this they stay
+    // where the element *was*, so the thing you are dragging a corner of is no
+    // longer the thing the corners are on.
+    drawOverlay();
   }
 });
 
