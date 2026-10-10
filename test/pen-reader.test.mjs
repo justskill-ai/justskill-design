@@ -16,13 +16,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parse, getAttr, findById, pagesOf } from "../lib/parse.mjs";
+import { parse, getAttr, findById, pagesOf, walk } from "../lib/parse.mjs";
 import { validateDesign } from "../lib/validate.mjs";
 import {
   importPen, parsePen, stripJsonComments, createLedger, tokensFromVariables,
   idMapFor, styleFromNode, ledgerLine,
 } from "../lib/readers/pen.mjs";
 import { renderModel } from "../lib/render.mjs";
+import { exportAllPages } from "../lib/export-html.mjs";
 import { iconBody } from "../lib/icons.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -865,4 +866,95 @@ test("a swapped glyph survives to the mount, with its name and its geometry toge
   assert.match(board.markup, /data-icon="gem"/, "the name moved with the glyph");
   assert.ok(board.markup.includes(`d="${firstPath("gem")}"`), "gem's own geometry is drawn");
   assert.ok(!board.markup.includes(`d="${firstPath("sparkles")}"`), "sparkles is gone from the instance");
+});
+
+// -- an artboard that is itself a component ------------------------------------
+
+/**
+ * pen lets any node be reusable, a top-level artboard included. Then the file
+ * holds a component with no page around it, and this format keeps components in
+ * a page: that is what keeps them out of `export --all` and what the canvas
+ * mounts. So the reader supplies the page.
+ *
+ * It used to write such an artboard as a page. The type was computed on one line
+ * and a literal `"page"` was pushed on the next, so the component became a
+ * screen, every `ref` to it dangled as `component/unknown-ref`, and the import
+ * exited 0 on a document its own `validate` refuses.
+ */
+test("a top-level reusable artboard becomes a component, in a page the reader adds", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      {
+        type: "frame", id: "card", name: "Card", reusable: true, width: 320, height: 80,
+        children: [{ type: "text", id: "card__title", name: "Title", content: "你好", width: 120, height: 24 }],
+      },
+      {
+        type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{ type: "ref", id: "used", name: "Card", ref: "card" }],
+      },
+    ],
+  });
+  const { html, ledger } = importPen(pen);
+  const doc = parse(html);
+
+  const library = pagesOf(doc).find((page) => getAttr(page, "data-library") === "true");
+  assert.ok(library, "the component is collected in a library page");
+  const card = findById(doc, "card");
+  assert.equal(getAttr(card, "data-type"), "component", "the artboard is a component, not a screen");
+  assert.equal(getAttr(card, "data-canvas"), null, "a component has no place on the canvas");
+  const inside = [];
+  walk(library, (node) => { if (node.kind === "element") inside.push(getAttr(node, "data-id")); });
+  assert.ok(inside.includes("card"), "and it lives in that page, where the canvas mounts it");
+
+  assert.deepEqual(validateDesign(doc).filter((d) => d.severity === "error"), [], "the product validates");
+  assert.equal(ledger.converted.topLevelComponent, 1);
+  assert.equal(ledger.pages, 2, "the page the reader added is a page");
+  assert.ok(
+    ledger.notes.some((note) => note.includes('data-id="library"')),
+    `a page that is in the output and not in the input is named: ${JSON.stringify(ledger.notes)}`,
+  );
+
+  // The instance that the component exists for resolves, and its subtree is drawn.
+  const board = renderModel(doc).pages.find((page) => page.name === "Board");
+  assert.ok(board.markup.includes('data-id="card__title"'), `the instance expanded: ${board.markup}`);
+  assert.ok(board.markup.includes("你好"), "and the component's text came with it");
+
+  assert.deepEqual(
+    exportAllPages(doc).map((file) => file.file),
+    ["board.html"],
+    "a component library is not a deliverable",
+  );
+});
+
+test("one added page holds every top-level component, and its id steps aside", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      { type: "frame", id: "home", name: "Home", width: 375, height: 812, children: [] },
+      { type: "frame", id: "chip", name: "Chip", reusable: true, width: 64, height: 24, children: [] },
+      { type: "frame", id: "library", name: "A page that spent the id", width: 375, height: 812, children: [] },
+      { type: "frame", id: "tile", name: "Tile", reusable: true, width: 80, height: 80, children: [] },
+    ],
+  });
+  const pages = pagesOf(parse(importPen(pen).html));
+  assert.deepEqual(
+    pages.map((page) => getAttr(page, "data-id")),
+    ["home", "library-2", "library"],
+    "the added page keeps the place of the artboard that needed it, and does not take an id the file spent",
+  );
+  assert.equal(getAttr(pages[1], "data-library"), "true");
+  const inside = [];
+  walk(pages[1], (node) => { if (node.kind === "element") inside.push(getAttr(node, "data-id")); });
+  assert.deepEqual(inside, ["library-2", "chip", "tile"], "both components are in the one page that was added");
+});
+
+test("a file of nothing but components has a page, and nothing to export", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{ type: "frame", id: "card", name: "Card", reusable: true, width: 320, height: 80, children: [] }],
+  });
+  const doc = parse(importPen(pen).html);
+  assert.equal(pagesOf(doc).length, 1, "the component still needs its page");
+  assert.throws(() => exportAllPages(doc), (error) => error.code === "export/no-page");
 });

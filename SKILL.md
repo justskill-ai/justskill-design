@@ -328,7 +328,14 @@ spelling for pen's version of them:
 
 The ledger also counts what it rewrote: `themedVariables` (a themeable variable
 takes the document's default theme, which is the entry with no `theme` of its
-own), `hardBreaks`, `pathAsGeometry`, `bakedRotation`. A variable that cannot be
-reduced to one value is left out of the token block and counted as
-`lost.unresolvedVariable` — never written as the string `[object Object]`, which
-is a value that validates and means nothing.
+own), `hardBreaks`, `pathAsGeometry`, `bakedRotation`, `topLevelComponent`. A
+variable that cannot be reduced to one value is left out of the token block and
+counted as `lost.unresolvedVariable` — never written as the string
+`[object Object]`, which is a value that validates and means nothing.
+
+One thing the reader adds rather than translates. pen lets a top-level artboard
+be reusable, and then the component has no page around it; components live in a
+page marked `data-library="true"` here, so the reader supplies one — `data-id`
+`library`, or `library-2` when the file spent that id — and names it in
+`ledger.notes`. It is a scaffold, not a screen: `export --all` skips it, and
+`--include-library` exports it as a gallery.
