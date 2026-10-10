@@ -289,3 +289,43 @@ test("dry-run reports the change and writes nothing", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// -- add: the refusal has to be readable by both readers ----------------------
+
+/**
+ * The human text said `REFUSED …` and the JSON said nothing at all.
+ *
+ * A refusal from the fragment compiler produced `{ok:false, applied:[], changed:false}`
+ * with no `refused` block — no code, no message, no hint. A caller reading `--json` could
+ * not tell "refused, because this fragment puts `data-type="text"` on a `<label>`" from
+ * "the edit happened to change nothing", and the two are not the same answer.
+ * `lib/receipt.mjs` R2 and format-v3 §6 both say a failure carries the block.
+ */
+test("add's JSON refusal carries the code, the message and the hint", () => {
+  const { dir, file } = workspace();
+  const fragment = join(dir, "fragment.html");
+  writeFileSync(fragment, '<label data-id="n_label" data-type="text">手机号</label>');
+  const { code, stdout } = run(["add", file, "--html-file", fragment, "--in", "home__root", "--json"]);
+  assert.equal(code, 1, "a refused add must not exit 0");
+
+  const receipt = JSON.parse(stdout);
+  assert.equal(receipt.ok, false);
+  assert.equal(receipt.changed, false);
+  assert.ok(receipt.refused, "the JSON receipt has no refused block");
+  assert.equal(receipt.refused.code, "structure/type-tag-mismatch");
+  assert.match(receipt.refused.message, /label/);
+  assert.ok(receipt.refused.hint, "a refusal without a hint is a dead end for a model");
+});
+
+test("add's human refusal and its JSON refusal agree about the code", () => {
+  const { dir, file } = workspace();
+  const fragment = join(dir, "fragment.html");
+  writeFileSync(fragment, '<label data-id="n_label" data-type="text">手机号</label>');
+  const human = run(["add", file, "--html-file", fragment, "--in", "home__root"]);
+  const json = run(["add", file, "--html-file", fragment, "--in", "home__root", "--json"]);
+  const receipt = JSON.parse(json.stdout);
+  assert.equal(human.code, 1);
+  assert.match(human.stdout, /REFUSED/);
+  assert.match(human.stdout, new RegExp(receipt.refused.code.replace("/", "\\/")));
+  assert.match(human.stdout, /was not changed\./);
+});

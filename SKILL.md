@@ -32,9 +32,9 @@ command is `node design.mjs <verb>`.
 - Write the file with `Write`. Give every element a `data-id` and a `data-type`.
 - `format` rewrites a file into canonical form. Use it when a file came from
   somewhere else; do not use it to change a design.
-- Change it with `set`, `add`, `remove`, `move`. Never rewrite the whole file to
-  change one value: an op is one undo step, and a rewrite is an afternoon of
-  lost work for the user who has the canvas open.
+- Change it with `set`, `add`, `remove`, `move`, `rename`. Never rewrite the whole
+  file to change one value: an op is one undo step, and a rewrite is an afternoon
+  of lost work for the user who has the canvas open.
 - Run `validate` before you hand anything back.
 
 If the user has the canvas open, you are not the only writer. `set` and friends
@@ -91,10 +91,14 @@ node design.mjs set design.html home__title --style 'font-size:40px;color:#11182
 node design.mjs set design.html home__title --text "Ship faster"
 node design.mjs move design.html home__card --after home__title
 node design.mjs remove design.html home__notice
+node design.mjs tokens design.html ls
+node design.mjs tokens design.html set color.accent '#7c3aed'
+node design.mjs tokens design.html rm space.xxl
 
 # 4. Check. Always.
 node design.mjs validate design.html --json
 node design.mjs format design.html --check    # is the file in canonical form?
+node design.mjs migrate design.html           # only if validate asks for it
 
 # 5. Hand over deliverables, or let the user drag.
 node design.mjs export design.html --all -o dist          # HTML, one file per page
@@ -106,6 +110,27 @@ node design.mjs serve design.html
 `add` reads a fragment from `--html-file` or `--html -` (stdin). Prefer a file
 or stdin: a fragment inside shell single quotes breaks on the first apostrophe.
 
+### Tokens
+
+A design token is the one thing in the file that is not an element, so no other
+verb can reach it. Changing a brand color is **one op**:
+
+```sh
+node design.mjs tokens design.html set color.accent '#7c3aed'
+```
+
+- The name is `<group>.<name>`, or the file's own `--group-name` after a `--`:
+  `tokens design.html set -- --color-accent '#7c3aed'`.
+- The seven groups are `color`, `font`, `space`, `radius`, `size`, `shadow`,
+  `border`. There is no eighth: `surface.warm` is refused, and so is a token
+  file that already says `--surface-warm`.
+- `space`, `radius` and `size` carry a unit. `set space.md 16` writes `16px` and
+  the receipt says so; a value that is not a length is refused.
+- A color is normalized to hex, so `red` becomes `#ff0000` in the file.
+- A token may reference a token (`var(--color-ink)`). A cycle is refused.
+- Never rewrite the file to change a token. That is the one thing this workflow
+  exists to prevent, and the user may have the canvas open.
+
 ## Reading a receipt
 
 Every write prints what it did. You cannot see the file, so read this:
@@ -114,8 +139,7 @@ Every write prints what it did. You cannot see the file, so read this:
 added:      home__cta, home__cta-label  (2 elements)
 normalized: #fff → #ffffff
 normalized: 12px 12px 12px 12px → 12px
-dropped:    margin:16px — The format spaces elements with gap, never with margin.
-            use gap (on the parent) or padding (on this element)
+dropped:    cursor:pointer — The format describes appearance, not interaction. A cursor is behavior.
 applied 1 op, revision a161db2c (0 errors, 0 warnings)
 ```
 
@@ -139,7 +163,7 @@ always names what to write instead. The common ones:
 
 | Refusal | What to write instead |
 |---|---|
-| `margin` | `gap` on the parent, or `padding` on this element |
+| a one-sided `margin`, such as `margin-top` | the shorthand: `margin: 0 8px 0 0` |
 | `display:grid` | `display:flex` with `flex:1` on the children |
 | `position:fixed` | `position:absolute` with `left` and `top` |
 | `#fff`, `rgba(...)` | six or eight digit hex: `#ffffff`, `#00000080` |
@@ -149,7 +173,7 @@ always names what to write instead. The common ones:
 
 ## What the format is, and is not
 
-Supported: flexbox layout, absolute positioning, a fixed set of about 40 CSS
+Supported: flexbox layout, absolute positioning, a fixed set of 45 CSS
 properties, images, inline SVG icons, design tokens, components and instances,
 text in one run per text element.
 
@@ -212,12 +236,16 @@ line while the canvas is open: both writers re-read the file first.
 
 1. **Run `validate` when you are unsure.** It is faster than guessing, and it
    tells you the exact offset and the exact fix.
-2. **Never edit `data-id` with `set`.** Use `rename` when it exists, because an
-   id is an address and other elements may point at it.
+2. **Never edit `data-id` with `set`.** It is refused. Use
+   `node design.mjs rename design.html card product`, which rewrites every
+   `data-ref="card"` and every `data-overrides` key that names a descendant of
+   the renamed node. An id is an address, and other elements point at it.
 3. **Do not add a `<style>` block** for a one-off value. Only the two allowed
    blocks are read; a third is an error.
-4. **Do not write `margin`.** Spacing is `gap` and `padding`. This is the single
-   most common refusal.
+4. **Do not write a one-sided `margin`.** Spacing is `gap` and `padding`.
+   `margin` itself is allowed, but only the shorthand: a one-sided `margin-top`
+   and friends are refused, because they are a second spelling of the same
+   intent. Offset an element with `margin: 0 8px 0 0`, never `margin-right`.
 5. **Prefer tokens.** If `:root` has `--color-ink`, use `var(--color-ink)`
    instead of a literal. The user can then restyle the whole design in one edit.
 6. **Small edits, in order.** Three `set` commands beat one rewrite, and each

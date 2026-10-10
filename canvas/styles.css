@@ -327,6 +327,28 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
 
 .drawer-body { overflow: auto; padding: 6px 0; }
 
+.drawer-actions { display: flex; gap: 6px; }
+
+.drawer-fix { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
+
+.drawer-hint { margin: 0; color: var(--chrome-dim); }
+
+/* The whole file, monospaced, because that is what it is. `wrap="off"` on the element
+   keeps a long line from folding, which would make an offset impossible to find. */
+.drawer-fix textarea {
+  width: 100%;
+  height: 32vh;
+  resize: vertical;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--chrome-bg);
+  color: var(--chrome-ink);
+  border: 1px solid var(--chrome-line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  white-space: pre;
+  overflow: auto;
+}
+
 .issue {
   display: flex;
   gap: 8px;

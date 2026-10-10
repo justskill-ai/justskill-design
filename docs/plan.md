@@ -162,7 +162,7 @@
 
 - 图片与字体默认用 URL。文件保持自包含的文本。
 - 本地文件用相对路径。画布通过服务读取。
-- `export --inline-assets` 把图片转成 data URI。交付物完全自包含。
+- `export --inline-assets` 把图片转成 data URI。**未实现**：今天的交付物保留 URL 形式的图片引用，自包含靠调用方自己保证。
 - **图片导出（`png` 等）前必须先内联外链图片。** 否则截图会缺图。
 - 栅格化前必须等字体加载完。字体没加载完就截图是这类导出最常见的错。
 - 非系统字体族由导出器生成 webfont 链接。只请求用到的字重。
@@ -237,12 +237,12 @@ FormatWriter {
 | 格式 | 读 | 写 | 说明 |
 |---|---|---|---|
 | `html` | 是。无损。主格式 | 是。规范形式与交付物 | 两个方向都全 |
-| `pen` | 是。有损，出账本 | 是。尽力，出账本 | 反向排在最后做 |
+| `pen` | 是。有损，出账本 | **否**。写出器未实现 | 读入已落地；写出是这份设计里还没做的两件事之一 |
 | `svg` | 否 | 是。只出图 | 不需要浏览器 |
 | `png` `jpeg` `webp` | 否 | 是。只出图 | 需要浏览器 |
 
-- **转换 = 读取器 + 写出器。** 所以 `.pen` → HTML 是「pen 读取器 + html 写出器」。HTML → `.pen` 是「html 读取器 + pen 写出器」。**两件事都不是导出器独占的**，导出器只是写出器里的一种。
-- **输入格式选读取器，输出格式选写出器。任意组合都成立。**
+- **转换 = 读取器 + 写出器。** 所以 `.pen` → HTML 是「pen 读取器 + html 写出器」。**读入这一半实现了**（`lib/readers/pen.mjs`）。
+- **写出这一半只有 `html` 与图片。** `writers/pen.mjs` 从未写出来，所以 HTML → `.pen` 不存在；`export --format pen` 会报 `export/unknown-format` 并列出真实可用的格式。设计稿里那两行「两件事都不是导出器独占的」「任意组合都成立」描述的是分层的意图，不是今天的能力。
 - 服务按扩展名选读取器。所以 `serve page.html` 与 `serve proto.pen` 是同一个命令（原稿第 8 条收紧）。
 
 ### 3.3 【新】一张表，多个消费者
@@ -300,7 +300,7 @@ FormatWriter {
 | `data-locked` | 任何 | `"true"`。画布不可拖动。不产生 CSS |
 | `data-canvas` | `page` | `"x,y"`。画布摆放位置 |
 | `data-library` | `page` | `"true"`。这是组件库页，不算交付物。`export --all` 跳过它 |
-| `data-kind` | `shape` | `rect`（默认）｜`ellipse`｜`line` |
+| `data-kind` | `shape` | `rect`（默认）｜`ellipse`。**没有 `line`**：一条线是带高度的 `rect` 加 `border-radius`，或者一个 `icon`；表里多一个值就要多一条渲染与校验规则，而它没有换回任何表达能力 |
 | `data-icon` | `icon` | 字形名 |
 | `data-icon-library` | `icon` | 目前只有 `lucide` |
 | `data-ref` | `instance` | 组件的 `data-id` |
@@ -322,8 +322,9 @@ FormatWriter {
 - 元素用 `var(--color-accent)` 引用。
 - 分组固定七组：`color`、`font`、`space`、`radius`、`size`、`shadow`、`border`。
 - 命名：`--<组>-<名字>`。组名是闭集，所以按第一个连字符切分即可反解。
-- 数值组的声明带单位：`--space-md:16px`。
-- 令牌可以引用令牌。深度上限 16。循环被拒绝。
+- 数值组的声明带单位：`--space-md:16px`。裸数字补 `px`；非长度值被拒绝。`font`、`shadow`、`border` 三组没有单位规则，值按原样写入 —— 给它们编一条规则，第一个被弄坏的就是 `--font-body`（它的值是一串字体族）。
+- 令牌可以引用令牌。深度上限 16。循环被拒绝：校验器报 `style/token-cycle`（error），解析器即使没校验过也不会跟进环里 —— 它曾经会，`export --resolve-tokens` 的整条报告是 `REFUSED Maximum call stack size exceeded`，而同一份文件 `validate` 说 valid。
+- 令牌名两半都要对：形状 `--<组>-<名字>`，**且组名在七组闭集里**。`references/schema.md` 对模型写的是 must，校验器就必须报，否则 `--accent-500` 会被判 valid，而 `tokens set accent.500` 被拒 —— 文件说没问题，它的令牌却改不了。
 - `export --resolve-tokens` 把令牌烘焙成字面量。
 
 **为什么必须有。** 没有令牌，"把品牌色改成紫色"要改 200 处。
@@ -385,7 +386,7 @@ resolve(instance) = applyOverrides(deepClone(find(ref)), instance.overrides)
 | 一条规则 | 组件和其他元素一样：`data-id` 加 `data-type`。没有额外的布尔标记 |
 | 组件能放在任何页里 | 它就是那个页的一部分，照常布局 |
 | 少一个标签 | `<template>` 从允许的标签里消失 |
-| 少一个导出选择器 | `--component <name>` 取消。组件就是节点，用 `--id <组件id>` 导出它的图 |
+| 少一个导出选择器 | `--component <name>` 取消。曾计划用 `--id <组件id>` 导出某个节点的图，**未实现**：`export` 的粒度只有页（或 `--all` 全站），要读单个元素用 `show <data-id>` |
 
 **代价（必须写进文档）。**
 
@@ -415,9 +416,11 @@ resolve(instance) = applyOverrides(deepClone(find(ref)), instance.overrides)
 { "op": "insert", "target": "n_hero", "index": 0, "html": "<div data-id=… data-type=…>…</div>" }
 { "op": "remove", "target": "n_card" }
 { "op": "move",   "target": "n_card", "before": "n_cta" }
+{ "op": "set-token",   "name": "--color-accent", "value": "#2563eb" }
+{ "op": "unset-token", "name": "--color-accent" }
 ```
 
-- 五种 op：set、unset、insert、remove、move。
+- 七种 op：set、unset、insert、remove、move，加令牌的 set-token、unset-token。后两种单列，因为令牌不是元素、没有 `data-id`，`set` 的寻址到不了它。契约见 `format-v3.md` §4.4。
 - 定位用 `data-id`，**不用 CSS 选择器**。理由：选择器有歧义，且有性能问题。
 - `data-id` 在整个文件内唯一，跨所有页。所以一个目标 id 不需要再带页名。
 - op 不需要 `data-type`。一个 id 就够了。
@@ -475,12 +478,12 @@ design <动词> [参数]
 | `rename` | 改 `data-id`，并级联更新引用 | `<old-id> <new-id>` |
 | `ls` | 列页与节点 | `[--pages] [--in <page\|id>] [--depth n] [--json]` |
 | `show` | 看单个元素 | `<id> [--json]` |
-| `tokens` | 令牌增删改查 | `ls \| set <组.名> <值> \| rm <组.名>` |
+| `tokens` | 令牌增删改查 | `ls \| set <组.名> <值> \| rm <组.名>`。名字也可以写成文件里的 `--组-名`，那时要在 `--` 之后：`tokens f.html set -- --color-accent '#2563eb'` |
 | `component` | 组件是一个类型。`mark` 就是把 `data-type` 从 `frame` 改成 `component` | `mark <id>` ／ `unmark <id>` ／ `use <id> --in <parent>` ／ `detach <instance-id>` |
 | `validate` | 校验 | `[--json] [--strict]` |
 | `format` | 归一化 | `[--check]` |
-| `export` | 从设计文件出交付物。范围可选 | `[--page <id>] [--id <data-id>] [--all] [-o path] [--format html\|pen\|svg\|png\|jpeg\|webp] [--raster auto\|chrome\|canvas] [--scale 1\|2\|3] [--size WxH] [--background transparent\|#RRGGBB] [--padding <px>] [--inline-assets] [--resolve-tokens] [--report r.json]` |
-| `import` | 把别的格式读成设计文件 | `pen <file> [-o design.html] [--report r.json]` |
+| `export` | 从设计文件出交付物。范围可选 | `[--page <id>] [--all] [--include-library] [-o path] [--format html\|svg\|png\|jpeg\|webp] [--raster auto\|chrome] [--scale 1\|2\|3] [--size WxH] [--resolve-tokens] [--stdout] [--json]`。**这行是实现的全部**：`--id`、`--format pen`、`--raster canvas`、`--background`、`--padding`、`--inline-assets`、`--report` 都写在过这份设计稿里，都没有写出来 |
+| `import` | 把别的格式读成设计文件 | `pen <file> [-o out.html] [--report ledger.json]`。只有 `pen` 一个读取器；`--report` 把账本另写一份 |
 | `serve` | 开画布 | `[<file>] [--port 0] [--ttl 30]` |
 | `log` | 读日志 | `[--tail n] [--intent]` |
 
@@ -492,7 +495,7 @@ design <动词> [参数]
 - `--id` 只对图片格式（`svg`、`png`、`jpeg`、`webp`）有效。HTML 导出只有页粒度。
 - **方向只有一个入口，一个出口。** 进来用 `import`（别的格式 → 设计文件）。出去用 `export`（设计文件 → 交付物或别的格式）。
 - `import pen` 走「pen 读取器 + html 写出器」。它产出**设计文件**，不是交付物。要交付物再 `export`。
-- `export --format pen` 走「html 读取器 + pen 写出器」，并输出账本。
+- `export --format pen` 走「html 读取器 + pen 写出器」，并输出账本。**未实现**：pen 写出器不存在，这条路径会拒绝。
 - 手写的 HTML 不需要「导入」。主格式就是 HTML。补上 `data-id` 与 `data-type`，跑 `validate` 与 `format`，它就是设计文件。
 
 ### 5.2 修改器与片段（原稿第 10 条）
@@ -607,7 +610,7 @@ REFUSED  会引入重复 id "n_cards"
 
 ### 5.8 导出器（原稿第 9 条）
 
-**两个轴。** 输入格式选读取器。输出格式选写出器。两者正交。下表是**写出器**，读取器见 §3.2。
+**两个轴。** 输入格式选读取器。输出格式选写出器。两者正交。下表是**写出器**，读取器见 §3.2。**表里只有 html 与图片两行是实现的**；`pen` 那一行从未落地。
 
 | 输出格式 | 粒度 | 做法 | 需要外部程序 |
 |---|---|---|---|
@@ -624,7 +627,7 @@ REFUSED  会引入重复 id "n_cards"
 |---|---|---|---|---|
 | 无 | 整个设计的第一页 | 是 | 是 | `<页名>.<ext>` |
 | `--page home` | 该页 | 是 | 是 | `home.<ext>` |
-| `--page home --id n_hero` | 该页里 `n_hero` 的子树 | **否** | 是 | `home__n_hero.<ext>` |
+| `--page home --id n_hero` | 该页里 `n_hero` 的子树 | **否** | 是 | `home__n_hero.<ext>` ← **这一行未实现**，见下 |
 | `--all` | 每一页一个文件。跳过组件库页 | 是 | 是 | `<页名>.<ext>` |
 
 - **HTML 的粒度只有页。** 一次一页，或者 `--all` 一次全站。不给片段。
@@ -633,7 +636,7 @@ REFUSED  会引入重复 id "n_cards"
 - `--id` 与 `--format html` 同时给 → 报错，并提示改用 `show <id>`。
 - `--id` 必须指向文件里真实存在的元素。**实例内部的后代不是元素，没有 `data-id`，不能作为目标。** 要导出一个实例，就导出实例元素本身。
 - 互斥：`--all` 与 `--id`。同时给就报错。
-- 要一个组件的图，用 `--id <组件id>`。组件就是节点，所以走同一条路。
+- 要一个组件的图，用 `--id <组件id>`。组件就是节点，所以走同一条路。**未实现**：下面三样「节点级图片导出要补的东西」也还没有补，所以 `--id` 至今没有实现；`--id` 与 `--format html` 同给的报错、`--all` 与 `--id` 的互斥都随之不存在。
 
 **节点级图片导出要补三样东西。** 一棵子树离开父级后，会丢三样上下文：
 
@@ -643,7 +646,7 @@ REFUSED  会引入重复 id "n_cards"
 | 可继承属性 | 把祖先链上的值物化到导出根上。可继承属性是：`color`、`font-family`、`font-size`、`font-weight`、`line-height`、`letter-spacing`、`text-align`、`text-transform`、`white-space`。**不做这一步，子树的字体与颜色会丢**，因为通常只在页根上写一次 |
 | 尺寸 | `flex:1` 与 `width:100%` 的节点脱离父级后没有确定尺寸。栅格化时必须用一个同尺寸的盒子包住它，或用 `--size WxH` 显式指定 |
 
-- 阴影会溢出边框盒。栅格化默认按 `box-shadow` 的外扩量自动加边距。`--padding <px>` 可以覆盖这个默认。
+- 阴影会溢出边框盒。栅格化默认按 `box-shadow` 的外扩量自动加边距。`--padding <px>` 可以覆盖这个默认。**未实现**：外扩量今天不自动补，`--padding` 也不存在。
 - 物化可继承属性与补尺寸是节点级导出与整页导出最不一样的地方。要有专门的测试。
 
 **导出目标。**
@@ -666,9 +669,9 @@ REFUSED  会引入重复 id "n_cards"
 - 两条栅格化路径都不通时**必须报错**，并给三条出路：装一个 Chrome 系浏览器、先开画布、或者改用 `--format svg`。**绝不自动换格式。**
 - **`svg` 是第三条出路，不是自动兜底。** 必须显式指定。理由：格式变了就是另一份交付物，不该由工具替人决定。
 - 可以强制指定：`--raster chrome|canvas`。
-- `--raster canvas` 的原理：把该页 HTML 包进 `<svg><foreignObject>`，加载成图片，画到 `<canvas>`，导出 blob。
+- `--raster canvas` 的原理：把该页 HTML 包进 `<svg><foreignObject>`，加载成图片，画到 `<canvas>`，导出 blob。**未接线**：`lib/raster.mjs` 认得这条路径并规划它，但没有任何调用方会传 `canvasOnline: true`，服务端也没有栅格化端点，所以 `--raster canvas` 会抛 `raster/canvas-not-wired`，而 `export` 的 `--help` 只列 `auto|chrome`。原理留着，因为它是无浏览器机器上唯一的出路。
 - **本格式对这个做法特别友好。** 元素样式全部内联，只有一份 `:root` 令牌块要摊平。普通网页做不到这一点，因为外部样式表与级联没法在 `foreignObject` 里复现。
-- `--scale 1|2|3`，默认 1。`--background transparent|#RRGGBB`，默认取页框的 `background-color`。
+- `--scale 1|2|3`，默认 1。`--background transparent|#RRGGBB` **未实现**：今天图片的背景取页框的 `background-color`，没有覆盖它的开关。
 - 字体：`chrome` 路径靠 `--virtual-time-budget` 等待。`canvas` 路径靠 `document.fonts.ready`。
 - 外链图片：先内联成 data URI。`chrome` 路径也可以改为等网络空闲。
 
@@ -682,7 +685,7 @@ REFUSED  会引入重复 id "n_cards"
 
 需要：`ls --pages`（列页）、`ls --in <page>`（列某页的节点树）、`show <id>`、`tokens ls`、按名字搜索。全部支持 `--json`。
 
-HTML 导出没有片段粒度。模型读子树用 `ls --in` 与 `show <id>`。要一张节点的图，用 `export --id <data-id> --format png`。
+HTML 导出没有片段粒度。模型读子树用 `ls --in` 与 `show <id>`。**要一张节点的图，今天做不到**：`export --id <data-id> --format png` 没有实现，导出粒度只有页（见 §5.8）。
 
 ## 6. 技术架构
 
@@ -690,36 +693,45 @@ HTML 导出没有片段粒度。模型读子树用 `ls --in` 与 `show <id>`。�
 
 ```
 lib/            纯函数。浏览器安全。不得 import node:*
-  format.mjs      格式表（属性、取值、别名、简写、元素映射）  ← 唯一真相源
-  parse.mjs       HTML → 文档模型
+  table.mjs       格式表（属性、取值、别名、简写、元素映射、令牌组）  ← 唯一真相源
+                  （设计稿里叫 format.mjs；落地时叫 table.mjs）
+  parse.mjs       HTML → 文档模型，带偏移
+  serialize.mjs   文档模型 → 文本，最小改动
   validate.mjs    四层校验
   normalize.mjs   归一化与规范形式
-  ops.mjs         五种 op、id 索引、可逆
+  ops.mjs         七种 op（五种树 op + 两种令牌 op）、id 索引、可逆
+  tokens.mjs      令牌：名字、组、值、寻址、环
+  fragment.mjs    片段 → op
   render.mjs      文档模型 → 画布 HTML 加 CSS
-  export.mjs      文档模型 → 交付物 HTML
-  svg-out.mjs     HTML → SVG（foreignObject 包装）          ← 新
-  raster.mjs      栅格化的路径编排、选择与报错              ← 新
-  fragment.mjs    片段 → op            ← 新写的核心
+  export-html.mjs 文档模型 → 交付物 HTML（设计稿里叫 export.mjs）
+  export-svg.mjs  一页 → SVG（foreignObject 包装）；纯的那一半
+  raster.mjs      栅格化的路径编排、选择与报错
   receipt.mjs     回执模型与呈现
-  tokens.mjs      令牌解析
-  components.mjs  展开、覆盖、循环检测
-  readers/html.mjs    HTML 读取器。无损，主格式
-  readers/pen.mjs     .pen 读取器。有损，出账本
-  writers/html.mjs    HTML 写出器。规范形式与交付物
-  writers/pen.mjs     .pen 写出器。尽力，出账本
+  base-css.mjs    基础规则：没有它们，width 不是盒子的 width
   icons.mjs       内置字形表（生成物）
-  geometry.mjs    几何检查。只报确定的错误
   diagnostics.mjs 分组、过滤、定位
+  spans.mjs       区间替换与重叠检查
+  detect.mjs      扩展名加内容嗅探，选读取器
+  levenshtein.mjs 距离与建议
+  readers/pen.mjs .pen 读取器。有损，出账本
 
 lib/node/       唯一碰文件系统与网络的地方
-  cli.mjs  fs.mjs  server.mjs  log.mjs
-  browser.mjs     ★新 探测并调用本机 headless 浏览器。唯一会 spawn 进程的模块
+  cli.mjs           入口判定、参数解析
+  fs.mjs            读、原子写、哈希
+  static.mjs        提供给浏览器的白名单
+  server.mjs        本地服务、事件流、保存端点
+  write-verbs.mjs   写入漏斗：读、校验、apply、再校验、原子写、回执
+  export-svg.mjs    写图片文件的那一半（spawn 之前的准备）
+  raster-run.mjs    探测并调用本机 headless 浏览器（设计稿里叫 browser.mjs）
+  verbs/*.mjs       每个动词一个文件。设计稿里的「scripts/ 命令面」落成了这里
 
-scripts/        命令面（薄）
+scripts/        生成器：references/ 那三份文档由 lib/table.mjs 生成
 canvas/         浏览器应用。无构建。原生 ES 模块
 references/     生成物。schema 文档与样式文档
 test/           node --test
 ```
+
+**这份树按实际重写过。** 设计稿里点名的 `format.mjs`、`svg-out.mjs`、`components.mjs`、`readers/html.mjs`、`writers/html.mjs`、`writers/pen.mjs`、`geometry.mjs`、`lib/node/log.mjs`、`lib/node/browser.mjs` 从未存在；`export.mjs` 落成了 `export-html.mjs`，`format.mjs` 落成了 `table.mjs`。**没有被替代的只有两个：`writers/pen.mjs`（pen 写出器）与 `geometry.mjs`（几何检查）** —— 它们是这份设计里确实还没做的两件事，写在 §8 的验收与 `docs/format-v3.md` §6 的「未实现」里。
 
 **纯度边界（可执行的不变量）。** `lib/`（除 `lib/node/`）与 `canvas/` 不得出现 `node:` 导入、`require()`、`process.*`、`Buffer.*`。画布能取的静态资源必须在白名单里。`lib/node/` 永不提供给浏览器。
 

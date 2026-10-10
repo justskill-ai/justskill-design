@@ -184,12 +184,35 @@ test("an unsupported tag is reported and does not vanish", () => {
   assert.match(found.hint, /section/);
 });
 
-test("missing required attributes name what to write", () => {
+test("missing required attributes name what to write, under the right code", () => {
   const doc = file(page(`<img data-id="a" data-type="image" style="width:1px;height:1px">`));
-  const found = validateDesign(doc).filter((d) => d.code === "structure/missing-attribute");
-  assert.equal(found.length, 2);
-  const alt = found.find((d) => d.message.includes("alt"));
+  const found = validateDesign(doc);
+
+  // `docs/format-v3.md` §6 assigns the two image rules to their own families: the
+  // alt text is an accessibility finding and the src is an asset one. They used to
+  // arrive as two `structure/missing-attribute` errors, which left the contract's
+  // `a11y/` and `asset/` prefixes with nothing that could ever emit them.
+  const alt = found.find((d) => d.code === "a11y/missing-alt");
+  const src = found.find((d) => d.code === "asset/missing-src");
+  assert.ok(alt, `expected a11y/missing-alt, got ${found.map((d) => d.code).join(", ")}`);
+  assert.ok(src, `expected asset/missing-src, got ${found.map((d) => d.code).join(", ")}`);
   assert.match(alt.hint, /decorative/);
+  assert.equal(alt.target, "a");
+  assert.equal(src.target, "a");
+  assert.equal(found.filter((d) => d.code === "structure/missing-attribute").length, 0);
+});
+
+test("a required attribute that is not an image rule keeps the generic code", () => {
+  // The mapping is per `type:attribute`, not per diagnostic. An icon missing its
+  // library is a malformed element rather than an accessibility finding, and an
+  // instance with no `data-ref` is neither.
+  const doc = file(page(
+    `<svg data-id="i" data-type="icon" data-icon="bell" viewBox="0 0 24 24" style="width:1px;height:1px"><path d="M1 1"/></svg>`
+    + `<div data-id="r" data-type="instance"></div>`,
+  ));
+  const found = validateDesign(doc).filter((d) => d.code === "structure/missing-attribute");
+  assert.equal(found.length, 2, JSON.stringify(found.map((d) => d.message)));
+  assert.deepEqual(found.map((d) => d.target).sort(), ["i", "r"]);
 });
 
 test("an attribute that does not belong to the type is an error", () => {

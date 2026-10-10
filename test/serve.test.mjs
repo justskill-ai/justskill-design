@@ -32,7 +32,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { startServer, MAX_BODY_BYTES } from "../lib/node/server.mjs";
-import { PACKAGE_ROOT, STATIC_ROUTES, buildRoutes } from "../lib/node/static.mjs";
+import { PACKAGE_ROOT, PLACEHOLDER_ROUTES, STATIC_ROUTES, buildRoutes } from "../lib/node/static.mjs";
 import { revisionOf } from "../lib/node/fs.mjs";
 
 const WORK = mkdtempSync(path.join(tmpdir(), "skill-design-serve-"));
@@ -247,37 +247,43 @@ test("static: every whitelisted route resolves, and only those", async () => {
     const routes = buildRoutes(PACKAGE_ROOT);
     assert.ok(routes.size > 10);
 
-    // Every entry of the table resolves when its file exists, and answers a
-    // clean 404 when it is a placeholder for a module that has not landed yet.
+    // Every route the table produces has a file behind it. This used to tolerate a
+    // missing one, which meant the table could not be read as a promise: "the module
+    // landed" and "the module was renamed" looked the same from here.
     for (const [route, target] of routes) {
+      assert.ok(existsSync(target), `${route} is listed and its file is missing`);
       const res = await get(server, route, { token: false });
-      if (existsSync(target)) {
-        assert.equal(res.status, 200, `${route} did not resolve`);
-        assert.equal(res.body, readFileSync(target, "utf8"), `${route} served different bytes`);
-        assert.notEqual(res.headers.get("content-type"), "application/octet-stream", `${route} has no content type`);
-      } else {
-        assert.equal(res.status, 404, `${route} is listed but missing: expected 404, got ${res.status}`);
-      }
+      assert.equal(res.status, 200, `${route} did not resolve`);
+      assert.equal(res.body, readFileSync(target, "utf8"), `${route} served different bytes`);
+      assert.notEqual(res.headers.get("content-type"), "application/octet-stream", `${route} has no content type`);
     }
 
     // The modules the browser must be able to import directly. The canvas
     // parses and renders the file itself, so these are not optional.
     for (const name of [
       "parse.mjs", "serialize.mjs", "render.mjs", "table.mjs", "validate.mjs",
-      "normalize.mjs", "diagnostics.mjs", "spans.mjs", "detect.mjs", "pointer.mjs",
-      "levenshtein.mjs", "ops.mjs", "fragment.mjs", "receipt.mjs",
+      "normalize.mjs", "diagnostics.mjs", "spans.mjs", "detect.mjs",
+      "levenshtein.mjs", "ops.mjs", "fragment.mjs", "receipt.mjs", "tokens.mjs",
     ]) {
       assert.ok(routes.has(`/lib/${name}`), `/lib/${name} is not in the whitelist`);
       assert.equal((await get(server, `/lib/${name}`, { token: false })).status, 200, `/lib/${name} did not resolve`);
     }
 
-    // Every explicitly listed route whose file exists must resolve; one whose
-    // file is not written yet must answer a clean 404 rather than crash.
+    // The ratchet.
+    //
+    // `STATIC_ROUTES` is a promise that the file is there; `PLACEHOLDER_ROUTES` is a
+    // promise that it is not. Both directions are checked, so neither list can quietly
+    // become the other: a route added before its file is written fails here instead of
+    // 404ing in a browser tab, and a placeholder whose module landed has to move up.
     for (const [route, relative] of STATIC_ROUTES) {
       const target = path.join(PACKAGE_ROOT, relative);
-      const res = await get(server, route, { token: false });
-      if (existsSync(target)) assert.equal(res.status, 200, `${route} is listed and exists but did not resolve`);
-      else assert.equal(res.status, 404, `${route} is listed but missing: expected 404, got ${res.status}`);
+      assert.ok(existsSync(target), `${route} is in STATIC_ROUTES and ${relative} does not exist`);
+      assert.equal((await get(server, route, { token: false })).status, 200, `${route} is listed and exists but did not resolve`);
+    }
+    for (const [route, relative] of PLACEHOLDER_ROUTES) {
+      const target = path.join(PACKAGE_ROOT, relative);
+      assert.ok(!existsSync(target), `${route} landed; move it into STATIC_ROUTES`);
+      assert.equal((await get(server, route, { token: false })).status, 404, `${route} is a placeholder but answered something else`);
     }
 
     // Node-side modules import `node:*` and must never cross the wire.
@@ -374,7 +380,7 @@ test("funnel: a new error is refused with 409 and the file is byte identical", a
     assert.equal(res.json.ok, false);
     assert.equal(res.json.code, "cli/would-introduce-errors");
     assert.equal(res.json.changed, false);
-    assert.ok(res.json.diagnostics.some((d) => d.code === "structure/missing-attribute"), JSON.stringify(res.json.diagnostics));
+    assert.ok(res.json.diagnostics.some((d) => d.code === "a11y/missing-alt"), JSON.stringify(res.json.diagnostics));
     assert.ok(res.json.diagnostics.every((d) => d.severity === "error"));
     assert.equal(readFileSync(file, "utf8"), before, "a refusal must not write");
 
@@ -589,7 +595,7 @@ test("save: writes a whole text, refuses a new error, and repairs a broken file"
     const refused = await post(server, "/api/save", { baseRevision: revisionOf(BAD_SYNTAX), text: noAlt });
     assert.equal(refused.status, 409);
     assert.equal(refused.json.code, "cli/would-introduce-errors");
-    assert.ok(refused.json.diagnostics.some((d) => d.code === "structure/missing-attribute"));
+    assert.ok(refused.json.diagnostics.some((d) => d.code === "a11y/missing-alt"));
     assert.equal(readFileSync(file, "utf8"), BAD_SYNTAX, "a refused save must not write");
 
     const repaired = await post(server, "/api/save", { baseRevision: revisionOf(BAD_SYNTAX), text: VALID });
@@ -636,4 +642,140 @@ test("lifecycle: the idle timer closes a server nobody is using", async () => {
   ]);
   assert.match(String(reason), /idle for/, `expected an idle close, got ${reason}`);
   server.close("test finished");
+});
+
+/* ---------------------------------------------------------------- *
+ * 7. Export: the canvas cannot write files, so the service does
+ * ---------------------------------------------------------------- */
+
+test("export: writes <page>.export.html next to the design file", async () => {
+  const file = fixture(VALID);
+  await withServer(file, async (server) => {
+    const { status, json: body } = await post(server, "/api/export", {});
+    assert.equal(status, 200);
+    assert.equal(body.ok, true);
+    assert.equal(body.files.length, 1);
+    assert.equal(body.files[0].page, "home");
+
+    // `<pageId>.html` would be ambiguous: in this format the design file is an HTML file
+    // too, so a sibling `home.html` could be a deliverable or another design.
+    assert.equal(path.basename(body.files[0].path), "home.export.html");
+    const written = readFileSync(body.files[0].path, "utf8");
+    assert.ok(written.startsWith("<!doctype html>"), written.slice(0, 40));
+    assert.match(written, /你好/);
+
+    // A deliverable is a document, not a design file. Every `data-id`, `data-type`,
+    // `data-canvas` and the schema marker are addressing this format invented, and a
+    // browser has no use for them: they are scaffolding, and shipping them would hand
+    // the reader a file that looks like a design.
+    for (const scaffolding of ["data-id", "data-type", "data-canvas"]) {
+      // In attribute position. `section[data-type="page"]` is a selector in the page-frame
+      // rule, which the deliverable carries on purpose — it is what makes a page a page.
+      assert.ok(!new RegExp(`\\s${scaffolding}="`).test(written), `an export must not carry ${scaffolding} as an attribute`);
+    }
+    assert.ok(!written.includes("design-schema"), "an export must not claim to be a design file");
+  });
+});
+
+test("export: --all writes one file per page and skips the library page", async () => {
+  const withLibrary = VALID.replace(
+    "</body>",
+    '  <section data-id="kit" data-type="page" data-library="true" style="width:390px;height:844px"></section>\n</body>',
+  );
+  const file = fixture(withLibrary);
+  await withServer(file, async (server) => {
+    const { status, json: body } = await post(server, "/api/export", { all: true });
+    assert.equal(status, 200);
+    assert.deepEqual(body.files.map((entry) => entry.page), ["home"]);
+  });
+});
+
+test("export: the same bytes as the command line, for the same page", async () => {
+  const file = fixture(VALID);
+  await withServer(file, async (server) => {
+    const { json: body } = await post(server, "/api/export", {});
+    const fromCanvas = readFileSync(body.files[0].path, "utf8");
+
+    // The deliverable is the point of the whole tool, so the two doors have to lead to
+    // the same room: the service calls `lib/export-html.mjs`, exactly what the verb calls.
+    const { exportPage } = await import("../lib/export-html.mjs");
+    const { parse } = await import("../lib/parse.mjs");
+    const fromCli = exportPage(parse(VALID), {}).html;
+    assert.equal(fromCanvas, fromCli);
+  });
+});
+
+test("export: every refusal path answers with its own code", async () => {
+  const file = fixture(VALID);
+  await withServer(file, async (server) => {
+    // No capability token, on a POST that writes files.
+    const noToken = await fetch(`http://127.0.0.1:${server.port}/api/export`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{}",
+    });
+    assert.equal(noToken.status, 401);
+
+    // A foreign Origin.
+    const foreign = await post(server, "/api/export", {}, { origin: "http://evil.example" });
+    assert.equal(foreign.status, 403);
+
+    // GET is not a way to write a file.
+    const wrongMethod = await get(server, "/api/export");
+    assert.equal(wrongMethod.status, 405);
+
+    // A body that is not JSON. The content type is only judged when there is a body:
+    // a body-less POST is how undo, redo and bye are called.
+    const wrongType = await fetch(urlFor(server, "/api/export"), {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(wrongType.status, 415);
+
+    // The body cap is shared with /api/ops, and a route that writes files must not be a
+    // way around it.
+    const tooLarge = await fetch(urlFor(server, "/api/export"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page: "x".repeat(MAX_BODY_BYTES) }),
+    });
+    assert.equal(tooLarge.status, 413);
+
+    // A page that does not exist.
+    const unknownPage = await post(server, "/api/export", { page: "nope" });
+    assert.equal(unknownPage.status, 409);
+    assert.equal(unknownPage.json.code, "export/unknown-page");
+    assert.match(unknownPage.json.hint, /home/);
+  });
+});
+
+test("export: a file that does not parse is refused with its diagnostics", async () => {
+  const file = fixture(BAD_SYNTAX);
+  await withServer(file, async (server) => {
+    const { status, json: body } = await post(server, "/api/export", {});
+    assert.equal(status, 409);
+    assert.equal(body.code, "export/read-only");
+    assert.ok(Array.isArray(body.diagnostics) && body.diagnostics.length > 0, "the refusal names what is wrong");
+  });
+});
+
+/**
+ * The one target an export may never write.
+ *
+ * A page id and a file name line up often enough — a design called `home.export.html`
+ * whose first page is `home` — and without the guard the export replaces the design with
+ * its own deliverable. That is unrecoverable: the design is the only copy of the intent.
+ */
+test("export: it refuses to write over the design file itself", async () => {
+  // Named so that page `home`'s export target is the design file itself.
+  const file = path.join(WORK, "home.export.html");
+  writeFileSync(file, VALID, "utf8");
+  await withServer(file, async (server) => {
+    const before = readFileSync(file, "utf8");
+    const { status, json: body } = await post(server, "/api/export", {});
+    assert.equal(status, 409);
+    assert.equal(body.code, "export/would-overwrite-design");
+    assert.equal(readFileSync(file, "utf8"), before, "the design file must be untouched");
+  });
 });

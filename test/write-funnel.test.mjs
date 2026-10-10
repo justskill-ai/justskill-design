@@ -139,7 +139,7 @@ test("an edit that introduces a new error is refused and writes nothing", () => 
   assert.ok(result.refused, "a missing alt is a new error");
   assert.equal(result.text, START, "the file is byte identical");
   const introduced = result.refused.introduced;
-  assert.ok(introduced.some((d) => d.code === "structure/missing-attribute"));
+  assert.ok(introduced.some((d) => d.code === "a11y/missing-alt"));
   assert.ok(introduced[0].hint.length > 10, "the refusal says what to write");
 });
 

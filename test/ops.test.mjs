@@ -23,6 +23,7 @@ import {
 import { buildReceipt, formatReceipt } from "../lib/receipt.mjs";
 import { parse } from "../lib/parse.mjs";
 import { serialize } from "../lib/serialize.mjs";
+import { validateDesign } from "../lib/validate.mjs";
 
 /* ------------------------------------------------------------------ *
  * Building documents
@@ -135,8 +136,12 @@ function roundTrip(document, ops) {
  * Shapes
  * ------------------------------------------------------------------ */
 
-test("OP_KINDS is the five op kinds", () => {
-  assert.deepStrictEqual(OP_KINDS, ["set", "unset", "insert", "remove", "move"]);
+test("OP_KINDS is the seven op kinds", () => {
+  // Five tree ops plus the two token ops. A token is not an element and has no
+  // `data-id`, so it cannot ride on `set`; before these two existed, changing one
+  // brand color meant rewriting the whole file (v1 could address it as
+  // `/tokens/color/bg`, and that was the one thing v2 had lost).
+  assert.deepStrictEqual(OP_KINDS, ["set", "unset", "insert", "remove", "move", "set-token", "unset-token"]);
 });
 
 test("OpsError carries a code under the ops/ prefix", () => {
@@ -1043,4 +1048,174 @@ test("an in-memory inverse lands the node back between the halves of a merged te
     back.doc.children[0].children.map((child) => (child.kind === "text" ? child.value : attrValueOf(child, "data-id"))),
     ["\n      ", "n_a", "\n      ", "n_b", "\n    "],
   );
+});
+
+/* ------------------------------------------------------------------ *
+ * Tokens: set-token and unset-token
+ * ------------------------------------------------------------------ */
+
+/**
+ * Apply, write, re-read, undo — and require the file's bytes to come back.
+ *
+ * A token block is CSS text, not a tree, so byte fidelity is the whole question. The
+ * separators are the file's: `--a:1; --b:2` and `--a:1;\n  --b:2` are both legal, and
+ * a token block is hand-wrapped as often as it is written by `design new`.
+ */
+function throughAWrite(source, ops) {
+  const document = parse(source);
+  const forward = applyOps(document, ops);
+  const written = serialize(document, forward.doc);
+  const reread = parse(written);
+  const back = applyOps(reread, forward.inverse);
+  return { forward, written, reread, restored: serialize(reread, back.doc) };
+}
+
+/** One token block in `<head>`, plus the one page a file needs. */
+function tokenFile(root, extra = "") {
+  return `<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="design-schema" content="3.0">
+  <style>:root{${root}}</style>${extra}
+</head>
+<body>
+  <section data-id="home" data-type="page" style="width:390px;height:844px"></section>
+</body>
+</html>
+`;
+}
+
+const HOUSE = tokenFile(" --color-bg:#f5f5f7; --color-ink:#111827; --space-md:16px ");
+
+test("set-token on a token that is there is undone byte for byte", () => {
+  const { forward, written, restored } = throughAWrite(HOUSE, [
+    { op: "set-token", name: "--color-ink", value: "#7c3aed" },
+  ]);
+  assert.match(written, /--color-ink:#7c3aed/);
+  assert.notEqual(written, HOUSE);
+  // The other tokens and the block's layout are untouched: one declaration, one span.
+  assert.equal(written.replace("#7c3aed", "#111827"), HOUSE);
+  assert.deepStrictEqual(forward.inverse, [{ op: "set-token", name: "--color-ink", value: "#111827" }]);
+  assert.equal(restored, HOUSE);
+});
+
+test("a token that is not there yet is added inside the braces, and the add is undone byte for byte", () => {
+  const { written, restored } = throughAWrite(HOUSE, [
+    { op: "set-token", name: "--color-brand", value: "#2563eb" },
+  ]);
+  assert.match(written, /:root\{ --color-bg:#f5f5f7; --color-ink:#111827; --space-md:16px; --color-brand:#2563eb \}/);
+  assert.equal(restored, HOUSE);
+});
+
+test("unset-token removes the declaration and its separator, and undo puts both back", () => {
+  for (const name of ["--color-bg", "--color-ink", "--space-md"]) {
+    const { written, restored } = throughAWrite(HOUSE, [{ op: "unset-token", name }]);
+    assert.ok(!written.includes(`${name}:`), `${name} is still declared`);
+    assert.equal(restored, HOUSE, `undo of removing ${name}`);
+  }
+});
+
+/** The layout a hand-written or imported file has, and the one that broke the first version. */
+test("a hand-wrapped token block round trips byte for byte too", () => {
+  const wrapped = tokenFile("\n  --color-bg:#f5f5f7;\n  --color-ink:#111827;\n  --space-md:16px;\n");
+  for (const name of ["--color-bg", "--color-ink", "--space-md"]) {
+    const { restored } = throughAWrite(wrapped, [{ op: "unset-token", name }]);
+    assert.equal(restored, wrapped, `undo of removing ${name} from a wrapped block`);
+  }
+  const added = throughAWrite(wrapped, [{ op: "set-token", name: "--radius-lg", value: "16px" }]);
+  assert.match(added.written, /--space-md:16px; --radius-lg:16px;\n\}/);
+  assert.equal(added.restored, wrapped);
+});
+
+test("a second token op sees what the first one wrote", () => {
+  const { written } = throughAWrite(HOUSE, [
+    { op: "set-token", name: "--color-brand", value: "#2563eb" },
+    { op: "set-token", name: "--color-brand", value: "#7c3aed" },
+  ]);
+  assert.match(written, /--color-brand:#7c3aed/);
+  assert.ok(!written.includes("#2563eb"));
+});
+
+/**
+ * The document a `set-token` returns is what the funnel validates, so the block record
+ * has to describe the file as it is now. A version that rewrote only the text node left
+ * `block.declarations` behind, and the check that a write introduces no new error would
+ * have run against the tokens from before the write.
+ */
+test("a token op refreshes the block it wrote, so the next reader sees the new value", () => {
+  const document = parse(HOUSE);
+  const { doc: next } = applyOps(document, [{ op: "set-token", name: "--color-ink", value: "#7c3aed" }]);
+  const block = next.styleBlocks[0];
+  assert.equal(block.text.includes("--color-ink:#7c3aed"), true);
+  assert.equal(block.declarations.find((d) => d.property === "--color-ink").value, "#7c3aed");
+  assert.equal(validateDesign(next).filter((d) => d.severity === "error").length, 0);
+  // …and the block still points at the `<style>` element that is in the tree, which is
+  // what `detach` relies on to keep one object where there is one element.
+  assert.equal(next.head.children.includes(block.node), true);
+  // A7: the input is untouched.
+  assert.equal(serialize(document, document), HOUSE);
+});
+
+test("a token op refuses a file it cannot address", () => {
+  const noBlock = tokenFile("", "").replace(/<style>[^<]*<\/style>/, "");
+  assert.throws(() => applyOps(parse(noBlock), [{ op: "set-token", name: "--color-bg", value: "#fff" }]),
+    { code: "ops/no-token-block" });
+
+  const twoBlocks = tokenFile(" --color-bg:#f5f5f7 ", "<style>:root{ --color-ink:#111827 }</style>");
+  assert.throws(() => applyOps(parse(twoBlocks), [{ op: "set-token", name: "--color-bg", value: "#fff" }]),
+    { code: "ops/ambiguous-token-block" });
+
+  assert.throws(() => applyOps(parse(HOUSE), [{ op: "set-token", name: "color.bg", value: "#fff" }]),
+    { code: "ops/bad-op" });
+  assert.throws(() => applyOps(parse(HOUSE), [{ op: "unset-token", name: "--color-nope" }]),
+    { code: "ops/no-such-token" });
+  assert.throws(() => applyOps(parse(HOUSE), [{ op: "set-token", name: "--color-bg" }]),
+    { code: "ops/bad-op" });
+});
+
+/**
+ * The inverse carries the exact bytes, so it cannot be applied to a document it does not
+ * belong to. Without the check it would cut whatever happens to sit at that offset, which
+ * is a silent wrong answer of exactly the kind this format does not allow.
+ */
+test("a token inverse that does not belong to the document is refused, not guessed at", () => {
+  const document = parse(HOUSE);
+  const added = applyOps(document, [{ op: "set-token", name: "--color-brand", value: "#2563eb" }]);
+  const stale = added.inverse.map((op) => ({ ...op, at: op.at + 1 }));
+  assert.throws(() => applyOps(added.doc, stale), { code: "ops/stale-inverse" });
+
+  const removed = applyOps(document, [{ op: "unset-token", name: "--color-bg" }]);
+  assert.throws(() => applyOps(removed.doc, removed.inverse.map((op) => ({ ...op, at: 999 }))),
+    { code: "ops/stale-inverse" });
+});
+
+/**
+ * Removing the last token leaves an empty `:root{}`, and the file has to still be a
+ * design file. `format` does not re-typeset a token block — its layout is the file's —
+ * so whatever the last removal leaves behind is what the file keeps. What it leaves is
+ * the padding that surrounded the declaration, so `:root{  }` and not `:root{}`. That is
+ * valid CSS and `format --check` calls it canonical, which is exactly why it is pinned
+ * here: nothing downstream will ever tidy it, and an undo cannot either (the padding is
+ * what the exact-bytes inverse needs to put the declaration back where it was).
+ */
+test("a file whose tokens were all removed is still a design file", () => {
+  const document = parse(HOUSE);
+  const { doc: next } = applyOps(document, [
+    { op: "unset-token", name: "--color-bg" },
+    { op: "unset-token", name: "--color-ink" },
+    { op: "unset-token", name: "--space-md" },
+  ]);
+  const written = serialize(document, next);
+  assert.match(written, /<style>:root\{ {2}\}<\/style>/);
+  assert.equal(validateDesign(parse(written)).filter((d) => d.severity === "error").length, 0);
+
+  // Canonical means a re-read and a re-write move nothing, which is what `format --check`
+  // reports on this file.
+  const reread = parse(written);
+  assert.equal(serialize(reread, reread), written);
+
+  // And it is still addressable: a token can be added back to the emptied block.
+  const again = applyOps(reread, [{ op: "set-token", name: "--color-ink", value: "#111827" }]);
+  assert.match(serialize(reread, again.doc), /<style>:root\{--color-ink:#111827 {2}\}<\/style>/);
 });

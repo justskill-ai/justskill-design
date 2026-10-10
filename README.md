@@ -11,7 +11,7 @@ design.html  ──validate──▶  diagnostics       (what is wrong, and what
      ▲          format   ──▶  canonical text    (one intent, one spelling)
      │          export   ──▶  a deliverable      (one page, or a whole site)
      │
-     └──── canvas ◀── add / set / remove / move
+     └──── canvas ◀── add / set / remove / move / rename
 ```
 
 ## Why the design file is HTML
@@ -59,7 +59,7 @@ Two style blocks are allowed in `<head>`, and both are read: the token block
 
 - `docs/format-v3.md` — the frozen contract: the element model, the canonical
   form, the diagnostic codes, the module boundaries.
-- `references/styling.md` — the 40 allowed properties and their value grammars.
+- `references/styling.md` — the 45 allowed properties and their value grammars.
 - `references/schema.md` — the element contract, generated from the format table.
 
 ## Commands
@@ -73,6 +73,8 @@ node design.mjs show     design.html home__title
 node design.mjs add      design.html --html-file card.html --in home__root
 node design.mjs set      design.html home__title --style 'font-size:40px'
 node design.mjs move     design.html home__card --index 0
+node design.mjs rename   design.html home__card product
+node design.mjs migrate  design.html
 node design.mjs remove   design.html home__note
 node design.mjs export   design.html --all -o dist
 node design.mjs import   pen some.pen -o design.html
@@ -111,8 +113,7 @@ added:      home__cta, home__cta-label  (2 elements)
 normalized: #fff → #ffffff
 normalized: 12px 12px 12px 12px → 12px
 normalized: rgba(0,0,0,0.6) → #00000099
-dropped:    margin:16px — The format spaces elements with gap, never with margin.
-            use gap (on the parent) or padding (on this element)
+dropped:    cursor:pointer — The format describes appearance, not interaction. A cursor is behavior.
 applied 1 op, revision a161db2c (0 errors, 0 warnings)
 ```
 
@@ -160,13 +161,18 @@ already canonical. One node in that file has four different corner radii, which
 this format does not have a spelling for, and the ledger says so by name.
 
 The legibility metric means: the first response is always usable, whether it
-accepts the snippet or refuses it with a code, a target and a fix. 17 of the 20
-snippets are deliberately defective — they contain `margin`, `display:grid`,
-`position:fixed`, `rgba()`, `#fff`, a missing `alt`, a wrong `data-type` for the
-tag, or a duplicate id — and each is refused by name. 3 are clean and are
-accepted. A crash, a silent drop, or a refusal that names nothing fails the
-metric. It does not claim that 100% of designs are accepted; it claims that no
-first response is a dead end.
+accepts the snippet or refuses it with a code, a target and a fix. The 20
+snippets are the ones a model actually writes: `display:grid`, `position:fixed`,
+`rgba()`, `#fff`, a one-sided `margin`, a missing `alt`, a wrong `data-type` for
+the tag, a duplicate id, a `font` shorthand, a `<svg>` written by hand.
+
+**10 are refused by name. The other 10 compile, and 9 of those report what they
+rewrote or dropped** — `#fff` becoming `#ffffff`, a four-value `padding`
+collapsing, a `cursor` or a `transform` landing in `dropped`. One is already
+clean. A crash, a silent drop, or a refusal that names nothing fails the metric.
+It does not claim that 100% of designs are accepted; it claims that no first
+response is a dead end. `evals/evals.json` states per snippet what that response
+has to contain, and `test/evals.test.mjs` checks it.
 
 ## Install
 

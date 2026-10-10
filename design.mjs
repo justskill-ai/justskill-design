@@ -20,7 +20,15 @@ import { fileURLToPath } from "node:url";
 import { isMainModule } from "./lib/node/cli.mjs";
 import { assertNodeVersion } from "./lib/node/fs.mjs";
 
-const VERBS = {
+/**
+ * The verb table, exported so a test can derive it instead of copying it.
+ *
+ * `test/contract.test.mjs` checks three things against this object: every verb has a
+ * module that exports `USAGE`, every verb is named in `SKILL.md`, and no document names
+ * a verb that is not here. A hand-written list in the test would pass while the CLI and
+ * the docs drifted apart, which is the failure the check exists to catch.
+ */
+export const VERBS = {
   new: () => import("./lib/node/verbs/new.mjs"),
   validate: () => import("./lib/node/verbs/validate.mjs"),
   format: () => import("./lib/node/verbs/format.mjs"),
@@ -30,6 +38,9 @@ const VERBS = {
   set: () => import("./lib/node/verbs/set.mjs"),
   remove: () => import("./lib/node/verbs/remove.mjs"),
   move: () => import("./lib/node/verbs/move.mjs"),
+  rename: () => import("./lib/node/verbs/rename.mjs"),
+  migrate: () => import("./lib/node/verbs/migrate.mjs"),
+  tokens: () => import("./lib/node/verbs/tokens.mjs"),
   export: () => import("./lib/node/verbs/export.mjs"),
   import: () => import("./lib/node/verbs/import.mjs"),
   serve: () => import("./lib/node/verbs/serve.mjs"),
@@ -49,14 +60,19 @@ Verbs:
   set <file> <data-id> [--style 'a:b;c:d'] [--text T] [--attr name=value] [--unset name]
   remove <file> <data-id>
   move <file> <data-id> [--before X | --after X | --index n | --into P]
+  rename <file> <old-id> <new-id>
+  migrate <file>
+  tokens <file> ls | set <组.名> <值> | rm <组.名>
   export <file> [--page <id>] [--all] [-o path] [--resolve-tokens] [--stdout]
-  import pen <file> [-o design.html] [--report r.json]
+  import pen <file> [-o out.html] [--report ledger.json]
   serve [<file>] [--port 0] [--ttl 30] [--no-open]
 
 Shared flags: --json  --quiet  --dry-run  --force  --help
 
 Exit codes: 0 success, 1 refused or invalid, 2 unreadable file or bad arguments.
-Run "node design.mjs <verb> --help" for one verb's flags.`;
+
+Each line above lists the flags that matter most, not all of them; "export" alone has
+nine. Run "node design.mjs <verb> --help" for the full set of one verb.`;
 
 function print(text, stream = process.stdout) {
   stream.write(text.endsWith("\n") ? text : `${text}\n`);

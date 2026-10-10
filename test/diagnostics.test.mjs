@@ -10,6 +10,7 @@ import {
   sortDiagnostics,
   summarize,
 } from "../lib/diagnostics.mjs";
+import { errorKeys } from "../lib/validate.mjs";
 
 /* ------------------------------------------------------------------ *
  * Documents in the shape docs/format-v3.md §4 freezes.
@@ -172,8 +173,36 @@ test("sortDiagnostics: a finding with no offset sorts last inside its severity",
 
 test("summarize and diagnosticKey", () => {
   assert.deepEqual(summarize(SAMPLE), { errors: 3, warnings: 3, total: 6, ok: false });
-  assert.equal(diagnosticKey(SAMPLE[1]), 'structure/duplicate-id|110|duplicate data-id "home__title"');
+  assert.equal(diagnosticKey(SAMPLE[1]), 'structure/duplicate-id|110|home__title|duplicate data-id "home__title"');
   assert.equal(dedupeDiagnostics([...SAMPLE, SAMPLE[1]]).length, SAMPLE.length);
+});
+
+test("the key separates two findings that differ only in target", () => {
+  // Same code, same message, two elements, and no offset to tell them apart.
+  // Under the old three-field key these collapsed into one: the gate refused the
+  // edit while the report showed a single row, which is the silent drop this
+  // format does not do. The contract asks for four fields now.
+  const a = { severity: "error", code: "structure/duplicate-id", target: "home__title", message: "duplicate data-id" };
+  const b = { severity: "error", code: "structure/duplicate-id", target: "about__title", message: "duplicate data-id" };
+
+  assert.notEqual(diagnosticKey(a), diagnosticKey(b), "same code and message, different element");
+  assert.equal(dedupeDiagnostics([a, b]).length, 2, "the report must show both");
+  assert.equal(errorKeys([a, b]).size, 2, "and the gate must count them separately");
+
+  // An offset still separates them; the point is that a target does too.
+  assert.notEqual(diagnosticKey({ ...a, offset: 1 }), diagnosticKey({ ...a, offset: 2 }));
+  // A missing diagnostic is still a key, and it is not any real one.
+  assert.equal(diagnosticKey(null), "|||");
+});
+
+test("validate.mjs re-exports the one implementation", async () => {
+  // The gate, the report and the contract use the same function. Two copies with
+  // two field lists is what put them out of step in the first place.
+  const [validate, diagnostics] = await Promise.all([
+    import("../lib/validate.mjs"),
+    import("../lib/diagnostics.mjs"),
+  ]);
+  assert.equal(validate.diagnosticKey, diagnostics.diagnosticKey, "same function, not a copy");
 });
 
 test("resolveDiagnosticTarget: a target id resolves to that element", () => {

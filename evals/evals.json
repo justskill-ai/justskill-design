@@ -5,10 +5,25 @@
       "id": 1,
       "name": "pricing-card-row",
       "prompt": "在首页的 home__slot 里加一行定价卡片：基础版和专业版左右并排，各自带名称、价格和一行说明。",
-      "expected_output": "compile succeeds; `background` is an alias of `background-color`, so the four frames normalize `#fff`→`#ffffff` and `#111`→`#111111`; `margin:16px 0` and `margin:0` are rejected because format-v3 §7 pins `margin: null` in CSS_ALIASES, so each must surface as a style/ diagnostic naming `margin` rather than vanish; `box-shadow:0 1px 2px rgba(0,0,0,.06)` is one declaration with two commas inside and must not be split; the trailing `;` on home__pricing's style attribute is removed by the text layer; no data-id is generated because all nine already exist and are unique.",
+      "expected_output": "compile succeeds; `background` is an alias of `background-color`, so the four frames normalize `#fff`→`#ffffff` and `#111`→`#111111`; `margin:16px 0` and `margin:0` are kept, and no receipt entry names a margin property, because format-v3 §7 makes `margin` a member of CSS_ALLOWED; only the one-sided longhands are refused; `box-shadow:0 1px 2px rgba(0,0,0,.06)` is one declaration with two commas inside and must not be split; the trailing `;` on home__pricing's style attribute is removed by the text layer; no data-id is generated because all nine already exist and are unique.",
       "files": ["evals/snippets/s01.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [],
+        "normalized": [
+          {"target": "home__plan-basic", "prop": "background-color", "from": "#fff", "to": "#ffffff"},
+          {"target": "home__plan-basic", "prop": "box-shadow", "from": "0 1px 2px rgba(0,0,0,.06)", "to": "0 1px 2px #0000000f"},
+          {"target": "home__plan-basic", "prop": "flex", "from": "1", "to": "1 1 0%"},
+          {"target": "home__plan-basic-price", "prop": "color", "from": "#111", "to": "#111111"},
+          {"target": "home__plan-pro", "prop": "background-color", "from": "#111", "to": "#111111"},
+          {"target": "home__plan-pro", "prop": "box-shadow", "from": "0 8px 24px rgba(0,0,0,.18)", "to": "0 8px 24px #0000002e"},
+          {"target": "home__plan-pro", "prop": "flex", "from": "1", "to": "1 1 0%"},
+          {"target": "home__plan-pro-price", "prop": "color", "from": "#fff", "to": "#ffffff"}
+        ]
+      },
       "assertions": [
-        { "text": "the receipt rejects `margin` on every element that declares it: a style/ diagnostic naming `margin` exists with target home__pricing AND with target home__plan-basic", "type": "boolean" },
+        { "text": "no receipt entry names a margin property: `margin:16px 0` on home__pricing and `margin:0` on the four text elements are kept in the file; no diagnostic code mentions a margin property either", "type": "boolean" },
         { "text": "each `background` declaration appears in the receipt as a normalized `background-color` value or as a style/ alias diagnostic naming both `background` and `background-color`; a declaration that is dropped with no receipt entry fails", "type": "boolean" },
         { "text": "`rgba(0,0,0,.06)` survives inside the box-shadow value on home__plan-basic — the receipt does not contain a declaration whose value ends at `rgba(0,0,0`", "type": "boolean" },
         { "text": "zero ids are auto-filled and the set of data-id values after compile equals exactly {home__pricing, home__plan-basic, home__plan-basic-name, home__plan-basic-price, home__plan-basic-note, home__plan-pro, home__plan-pro-name, home__plan-pro-price, home__plan-pro-note}", "type": "boolean" }
@@ -18,12 +33,21 @@
       "id": 2,
       "name": "hero",
       "prompt": "在首页顶部加一个 hero 区：一个大标题、一行副标题、一个圆角白色主按钮。",
-      "expected_output": "`font:700 28px/1.2 sans-serif` and `font:400 14px/1.5 sans-serif` use the `font` shorthand, which is not a member of CSS_ALLOWED: each is either expanded in the receipt into font-size + font-weight + line-height + font-family or refused by a style/ code naming `font`; `background:linear-gradient(180deg,#111 0%,#333 100%)` hits the `background` alias but its value is not a colour, so expect a style/ value diagnostic that keeps the whole gradient string; `margin:0` on home__hero-title and home__hero-sub is rejected (CSS_ALIASES margin === null); the trailing `;` on home__hero's style is dropped; `rgba(255,255,255,.72)` is never truncated at a comma.",
+      "expected_output": "`background:linear-gradient(180deg,#111 0%,#333 100%)` hits the `background` alias and its value is not a colour, so the fragment is refused by a style/ bad-color diagnostic on home__hero whose message keeps the whole gradient string, and the file is not changed; `font:700 28px/1.2 sans-serif` and `font:400 14px/1.5 sans-serif` use the `font` shorthand, which is not a member of CSS_ALLOWED, but the compile stops at the refusal so this receipt gives them no verdict; `margin:0` on home__hero-title and home__hero-sub is legal, and no receipt entry names a margin property, because `margin` is a member of CSS_ALLOWED; `rgba(255,255,255,.72)` is never truncated at a comma.",
       "files": ["evals/snippets/s02.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "style/bad-color",
+        "codes": [
+          {"code": "style/bad-color", "target": "home__hero"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
-        { "text": "the receipt names `font` with a style/ code, or lists font-size together with font-weight and line-height as normalized values for home__hero-title; a receipt that reports neither fails", "type": "boolean" },
-        { "text": "the value recorded for the background declaration on home__hero is the whole `linear-gradient(180deg,#111 0%,#333 100%)` — it is not truncated at the first comma inside the parentheses", "type": "boolean" },
-        { "text": "the compiled style attribute of home__hero does not end with `;` and contains no `;;`", "type": "boolean" },
+        { "text": "the receipt refuses the fragment at home__hero with a style/ diagnostic that quotes the whole `linear-gradient(180deg,#111 0%,#333 100%)`, so no verdict is reported for the `font` shorthand on home__hero-title", "type": "boolean" },
+        { "text": "the refusal message quotes the background value whole — `linear-gradient(180deg,#111 0%,#333 100%)` is not truncated at the first comma inside the parentheses", "type": "boolean" },
+        { "text": "the file is not written at all, so home__hero's style attribute still ends with the `;` the snippet has", "type": "boolean" },
         { "text": "the colour on home__hero-sub is either preserved as `rgba(255,255,255,.72)`/`rgba(255,255,255,0.72)` or named in a style/ diagnostic; no declaration value ends mid-colour at `rgba(255,255,255`", "type": "boolean" }
       ]
     },
@@ -33,6 +57,15 @@
       "prompt": "加一行设置项：左边一行文字说明，右边显示当前状态，白底圆角。",
       "expected_output": "compile succeeds; `DATA-ID` and `data-TYPE` are HTML attribute names and are matched ASCII case-insensitively, so the root element is the design element home__settings-voice of type frame and no second id is generated; the original spelling stays in the bytes until an edit touches that start tag; `background:#fff` → `background-color:#ffffff`; exactly three ids exist and all are distinct.",
       "files": ["evals/snippets/s03.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [],
+        "normalized": [
+          {"target": "home__settings-voice", "prop": "background-color", "from": "#fff", "to": "#ffffff"},
+          {"target": "home__settings-voice-label", "prop": "color", "from": "#111", "to": "#111111"}
+        ]
+      },
       "assertions": [
         { "text": "the element carrying the mixed-case `DATA-ID` is recognized: no structure/ missing-id diagnostic points at it, and the compiled file never contains both `DATA-ID=\"home__settings-voice\"` and an auto-generated id on the same tag", "type": "boolean" },
         { "text": "no `structure/` diagnostic of code structure/missing-type is emitted for the root element, i.e. `data-TYPE` was read as `data-type`", "type": "boolean" },
@@ -44,11 +77,21 @@
       "id": 4,
       "name": "empty-state",
       "prompt": "收藏页没有内容的时候，显示一个空状态：居中的图标位、标题、一行提示文字。",
-      "expected_output": "`transform:translateY(4px)` is not one of the 40 properties in CSS_ORDER/CSS_ALLOWED, so it is either normalized or reported by a style/ diagnostic naming `transform` — never removed silently; `margin:0` on home__empty-hint is rejected because CSS_ALIASES pins `margin: null`; `padding:40px 16px` survives as the two- or four-value form; the trailing `;` on home__empty's style attribute is removed.",
+      "expected_output": "`transform:translateY(4px)` is not one of the 45 properties in CSS_ORDER/CSS_ALLOWED, so it appears in the receipt's dropped list with a reason — never removed silently; `margin:0` on home__empty-hint is kept, because `margin` is a member of CSS_ALLOWED; `padding:40px 16px` survives as the two- or four-value form; the trailing `;` on home__empty's style attribute is removed.",
       "files": ["evals/snippets/s04.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [
+          {"target": "home__empty", "prop": "transform", "value": "translateY(4px)"}
+        ],
+        "normalized": [
+          {"target": "home__empty-title", "prop": "color", "from": "#111", "to": "#111111"}
+        ]
+      },
       "assertions": [
-        { "text": "the receipt lists a normalized `transform` for home__empty or names `transform` in a style/ diagnostic; silent removal fails", "type": "boolean" },
-        { "text": "`margin:0` on home__empty-hint is rejected with a style/ diagnostic naming `margin`", "type": "boolean" },
+        { "text": "`transform` on home__empty appears in the receipt's dropped list with a reason — reported, so never removed silently", "type": "boolean" },
+        { "text": "`margin:0` on home__empty-hint is kept in the file, and no receipt entry names a margin property", "type": "boolean" },
         { "text": "the compiled style of home__empty still contains a padding declaration with the horizontal value 16px and the vertical value 40px (either `40px 16px` or `40px 16px 40px 16px`)", "type": "boolean" },
         { "text": "the compiled style attribute of home__empty does not end with `;`", "type": "boolean" }
       ]
@@ -59,6 +102,17 @@
       "prompt": "给首页加一个顶部导航条：左边标题，右边一个「编辑」入口。",
       "expected_output": "the inner wrapper `<div data-type=\"frame\">` has no `data-id`; the compiler generates one with the page-name prefix, so the receipt shows exactly one filled id matching `^home__[A-Za-z0-9_-]{1,63}$` that is not one of the three ids already in the snippet; after compile no element carries data-type without data-id; `background:#fff` → `background-color:#ffffff`; `cursor:pointer` is accounted for.",
       "files": ["evals/snippets/s05.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [
+          {"target": "home__nav-action", "prop": "cursor", "value": "pointer"}
+        ],
+        "normalized": [
+          {"target": "home__nav", "prop": "background-color", "from": "#fff", "to": "#ffffff"},
+          {"target": "home__nav-title", "prop": "color", "from": "#111", "to": "#111111"}
+        ]
+      },
       "assertions": [
         { "text": "the receipt lists exactly one generated data-id, it matches /^home__/ and it is not home__nav, home__nav-title or home__nav-action", "type": "boolean" },
         { "text": "after compile the number of elements carrying data-type equals the number carrying data-id inside the inserted block — no element is left without an id", "type": "boolean" },
@@ -70,25 +124,43 @@
       "id": 6,
       "name": "toast",
       "prompt": "复制成功以后，在底部弹一个黑色半透明的 toast，提示「已复制到剪贴板」。",
-      "expected_output": "`position:fixed` + `left:50%` + `bottom:32px` are positioning properties and are kept or reported, not dropped; `transform:translateX(-50%)` is not in the table; `background:rgba(17,17,17,.9)` becomes `background-color:rgba(17,17,17,0.9)` with the leading-dot number expanded; `box-shadow:0 8px 24px rgba(0,0,0,.24)` stays one declaration and is not split at its commas.",
+      "expected_output": "`position:fixed` is not one of the values `position` accepts (`absolute | relative`), so the fragment is refused by a style/ bad-enum diagnostic on home__toast and the file is not changed; `transform:translateX(-50%)` is not in the table, and `background:rgba(17,17,17,.9)` and `box-shadow:0 8px 24px rgba(0,0,0,.24)` get no verdict in this receipt, because the compile stops at the refusal.",
       "files": ["evals/snippets/s06.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "style/bad-enum",
+        "codes": [
+          {"code": "style/bad-enum", "target": "home__toast"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
-        { "text": "the value `rgba(17,17,17,.9)` is normalized to `rgba(17,17,17,0.9)` or reported in the receipt; no declaration value ends mid-colour at `rgba(17,17,17`", "type": "boolean" },
-        { "text": "the receipt lists a normalized `background-color` for home__toast or a style/ diagnostic naming `background`", "type": "boolean" },
-        { "text": "box-shadow is recorded as a single declaration for home__toast whose value contains three lengths and one `rgba(0,0,0,.24)`/`rgba(0,0,0,0.24)`; a receipt showing two box-shadow declarations for that element fails", "type": "boolean" },
-        { "text": "`transform` is either normalized or named in a style/ diagnostic; it is not absent from the receipt", "type": "boolean" }
+        { "text": "the receipt refuses the fragment at home__toast with a style/ bad-enum diagnostic whose message names `position` and `fixed`, so nothing is compiled and no colour is normalized in this receipt", "type": "boolean" },
+        { "text": "no `background-color` is normalized for home__toast, because the compile stops at the refusal", "type": "boolean" },
+        { "text": "no box-shadow declaration is recorded for home__toast either — the refusal is the whole receipt", "type": "boolean" },
+        { "text": "no verdict is reported for `transform` on home__toast, because the compile stops at the refusal", "type": "boolean" }
       ]
     },
     {
       "id": 7,
       "name": "table-row",
       "prompt": "加一行表格数据：姓名、城市、价格三列，底部一条浅灰分隔线。",
-      "expected_output": "`display:grid` is not in the enum `flex | block | none`, so expect a style/ bad-value diagnostic whose message or value mentions `grid`, or a normalization to a legal display value; `grid-template-columns` and `border-bottom` are not in CSS_ALLOWED and must appear in the receipt instead of disappearing; the three text children keep their ids.",
+      "expected_output": "`display:grid` is not in the enum `flex | block | none`, so the fragment is refused by a style/ bad-enum diagnostic on home__row whose message names `display` and `grid`, and the file is not changed; `grid-template-columns` and `border-bottom` are not in CSS_ALLOWED, but the compile stops at the refusal, so this receipt neither keeps nor drops them; the three text children keep their ids in the snippet.",
       "files": ["evals/snippets/s07.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "style/bad-enum",
+        "codes": [
+          {"code": "style/bad-enum", "target": "home__row"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
-        { "text": "the receipt either rejects `display:grid` with a style/ code that mentions `grid`, or lists a normalized `display` value for home__row that is not `grid`; a receipt that reports neither fails", "type": "boolean" },
-        { "text": "`grid-template-columns` is named in a style/ diagnostic or present in the normalized list for home__row", "type": "boolean" },
-        { "text": "`border-bottom` is named in a style/ diagnostic or present in the normalized list for home__row — the divider is never silently dropped", "type": "boolean" },
+        { "text": "the receipt refuses the fragment at home__row with a style/ diagnostic whose message names `display` and `grid`", "type": "boolean" },
+        { "text": "the refusal is the whole receipt, so `grid-template-columns` gets no verdict — nothing was compiled", "type": "boolean" },
+        { "text": "`border-bottom` likewise gets no verdict, because the compile stops at the `display` refusal", "type": "boolean" },
         { "text": "the three text children keep the ids home__row-name, home__row-city and home__row-price after compile", "type": "boolean" }
       ]
     },
@@ -96,13 +168,22 @@
       "id": 8,
       "name": "form-field",
       "prompt": "加一个手机号输入项：上面一行小标签，下面一条输入框。",
-      "expected_output": "`<label>` and `<input>` are not keys of TAG_TO_TYPE, so both are unsupported tags: each raises one `structure/unsupported-tag` and each keeps its original bytes — the parser preserves, the validator reports, the serializer never rewrites. The compiler must not delete them and must not invent a data-type for the `<input>`. The `<label>` additionally claims data-type=\"text\" on a tag that is not in TYPE_TAGS.text.",
+      "expected_output": "`<label>` claims `data-type=\"text\"` on a tag that TYPE_TAGS.text does not list, so the fragment is refused by one `structure/type-tag-mismatch` diagnostic on home__field-phone-label and the file is not changed: the parser preserves, the validator reports, the serializer never rewrites. The compiler must not delete them and must not invent a data-type for the `<input>`. The `<label>` additionally claims data-type=\"text\" on a tag that is not in TYPE_TAGS.text.",
       "files": ["evals/snippets/s08.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "structure/type-tag-mismatch",
+        "codes": [
+          {"code": "structure/type-tag-mismatch", "target": "home__field-phone-label"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
-        { "text": "the receipt contains one `structure/unsupported-tag` diagnostic whose offset or path points at the `<label>` and one whose offset or path points at the `<input>`; a single diagnostic covering both, or none, fails", "type": "boolean" },
+        { "text": "the receipt contains exactly one `structure/type-tag-mismatch` diagnostic, on home__field-phone-label, naming the tag `label` and the declared type `text`; the `<input>` gets no diagnostic, because the compile stops at the label", "type": "boolean" },
         { "text": "after compile the text still contains the literal `<input` and the literal `placeholder=\"请输入手机号\"` — the bytes survived byte for byte", "type": "boolean" },
         { "text": "the `<input>` element still has exactly its four original attributes (data-id, type, placeholder, style) and no `data-type` was added to it", "type": "boolean" },
-        { "text": "the two unsupported tags do not also produce structure/missing-type or structure/duplicate-id diagnostics", "type": "boolean" }
+        { "text": "the refusal does not also produce structure/missing-type or structure/duplicate-id diagnostics", "type": "boolean" }
       ]
     },
     {
@@ -111,6 +192,15 @@
       "prompt": "在首页加一组统计卡片：本月订单和本月收入两个数字。",
       "expected_output": "the snippet's root id `home__stats` already exists in the starter as a sibling group under `home__slot`, so after insertion two sibling nodes share data-id `home__stats`. Expected: `structure/duplicate-id` naming both, or the add verb refuses before writing and leaves the file untouched. The compiler must not silently rename one of them and must not pick a winner.",
       "files": ["evals/snippets/s09.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "structure/duplicate-id",
+        "codes": [
+          {"code": "structure/duplicate-id", "target": "home__stats"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
         { "text": "the receipt contains a `structure/duplicate-id` diagnostic for `home__stats`, or the add exits non-zero with a refusal that names `home__stats`", "type": "boolean" },
         { "text": "the report covers two distinct locations that are siblings under home__slot (the pre-existing group and the inserted group); a single-location report fails", "type": "boolean" },
@@ -124,6 +214,15 @@
       "prompt": "加一行头像：两个圆形头像，后面跟一句「+12 人已咨询」。",
       "expected_output": "`home__avatars-a` is an `<img data-type=\"image\">` with `src` but no `alt`. ATTR_BY_TYPE.image requires src + alt, so expect a missing-attribute diagnostic (structure/ or a11y/) naming home__avatars-a; `home__avatars-b` has alt and must raise nothing. `object-fit:cover` is not in the property table and must be accounted for in the receipt. The two src values are untouched.",
       "files": ["evals/snippets/s10.html"],
+      "expect": {
+        "stage": "blocked",
+        "refused": "cli/would-introduce-errors",
+        "codes": [
+          {"code": "a11y/missing-alt", "target": "home__avatars-a"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
         { "text": "the receipt names `home__avatars-a` in a missing-attribute diagnostic (a code beginning `structure/` or `a11y/` whose message mentions `alt`)", "type": "boolean" },
         { "text": "`home__avatars-b` produces no missing-alt diagnostic — the eval distinguishes the two images", "type": "boolean" },
@@ -137,6 +236,12 @@
       "prompt": "加一个页脚：品牌名、版权行、备案号。",
       "expected_output": "this is the clean control: every value is already canonical (6-digit lowercase hex, `background-color` longhand so no alias hit, double-quoted attributes, no trailing `;`, unique ids, only allowed properties). Expected compile: zero errors, zero dropped declarations, and normalization at most reorders the declarations into CSS_ORDER.",
       "files": ["evals/snippets/s11.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
         { "text": "the round produces zero error-severity diagnostics for the inserted block", "type": "boolean" },
         { "text": "the receipt lists zero dropped declarations and zero refusals", "type": "boolean" },
@@ -148,13 +253,30 @@
       "id": 12,
       "name": "filter-chip-group",
       "prompt": "加一排筛选 chip：全部 / 附近 / 新手优选，第一个是选中态。",
-      "expected_output": "four `background` shorthands become `background-color` (`#111`→`#111111`, `rgba(17,17,17,.06)`→`rgba(17,17,17,0.06)`); three `font:500 13px/1 sans-serif` shorthands are not in CSS_ALLOWED; `cursor:pointer` is not in the table; `border-radius:9999px` survives if the length Spec allows it. The three chips must stay three distinct elements with their own colours.",
+      "expected_output": "three `background` shorthands become `background-color` (`#111`→`#111111`, and two `rgba(17,17,17,.06)`→`#1111110f`, the eight-digit hex the table writes); three `font:500 13px/1 sans-serif` shorthands are not in CSS_ALLOWED and are dropped with a reason; `cursor:pointer` is not in the table either and is dropped; `border-radius:9999px` survives if the length Spec allows it. The three chips must stay three distinct elements with their own colours.",
       "files": ["evals/snippets/s12.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [
+          {"target": "home__filter-all", "prop": "font", "value": "500 13px/1 sans-serif"},
+          {"target": "home__filter-near", "prop": "font", "value": "500 13px/1 sans-serif"},
+          {"target": "home__filter-near", "prop": "cursor", "value": "pointer"},
+          {"target": "home__filter-new", "prop": "font", "value": "500 13px/1 sans-serif"},
+          {"target": "home__filter-new", "prop": "cursor", "value": "pointer"}
+        ],
+        "normalized": [
+          {"target": "home__filter-all", "prop": "background-color", "from": "#111", "to": "#111111"},
+          {"target": "home__filter-all", "prop": "color", "from": "#fff", "to": "#ffffff"},
+          {"target": "home__filter-near", "prop": "background-color", "from": "rgba(17,17,17,.06)", "to": "#1111110f"},
+          {"target": "home__filter-new", "prop": "background-color", "from": "rgba(17,17,17,.06)", "to": "#1111110f"}
+        ]
+      },
       "assertions": [
-        { "text": "the receipt has at least 3 entries mentioning the `font` property for the three chips (a style/ diagnostic or an expansion into font-size/font-weight/line-height/font-family)", "type": "boolean" },
-        { "text": "every `background` on the three chips is accounted for: at least 4 receipt entries mention `background-color` or a `background` alias diagnostic", "type": "boolean" },
+        { "text": "the receipt has at least 3 entries mentioning the `font` property for the three chips (a dropped entry with a reason, a style/ diagnostic, or an expansion into font-size/font-weight/line-height/font-family)", "type": "boolean" },
+        { "text": "every `background` on the three chips is accounted for: at least 3 receipt entries mention `background-color`", "type": "boolean" },
         { "text": "home__filter-all keeps a dark `#111`/`#111111` background while home__filter-near and home__filter-new keep an `rgba(17,17,17,...)` background — the three chips are not collapsed into one element or one shared style", "type": "boolean" },
-        { "text": "`cursor` is named in a style/ diagnostic or appears in the normalized list", "type": "boolean" }
+        { "text": "`cursor` appears in the receipt's dropped list with a reason", "type": "boolean" }
       ]
     },
     {
@@ -163,6 +285,16 @@
       "prompt": "加一行进度：左边「资料完善度」，右边 72%，下面一条进度槽加填充。",
       "expected_output": "`width:72%` and `width:100%` are percentage lengths and must survive normalization as percentages — not converted to px and not to 0.72; `background:#e5e7eb` and `background:#b8325e` become `background-color`; `overflow:hidden` is kept on the track; home__progress-fill stays a child of home__progress-track.",
       "files": ["evals/snippets/s13.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [],
+        "normalized": [
+          {"target": "home__progress-value", "prop": "color", "from": "#111", "to": "#111111"},
+          {"target": "home__progress-track", "prop": "background-color", "from": "#e5e7eb", "to": "#e5e7eb"},
+          {"target": "home__progress-fill", "prop": "background-color", "from": "#b8325e", "to": "#b8325e"}
+        ]
+      },
       "assertions": [
         { "text": "`width:72%` on home__progress-fill survives compile as exactly `72%` (not 72px, not 0.72, not dropped)", "type": "boolean" },
         { "text": "`width:100%` on home__progress-track survives compile as exactly `100%`", "type": "boolean" },
@@ -176,6 +308,15 @@
       "prompt": "加一个弹窗头部：左边标题「选择面试时间」，右边一个「关闭」。",
       "expected_output": "the frame `home__modal-title` and the `<p>` inside it both carry data-id `home__modal-title` — the same id twice. Expected `structure/duplicate-id` naming both nodes; the compiler must not pick one, and the add must not write a half-broken file. The other three ids are unique and must not be touched.",
       "files": ["evals/snippets/s14.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "structure/duplicate-id",
+        "codes": [
+          {"code": "structure/duplicate-id", "target": "home__modal-title"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
         { "text": "the receipt has a `structure/duplicate-id` diagnostic whose target is `home__modal-title`", "type": "boolean" },
         { "text": "the report covers two distinct offsets inside the inserted block (the `<div>` and the `<p>`), not one", "type": "boolean" },
@@ -187,12 +328,21 @@
       "id": 15,
       "name": "list-item",
       "prompt": "加一条列表项：左边缩略图，右边标题和一行灰色说明。",
-      "expected_output": "`<span data-id=\"home__li-body\" data-type=\"frame\">` claims frame on a tag that TAG_TO_TYPE maps to text, so expect a `structure/` type-vs-tag diagnostic naming home__li-body and both spellings (tag `span`, type `frame`). `border-bottom` is not in CSS_ALLOWED and must appear in the receipt. The `<span>` is reported, never rewritten into a `<div>`.",
+      "expected_output": "`<span data-id=\"home__li-body\" data-type=\"frame\">` claims frame on a tag that TAG_TO_TYPE maps to text, so expect a `structure/` type-vs-tag diagnostic naming home__li-body and both spellings (tag `span`, type `frame`). `border-bottom` is not in CSS_ALLOWED, but the compile stops at the refusal, so this receipt neither keeps nor drops it. The `<span>` is reported, never rewritten into a `<div>`.",
       "files": ["evals/snippets/s15.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "structure/type-tag-mismatch",
+        "codes": [
+          {"code": "structure/type-tag-mismatch", "target": "home__li-body"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
         { "text": "the receipt contains a `structure/` diagnostic whose target is `home__li-body` and whose message names both the tag `span` and the declared type `frame`", "type": "boolean" },
         { "text": "the receipt does not emit a contradictory second diagnostic claiming home__li-body is missing data-id or data-type", "type": "boolean" },
-        { "text": "`border-bottom` is named in a style/ diagnostic or appears in the normalized list for home__li", "type": "boolean" },
+        { "text": "the refusal is the whole receipt: `border-bottom` gets no verdict, because the compile stops at home__li-body", "type": "boolean" },
         { "text": "the compiled file still contains the literal `<span data-id=\"home__li-body\"` — the mismatch is reported, not rewritten", "type": "boolean" }
       ]
     },
@@ -200,8 +350,23 @@
       "id": 16,
       "name": "tab-bar",
       "prompt": "加一个底部 tab bar：首页和我的两个 tab，各带图标和文字。",
-      "expected_output": "the first `<svg>` has `data-icon` but no `data-icon-library`; ATTR_BY_TYPE.icon requires both, so expect a missing-attribute diagnostic for home__tab-home-icon. The second svg has both and raises nothing. `background:#fff` becomes `background-color:#ffffff`. The `<path>` and `<circle>` inside each svg are opaque bytes and must not be touched.",
+      "expected_output": "the first `<svg>` has `data-icon` but no `data-icon-library`; ATTR_BY_TYPE.icon requires both, so expect a missing-attribute diagnostic for home__tab-home-icon. The second svg has both and raises nothing. `background:#fff` becomes `background-color:#ffffff`. `border-top:1px solid #f3f4f6` and `cursor:pointer` are not in the property table, so they appear in the receipt's dropped list with a reason. The `<path>` and `<circle>` inside each svg are opaque bytes and must not be touched.",
       "files": ["evals/snippets/s16.html"],
+      "expect": {
+        "stage": "blocked",
+        "refused": "cli/would-introduce-errors",
+        "codes": [
+          {"code": "structure/missing-attribute", "target": "home__tab-home-icon"}
+        ],
+        "dropped": [
+          {"target": "home__tabs", "prop": "border-top", "value": "1px solid #f3f4f6"},
+          {"target": "home__tab-home", "prop": "cursor", "value": "pointer"},
+          {"target": "home__tab-me", "prop": "cursor", "value": "pointer"}
+        ],
+        "normalized": [
+          {"target": "home__tabs", "prop": "background-color", "from": "#fff", "to": "#ffffff"}
+        ]
+      },
       "assertions": [
         { "text": "the receipt names `home__tab-home-icon` with a missing-attribute diagnostic that names `data-icon-library`", "type": "boolean" },
         { "text": "`home__tab-me-icon` raises no missing-attribute diagnostic — it carries data-icon-library=\"lucide\"", "type": "boolean" },
@@ -213,8 +378,20 @@
       "id": 17,
       "name": "badge",
       "prompt": "加两个小徽标：一个「新」，一个「热门」。",
-      "expected_output": "`margin-left:auto` is rejected because CSS_ALIASES pins `margin: null` (and margin-left is not in CSS_ALLOWED); `background:#ef4444` and `background:rgba(239,68,68,.12)` become `background-color`; `padding:2px 8px` keeps its two-value form; the `rgba` value is one declaration and is not truncated at its first comma.",
+      "expected_output": "`margin-left:auto` is refused: `margin-left` is in REJECTED_PROPERTIES, a one-sided margin being a second spelling of the shorthand. `margin` itself is in CSS_ALLOWED and is kept elsewhere; `background:#ef4444` and `background:rgba(239,68,68,.12)` become `background-color`; `padding:2px 8px` keeps its two-value form; the `rgba` value is one declaration and is not truncated at its first comma.",
       "files": ["evals/snippets/s17.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [
+          {"target": "home__badge-new", "prop": "margin-left", "value": "auto"}
+        ],
+        "normalized": [
+          {"target": "home__badge-new", "prop": "background-color", "from": "#ef4444", "to": "#ef4444"},
+          {"target": "home__badge-new", "prop": "color", "from": "#fff", "to": "#ffffff"},
+          {"target": "home__badge-hot", "prop": "background-color", "from": "rgba(239,68,68,.12)", "to": "#ef44441f"}
+        ]
+      },
       "assertions": [
         { "text": "the receipt names `margin-left` or `margin` in a style/ diagnostic with target home__badge-new", "type": "boolean" },
         { "text": "the receipt lists `background-color:#ef4444` for home__badge-new or a style/ alias diagnostic naming `background` for it", "type": "boolean" },
@@ -228,6 +405,18 @@
       "prompt": "加一个数量步进器：减号、数字 2、加号。",
       "expected_output": "`DATA-ID` and `data-TYPE` on the plus button must be read case-insensitively and must yield exactly one design element; `transform:scale(1.02)` and `cursor:pointer` are not in the property table and must be accounted for; `border:1px solid #e5e7eb` and `border-radius:14px` are kept on both round buttons.",
       "files": ["evals/snippets/s18.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [
+          {"target": "home__stepper-minus", "prop": "cursor", "value": "pointer"},
+          {"target": "home__stepper-plus", "prop": "cursor", "value": "pointer"},
+          {"target": "home__stepper-plus", "prop": "transform", "value": "scale(1.02)"}
+        ],
+        "normalized": [
+          {"target": "home__stepper-count", "prop": "color", "from": "#111", "to": "#111111"}
+        ]
+      },
       "assertions": [
         { "text": "`home__stepper-plus` is recognized as a design element: no missing-id or missing-type diagnostic targets it and it carries exactly one data-id after compile", "type": "boolean" },
         { "text": "`transform` and `cursor` each appear in the receipt for home__stepper-plus, either as a normalized value or as a style/ diagnostic", "type": "boolean" },
@@ -239,11 +428,21 @@
       "id": 19,
       "name": "search-field",
       "prompt": "加一个搜索框：左边一个放大镜图标，右边一行灰色占位文案。",
-      "expected_output": "`background:#f3f4f6` becomes `background-color:#f3f4f6`; `font:400 14px/1.4 sans-serif` is the `font` shorthand and is not in CSS_ALLOWED; `margin:0` on home__search-placeholder is rejected because CSS_ALIASES pins `margin: null`; the `<circle>` and `<path>` inside the icon stay byte-identical; `border-radius:10px` is kept.",
+      "expected_output": "`background:#f3f4f6` becomes `background-color:#f3f4f6`; `font:400 14px/1.4 sans-serif` is the `font` shorthand and is not in CSS_ALLOWED; `margin:0` on home__search-placeholder is kept, because `margin` is a member of CSS_ALLOWED; the `<circle>` and `<path>` inside the icon stay byte-identical; `border-radius:10px` is kept.",
       "files": ["evals/snippets/s19.html"],
+      "expect": {
+        "stage": "accepted",
+        "codes": [],
+        "dropped": [
+          {"target": "home__search-placeholder", "prop": "font", "value": "400 14px/1.4 sans-serif"}
+        ],
+        "normalized": [
+          {"target": "home__search", "prop": "background-color", "from": "#f3f4f6", "to": "#f3f4f6"}
+        ]
+      },
       "assertions": [
         { "text": "the receipt names `font` for home__search-placeholder or lists font-size plus font-weight plus line-height for it", "type": "boolean" },
-        { "text": "`margin:0` on home__search-placeholder is rejected with a style/ diagnostic naming `margin`", "type": "boolean" },
+        { "text": "`margin:0` on home__search-placeholder is kept in the file, and no receipt entry names a margin property", "type": "boolean" },
         { "text": "the literal bytes `<circle cx=\"11\" cy=\"11\" r=\"7\">` still appear in the compiled file", "type": "boolean" },
         { "text": "home__search keeps a `border-radius` of 10px and its `background` is accounted for as `background-color:#f3f4f6` or a style/ alias diagnostic", "type": "boolean" }
       ]
@@ -252,13 +451,22 @@
       "id": 20,
       "name": "skeleton-loader",
       "prompt": "加载中的时候显示骨架屏：一条标题条和两条正文条，带一点微光动画。",
-      "expected_output": "`animation:shimmer 1.4s infinite` is not a member of CSS_ALLOWED, so expect a style/ unknown-property diagnostic naming `animation`; the `linear-gradient(90deg,#f3f4f6 0%,#e5e7eb 50%,#f3f4f6 100%)` value must remain one declaration with both commas and its closing parenthesis — a `;`-splitting or comma-splitting parser truncates it; `width:60%` and `width:85%` survive as percentages; the trailing `;` on home__skeleton-title's style attribute is removed.",
+      "expected_output": "`background:linear-gradient(90deg,#f3f4f6 0%,#e5e7eb 50%,#f3f4f6 100%)` is not a colour, so the fragment is refused by a style/ bad-color diagnostic on home__skeleton-title whose message keeps the whole gradient — one declaration with both commas and its closing parenthesis, because a `;`-splitting or comma-splitting parser would truncate it; `animation:shimmer 1.4s infinite` is not a member of CSS_ALLOWED, but the compile stops at the refusal so it gets no verdict; `width:60%` and `width:85%` survive as percentages; the trailing `;` on home__skeleton-title's style attribute is removed.",
       "files": ["evals/snippets/s20.html"],
+      "expect": {
+        "stage": "refused",
+        "refused": "style/bad-color",
+        "codes": [
+          {"code": "style/bad-color", "target": "home__skeleton-title"}
+        ],
+        "dropped": [],
+        "normalized": []
+      },
       "assertions": [
-        { "text": "the receipt names `animation` in a style/ diagnostic with target home__skeleton-title, or records it as a normalized declaration; silent removal fails", "type": "boolean" },
-        { "text": "the recorded background value starts with `linear-gradient(` and ends with `)` and contains exactly two commas inside the parentheses", "type": "boolean" },
+        { "text": "the receipt refuses the fragment at home__skeleton-title with a style/ bad-color diagnostic that quotes the whole `linear-gradient(90deg,#f3f4f6 0%,#e5e7eb 50%,#f3f4f6 100%)`, so `animation` gets no verdict", "type": "boolean" },
+        { "text": "the refusal message quotes the background value whole: it starts with `linear-gradient(` and ends with `)` and contains both commas inside the parentheses", "type": "boolean" },
         { "text": "`width:60%` on home__skeleton-title and `width:85%` on home__skeleton-line2 survive compile unchanged", "type": "boolean" },
-        { "text": "the compiled style attribute of home__skeleton-title does not end with `;`", "type": "boolean" }
+        { "text": "the file is not written at all, so home__skeleton-title's style attribute still ends with the `;` the snippet has", "type": "boolean" }
       ]
     }
   ]

@@ -8,7 +8,6 @@ import { fileURLToPath } from "node:url";
 
 import { detectFormat, readerFor } from "../lib/detect.mjs";
 import { distance, suggest, suggestAttr } from "../lib/levenshtein.mjs";
-import { asIndex, formatPointer, getAtPointer, hasPointer, parsePointer } from "../lib/pointer.mjs";
 import {
   FsError,
   fileExists,
@@ -215,33 +214,10 @@ test("format: a file the tool wrote is canonical, including CRLF input", () => {
 });
 
 /* ------------------------------------------------------------------ *
- * lib/pointer.mjs, lib/levenshtein.mjs and lib/detect.mjs — the small
+ * lib/levenshtein.mjs and lib/detect.mjs — the small
  * helpers the verbs lean on. They live here because this is the only
  * Node-side test file the CLI owns.
  * ------------------------------------------------------------------ */
-
-test("pointer: parse and format round trip, including escapes", () => {
-  assert.deepEqual(parsePointer(""), []);
-  assert.deepEqual(parsePointer("/"), [""]);
-  assert.deepEqual(parsePointer("/pages/0/root"), ["pages", "0", "root"]);
-  assert.deepEqual(parsePointer("/a~1b/c~0d"), ["a/b", "c~d"]);
-  assert.equal(formatPointer(["pages", 0, "root"]), "/pages/0/root");
-  assert.equal(formatPointer(["a/b", "c~d"]), "/a~1b/c~0d");
-  assert.equal(formatPointer([]), "");
-  const segments = ["pages", "0", "children", "1", "style", "background/color"];
-  assert.deepEqual(parsePointer(formatPointer(segments)), segments);
-  assert.throws(() => parsePointer("pages/0"), /Invalid JSON Pointer/);
-});
-
-test("pointer: getAtPointer reads arrays and objects, hasPointer answers existence", () => {
-  const root = { pages: [{ id: "home" }] };
-  assert.deepEqual(getAtPointer(root, "/pages/0/id").value, "home");
-  assert.equal(hasPointer(root, "/pages/0/id"), true);
-  assert.equal(hasPointer(root, "/pages/1/id"), false);
-  assert.equal(hasPointer(root, ""), true);
-  assert.equal(asIndex("03"), null);
-  assert.equal(asIndex("3"), 3);
-});
 
 test("levenshtein: distance, suggest, and the attribute suggestion", () => {
   assert.equal(distance("", ""), 0);
@@ -378,8 +354,18 @@ test("walkWatch returns a close function and reports a change once", async () =>
   const close = walkWatch(dir, (events) => seen.push(...events));
   assert.equal(typeof close, "function");
 
-  writeFileSync(path.join(dir, "changed.html"), "<p></p>");
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  // Write the same name until the watcher reports it, rather than writing once
+  // and sleeping a fixed 400ms. `fs.watch({recursive:true})` uses FSEvents on
+  // macOS, which has its own latency before events start being delivered, and
+  // the handler then debounces for another 100ms — so under load a single write
+  // plus a fixed wait can simply miss. Repeating one filename also exercises the
+  // coalescing: `pending` is keyed by name, so this stays "reports a change
+  // once". The deadline is the failure mode, not the schedule.
+  const deadline = Date.now() + 5000;
+  while (seen.length === 0 && Date.now() < deadline) {
+    writeFileSync(path.join(dir, "changed.html"), "<p></p>");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 
   close();
   close();

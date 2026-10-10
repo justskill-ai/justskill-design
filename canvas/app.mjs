@@ -74,7 +74,9 @@ const state = {
   diagnostics: [],
   selection: null,
   hovering: null,
-  mode: "select",
+  // No `mode`. There was a `mode: "select"` here with no reader anywhere in the canvas —
+  // a toggle nothing toggled and nothing consulted, which reads as if the canvas had
+  // states it does not have.
   camera: { x: 40, y: 40, zoom: 1 },
   boxes: new Map(),
   canUndo: false,
@@ -96,6 +98,9 @@ const ui = {
   zoomLabel: document.getElementById("zoom-label"),
   problemCount: document.getElementById("problem-count"),
   problems: document.getElementById("problems"),
+  fixPane: document.getElementById("fix-pane"),
+  fixHint: document.getElementById("fix-hint"),
+  fixText: document.getElementById("fix-textarea"),
   problemList: document.getElementById("problem-list"),
   toast: document.getElementById("toast"),
 };
@@ -217,7 +222,6 @@ function mountAll() {
       // fits the view.
       height: declaredHeight || 844,
       declaredHeight,
-      statements: styleMapOf(page.node),
     });
   });
 
@@ -235,6 +239,10 @@ function mountAll() {
   ui.revision.textContent = `${state.revision} · ${ms}ms`;
   ui.readonly.hidden = !state.readOnly;
   if (state.readOnly) ui.readonly.title = state.readOnlyReason;
+  // Ops need a document to apply to, so a file that does not parse can only be repaired
+  // by writing its text back. That is the one thing `/api/save` is for, and this button
+  // is the only client that calls it.
+  document.getElementById("fix-text").hidden = !state.readOnly;
 }
 
 /**
@@ -453,6 +461,10 @@ function renderChrome() {
   ui.problemCount.classList.toggle("has-errors", errors > 0);
   document.getElementById("undo").disabled = !state.canUndo || state.readOnly;
   document.getElementById("redo").disabled = !state.canRedo || state.readOnly;
+  // A file that does not parse has nothing to export, and the service would answer 409.
+  // A disabled button says so before the click.
+  document.getElementById("export-page").disabled = state.readOnly;
+  document.getElementById("export-all").disabled = state.readOnly;
 
   renderProblems();
   renderInspector();
@@ -1013,9 +1025,90 @@ document.getElementById("redo").addEventListener("click", redo);
 document.getElementById("toggle-problems").addEventListener("click", () => {
   ui.problems.hidden = !ui.problems.hidden;
 });
+document.getElementById("export-page").addEventListener("click", () => exportPages(false));
+document.getElementById("export-all").addEventListener("click", () => exportPages(true));
 document.getElementById("close-problems").addEventListener("click", () => {
   ui.problems.hidden = true;
 });
+document.getElementById("fix-text").addEventListener("click", openFixText);
+document.getElementById("fix-save").addEventListener("click", saveFixText);
+
+/**
+ * Read the file back into a textarea so a person can repair what does not parse.
+ *
+ * `/api/save` has existed since the service did and nothing called it: a file the parser
+ * rejects was read-only, with no way out from the canvas but an editor outside it. A
+ * broken file is exactly when someone wants the canvas open — it is where the diagnostics
+ * are.
+ *
+ * `baseRevision` is sent with the text, so a save that would land on top of a change made
+ * while the textarea was open is answered with `rebased: true` and says so, rather than
+ * replacing the other writer's work in silence.
+ */
+async function openFixText() {
+  const { payload } = await api("file");
+  if (typeof payload !== "string") {
+    toast("Could not read the file.", "refused");
+    return;
+  }
+  ui.fixText.value = payload;
+  ui.fixHint.textContent = "This file does not parse, so it cannot be edited one change at a time. Fix the text, then save — the whole file is replaced.";
+  ui.fixPane.hidden = false;
+  document.getElementById("fix-save").hidden = false;
+  ui.problems.hidden = false;
+  ui.fixText.focus();
+}
+
+async function saveFixText() {
+  const text = ui.fixText.value;
+  const { payload } = await api("save", { body: { baseRevision: state.revision, text } });
+  if (!payload?.ok) {
+    const diagnostics = payload?.diagnostics ?? [];
+    if (diagnostics.length > 0) {
+      state.diagnostics = diagnostics;
+      renderProblems();
+    }
+    ui.fixHint.textContent = payload?.message ?? "The text was refused.";
+    toast(payload?.message ?? "The text was refused.", "refused");
+    return;
+  }
+  ui.fixPane.hidden = true;
+  document.getElementById("fix-save").hidden = true;
+  ui.fixText.value = "";
+  if (payload.rebased) {
+    toast("Saved, but the file had changed while you were typing.", "refused");
+  } else {
+    toast("Saved.", "ok");
+  }
+  await loadDocument({ keepCamera: true });
+}
+
+/**
+ * Write the deliverable the user is looking at.
+ *
+ * The canvas cannot write files, so it asks the service to — and the service calls
+ * `lib/export-html.mjs`, the same functions `design.mjs export` calls. A deliverable taken
+ * from here and one taken from the command line are the same bytes, which is the property
+ * that makes "export" mean one thing.
+ *
+ * A refusal with diagnostics opens the drawer rather than flashing a toast: the file has a
+ * problem the user has to see, and 7 seconds is not enough time to read a diagnostic.
+ */
+async function exportPages(all) {
+  const { payload } = await api("export", { body: all ? { all: true } : {} });
+  if (payload?.ok) {
+    const names = payload.files.map((entry) => entry.path.split("/").pop());
+    toast(`Wrote ${names.join(", ")}`, "ok");
+    return;
+  }
+  const diagnostics = payload?.diagnostics ?? [];
+  if (diagnostics.length > 0) {
+    state.diagnostics = diagnostics;
+    renderProblems();
+    ui.problems.hidden = false;
+  }
+  toast(payload?.message ?? "Export refused.", "refused");
+}
 
 async function undo() {
   const { payload } = await api("undo", { body: {} });

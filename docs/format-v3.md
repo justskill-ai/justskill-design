@@ -92,12 +92,16 @@
 | `text` | `p` `h1` `h2` `h3` `h4` `h5` `h6` `span` | — | 否 |
 | `image` | `img` | `src` `alt` | 否 |
 | `shape` | `div` | `data-kind` | 否 |
-| `icon` | `svg` | `data-icon` `data-icon-library` `viewBox` | 否 |
+| `icon` | `svg` | `data-icon` `data-icon-library`，有几何时还要 `viewBox` | 否 |
 | `instance` | `div` | `data-ref` | 否 |
 
 `font-family` 的末尾要有一个通用族。`"Noto Serif SC"` 单独出现的意思是「Noto Serif SC，或者这台机器的文档默认字体」，而文档默认在多数引擎上是衬线体。装了 webfont 的机器看着对，装不上的机器（离线、走代理、构建机）就是另一个设计。pen 的导出在它写的每个字体族后面都补 `system-ui, sans-serif`，读入器照做。校验器报 `style/no-generic-family`。
 
-`icon` 的 `viewBox` 是必填。几何图形画在 24×24 的格子上，`viewBox` 说出这个格子。没有 `viewBox` 的 `<svg>` 没有坐标系：浏览器不缩放几何，只裁剪它。`target` 的三个圆变成一个弧，`signal` 的五根柱变成一个点。校验器报 `structure/icon-without-viewbox`。
+`icon` 的 `viewBox` 在**有几何时**必填。几何图形画在 24×24 的格子上，`viewBox` 说出这个格子。没有 `viewBox` 的 `<svg>` 没有坐标系：浏览器不缩放几何，只裁剪它。`target` 的三个圆变成一个弧，`signal` 的五根柱变成一个点。校验器报 `structure/icon-without-viewbox`。
+
+这条规则是**有条件的**，所以 `ATTR_BY_TYPE.icon` 把它列在 `optional` 而不是 `required`：列进 `required` 会让每个没有几何的空 `<svg>` 也报一次 `structure/missing-attribute`，并在真实图标上把同一个缺失报两次。谁在表里把它挪进 `required`，谁就把这条规则改坏了。
+
+名字大小写：解析器把属性名统一成小写并把原文留在 `rawName`，所以表里的键写 `viewbox`。**写回文件时用原文拼写**，因为 `export --format svg` 产出的是真正的 XML，XML 里没有属性名修复，`viewbox` 不是 `viewBox`，字形会丢掉坐标系。
 
 `data-kind="ellipse"` 说形状，形状画在节点自己的 `style` 里：`border-radius:50%`。`div` 默认是矩形，圆角是唯一让它变圆的东西，而 `50%` 是唯一画得出椭圆的写法——它按盒子自身的宽高分别计算，所以 60×20 是椭圆，`9999px` 会被截到短边的一半，画成胶囊。校验器报 `style/ellipse-without-radius`。
 
@@ -204,12 +208,17 @@
   text: string,             // 原文
   textStart: number, textEnd: number,  // 文本在 source 中的区间
   declarations: CssDeclaration[],      // 只对 :root 块解析
+  rootSpans: Array<{open, close, bodyStart, bodyEnd}>,  // 只对 :root 块解析
   rules: CssRule[] }        // 只对页框块解析
 ```
 
 `role` 判定：`<style>` 在 `<head>` 内、内容含 `:root{` 或 `:root {` 时是 `tokens`。内容含 `section[data-type="page"]` 时是 `page-frame`。其余是 `unknown`，报 `style/unsupported-block`。
 
 **两个块都要收集。禁止后用块覆盖前用块。**
+
+`rootSpans` 是 `:root{…}` 的那对花括号。读的一侧用它取出声明，写的一侧用它把新声明放进**同一对花括号里** —— 追加在 `}` 之后不是令牌，下一次归一化就把它丢了。两侧共用一份 `:root` 查找，才不会对"哪对花括号"有第二种理解。
+
+一个令牌块可以含多个 `:root{}`，那就没有唯一的写入位置；`set-token` 因此拒绝，见 §4.4。
 
 ### 4.2 CSS 声明列表解析
 
@@ -219,6 +228,10 @@
 { property: "background-image", rawProperty: "background-image",
   value: "...", rawValue: "...", textStart, textEnd }
 ```
+
+`textStart`/`textEnd` 是**整段**的边界，含两侧空白。`:root{}` 里的声明另外带 `start`/`end`：那是声明本身（属性名到值尾），坐标相对 `<style>` 的文本。两者都要有，理由不同 —— `textStart` 说的是"这一段原文是什么"，`start` 说的是"这条声明从哪开始"，而诊断的 `offset` 与 `unset-token` 要的是后者。`lib/ops.mjs` 的 `parseStyleDeclarations` 产出的就是后者这四个字段，两个解析器在这一点上必须一致，否则改一条声明要先换算坐标。
+
+**曾经**只报 `textStart`/`textEnd`，于是 `collectTokens` 读的 `decl.start` 从来不存在，每一条令牌诊断的 `offset` 都是 `undefined` —— 一条指不出位置的告警。
 
 实现要求：**不得按 `;` 切分。** 必须遍历字符，并追踪四个状态。
 
@@ -244,6 +257,22 @@
 
 理由：手写文件里 `DATA-ID` 与 `<img/>` 很常见，拒绝它们没有收益。`data-hidden` 是唯一一个"在场即真"的属性，所以给它一条明写的规则。
 
+## 4.4 令牌 op：`set-token` 与 `unset-token`
+
+令牌是文档模型里唯一不是元素的东西。它没有 `data-id`，`resolveAddress` 到不了它，所以它有两个自己的 op：
+
+```js
+{ "op": "set-token",   "name": "--color-accent", "value": "#2563eb" }
+{ "op": "unset-token", "name": "--color-accent" }
+```
+
+- `name` 是 CSS 自定义属性名，**带 `--`**。组的闭集（七组）与数值组带的单位是 `lib/tokens.mjs` 的事；`lib/ops.mjs` 刻意不依赖 `lib/table.mjs`，它只要求名字以 `--` 开头。名字不合法时校验器报 `style/token-name`，写入漏斗会因此拒绝。
+- 目标块必须**唯一**。文件里有两个令牌块，或一个块里有两处 `:root{}`，"写哪一个"没有唯一答案，op 拒绝（`ops/ambiguous-token-block`），不猜。没有令牌块时拒绝（`ops/no-token-block`）。`<style>` 不在 `<head>` 里不算令牌块（§4.1）。
+- `set-token` 找到声明就换值，找不到就**追加在 `:root{}` 里面**，分隔符用 `; `，不在 `}` 前留悬空的 `;`。
+- `unset-token` 连声明**和它一侧的分隔符**一起删。只删声明会在原处留下两个空格；令牌块是文件的字节，不是本引擎排版的地方。
+- 两者都可以携带对方删掉的确切字节（`set-token`：`at` + `restore`；`unset-token`：`at` + `span`）。令牌块的排版是文件的：`--a:1; --b:2` 与 `--a:1;\n  --b:2` 都合法，而"撤销一次删除"如果重新排版它删掉的那道缝，就把一个字节忠实的文件变成了几乎忠实的文件。`insert` 带片段、`remove` 带子节点表，是同一个理由。
+- `unset-token` 带 `span` 时**先核对**那段字节还在原处，不在就报 `ops/stale-inverse`。逆 op 用在不属于它的文档上，必须拒绝而不是切掉碰巧在那个偏移上的东西。
+
 ## 5. 序列化
 
 `lib/serialize.mjs` 提供三个函数。
@@ -262,7 +291,9 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 | 最小改动 | 一个 op 只改一个字节区间 | 测试断言区间数 |
 | 语义归一 | 归一化后只改受影响的区间 | 归一化幂等 |
 
-`serialize(doc)` 的实现：若 `doc.dirty` 为空，直接返回 `doc.source`。否则用 `applyEdits` 替换变更区间。区间按 `start` 降序应用，避免偏移漂移。
+`serialize(origin, next)` 的实现：解析时给每个节点留下 `_raw` 快照，序列化时逐节点把 `next` 与快照比。没有不同就返回 `origin.source`，一个字节都不动；有不同就为每个变化的节点产出一个区间，再用 `applyEdits` 替换。区间按 `start` 降序应用，避免偏移漂移。
+
+**没有 `doc.dirty` 这种标志位**，这份文档曾经写它有。一个需要调用方自觉置位的标志位，第一个忘记置位的调用方就会让编辑静默丢失；快照比对把「改没改」变成被问出来的事实，而不是被声称的状态。
 
 `applyEdits(source, edits)`：`edits` 是 `[{ start, end, text }]`。函数检查区间不重叠。重叠时抛错。
 
@@ -293,47 +324,80 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 
 码前缀与本文档的实现者按此分配：
 
-| 前缀 | 归属 | 数量 |
+| 前缀 | 归属 | 覆盖 |
 |---|---|---|
 | `syntax/` | `lib/parse.mjs` | 未闭合标签、未闭合字符串、坏属性、坏注释 |
-| `style/` | `lib/table.mjs` + `lib/validate.mjs` | 未知属性、未知取值、别名、简写、未知块 |
-| `structure/` | `lib/validate.mjs` | 缺 id、重复 id、缺 type、类型与标签不符、未识别标签、缺必填属性、页在错误位置、页面自己写位置 |
-| `a11y/` | `lib/validate.mjs` | 图片缺 alt、对比度 |
-| `geometry/` | `lib/geometry.mjs` | 溢出、塌陷、裁切 |
-| `component/` | `lib/components.mjs` | 未知组件、循环、未知覆盖目标、覆盖里给字形写文本 |
-| `asset/` | `lib/validate.mjs` | 图片缺 src、字体族未知 |
+| `style/` | `lib/table.mjs` + `lib/validate.mjs` + `lib/tokens.mjs` | 未知属性、未知取值、别名、简写、未知块、令牌名（`style/token-name`）、重复令牌（`style/duplicate-token`）、令牌环（`style/token-cycle`） |
+| `structure/` | `lib/validate.mjs` | 缺 id、重复 id、缺 type、类型与标签不符、未识别标签、页在错误位置、页面自己写位置，以及**除下面两条以外**的缺必填属性 |
+| `a11y/` | `lib/validate.mjs` | 图片缺 alt（`a11y/missing-alt`） |
+| `asset/` | `lib/validate.mjs` | 图片缺 src（`asset/missing-src`） |
+| `component/` | `lib/validate.mjs` | 未知组件、循环、未知覆盖目标、覆盖里给字形写文本 |
 | `version/` | `lib/validate.mjs` | 缺 `design-schema`、版本不支持 |
-| `ops/` | `lib/ops.mjs` | 坏 op、节点未找到 |
+| `ops/` | `lib/ops.mjs` | 坏 op、节点未找到、令牌块不唯一或不存在（`ops/ambiguous-token-block`、`ops/no-token-block`）、没有那个令牌（`ops/no-such-token`）、逆 op 不属于本文档（`ops/stale-inverse`） |
 
-诊断的键：`code + "|" + offset + "|" + message`。用于"只在新错误时拒绝"的差集。
+规则一直是 `lib/table.mjs` 的（`ATTR_BY_TYPE` 说哪个属性必填），校验器只负责给它一个名字。`image` 是唯一有两个必填属性的类型，所以也只有它有两条例外：缺 `alt` 是可达性发现，缺 `src` 是资产发现。其余类型（`icon` 缺 `data-icon-library`、`instance` 缺 `data-ref`）仍是 `structure/missing-attribute`。
+
+`a11y/` 与 `asset/` 这两行曾经写在表里而在代码里发射 0 条 —— 两个声明过、没人兑现的前缀。名字就是当时缺的东西。
+
+**未实现，别照这份文档写代码：**
+
+- `geometry/`（溢出、塌陷、裁切）。它曾经占着这张表的一行，归给一个不存在的模块。**这个前缀在代码里发射 0 条**，画布虽然已经能测量（`canvas/app.mjs` 的 `measurePageBoxes` 与 `getBoundingClientRect`），但把实测结果接回诊断是独立的一项工作。
+- `a11y/` 的对比度检查。v1 有一份可参考的实现（`contrastRatio`），带三条弃权规则：照片让比值不可知、半透明填充抑制检查、渐变按最差的色标计分。
+- `asset/` 的未知字体族。与之相关但不同的一条是 `style/no-generic-family`：字体族末尾必须有一个通用族。
+
+诊断的键：`code + "|" + offset + "|" + target + "|" + message`，缺的字段写空串。用于"只在新错误时拒绝"的差集，也用于报告去重。
+
+`target` 是四段里不能省的一段：没有 `offset` 的诊断很常见，少了 `target`，两条只差"说的是哪个元素"的错误会压成同一个键 —— 门禁照样拒绝这次编辑，而报告里两条并成一条，那就是静默丢弃。
+
+**实现只有一份**，在 `lib/diagnostics.mjs`；`lib/validate.mjs` 导入并再导出它，因为 `server.mjs` 是从那里 `loadExport` 取用的。这里曾经有两份实现、两套字段，而且做差集的那一份不符合本文档 —— 同一件事只有一处实现，才不会再分叉。
 
 ## 7. 格式表
 
 `lib/table.mjs` 是唯一真相源。所有消费者都读它。
 
 ```js
-export const CSS_ORDER = [...];        // 40 个属性，按输出顺序
+export const CSS_ORDER = [...];        // 输出顺序。每个属性恰好出现一次；数量由表自己决定，本文档不抄
 export const CSS_ALLOWED = { "display": Spec };  // 属性 → 取值语法
-export const CSS_ALIASES = { margin: null, background: "background-color" };  // null = 拒绝
+export const CSS_ALIASES = { background: "background-color", "background-colour": "background-color", "bg-color": "background-color" };  // 别名 → 规范属性名
+export const VALUE_ALIASES = { "font-weight": { normal: "400", semibold: "600" }, ... };  // 取值别名 → 规范写法
+export const REJECTED_PROPERTIES = { transform: { replacement: null, reason: "No transforms." }, ... };  // 拒绝的属性。replacement 为 null 表示没有替代写法
 export const TAG_TO_TYPE = { div: "frame", section: "page", p: "text", ... };
 export const TYPE_TAGS = { text: ["p","h1",...] };  // 反向
-export const PROP_BY_TYPE = { text: ["font-size", ...], icon: ["color", ...] };
 export const ATTR_BY_TYPE = { image: { required: ["src","alt"] }, ... };
-export const VALUE_HINTS = { "display": "flex | block | none" };
+export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 ```
 
-`Spec` 形状：
+`CSS_ALIASES` 只做同名改写：键与值都是字符串，**没有 `null` 语义**。拒绝是另一张表 `REJECTED_PROPERTIES` 的事，它的值是 `{ replacement, reason }`，`replacement` 才允许是 `null`。
+
+`margin` 是 `CSS_ALLOWED` 的正式成员，只接受四值简写；`margin-top` / `margin-right` / `margin-bottom` / `margin-left` 在 `REJECTED_PROPERTIES` 里，各自点名简写写法。理由：把元素挪半个像素是真实需求（pen 的导出用 `margin:-0.5px 0 0 0` 顶焦点环），彻底拒绝会为了半个像素逼出一个 wrapper 元素；而单边写法是同一意图的第二种拼法。
+
+`Spec` 是 `CSS_ALLOWED` 的一项。`kind` 决定这一项怎么检查、怎么归一化，`hint` 是给人看的取值说明。**13 种 kind**：
 
 ```js
 { kind: "enum", values: ["flex","block","none"], hint: "flex | block | none" }
-{ kind: "length", unit: "px", min: 0, keyword: ["auto","100%"], hint: "…" }
-{ kind: "color", hint: "#rrggbb | #rrggbbaa | var(--color-x)" }
-{ kind: "number", min: 0, max: 1, decimals: 3 }
-{ kind: "keyword-set", values: ["flex-start","center","flex-end","stretch"] }
-{ kind: "text" }                        // 自由文本，例如 font-family
+{ kind: "keyword-set", values: ["flex-start","center","flex-end","stretch"], hint: "…" }
+{ kind: "number", min: 0, max: 1, hint: "…" }
+{ kind: "length", hint: "…" }
+{ kind: "color", hint: "…" }
+{ kind: "flex", hint: "…" }
+{ kind: "border", hint: "…" }
+{ kind: "shadow", hint: "…" }
+{ kind: "outline", hint: "…" }
+{ kind: "font-weight", hint: "…" }
+{ kind: "line-height", hint: "…" }
+{ kind: "image", hint: "…" }
+{ kind: "text", hint: "…" }              // 自由文本，例如 font-family
 ```
 
-四个消费者必须从这一张表读取：片段编译、校验、归一化、提示文本生成。
+字段只有这五个：`kind` 与 `hint` 每一项都有；`values` 只在 `enum` 与 `keyword-set` 上；`min`、`max` 只在 `number` 上且可省。**没有 `unit`、`keyword`、`decimals`**：长度一律写 `px`，关键字写在 `values` 里，小数位数由 §8 统一限制。
+
+直接 `import` 这张表的就是下面这些模块，一个不多（测试不算）：
+
+`lib/fragment.mjs`（片段编译）、`lib/validate.mjs`（校验）、`lib/tokens.mjs`（令牌的名字、组与单位）、`lib/normalize.mjs`（归一化）、`lib/render.mjs`（渲染；画布经它间接读表）、`lib/export-html.mjs`（导出）、`lib/readers/pen.mjs`（pen 导入）、`lib/node/verbs/set.mjs`、`lib/node/verbs/rename.mjs` 与 `lib/node/write-verbs.mjs`（CLI 写入）、`scripts/gen-references.mjs`（生成 `references/` 里的文档）。
+
+**`lib/ops.mjs` 不在这张表里，这是有意的。** 它是每个模块都依赖的引擎，所以宁可自己重写三个 `data-type` 名字也不 import 这张表 —— 表里某个条目被改名时，它仍要能加载。令牌 op 因此只要求名字以 `--` 开头，组别与单位由 `lib/tokens.mjs` 判定（见 §4.4）。
+
+新增一个直接读这张表的模块时，把它的路径写进这一段。
 
 ## 8. 归一化
 
@@ -355,9 +419,9 @@ export const VALUE_HINTS = { "display": "flex | block | none" };
 | `lib/table.mjs` | 格式表 | Lead |
 | `lib/validate.mjs` | 四层校验 | Lead |
 | `lib/normalize.mjs` | 两层归一化 | Lead |
+| `lib/tokens.mjs` | 令牌：名字、组、值、寻址、环 | Teammate |
 | `lib/diagnostics.mjs` | 分组、过滤、定位 | Teammate |
 | `lib/spans.mjs` | 区间替换与重叠检查 | Teammate |
-| `lib/pointer.mjs` | RFC 6901 工具 | Teammate |
 | `lib/levenshtein.mjs` | 距离与建议 | Teammate |
 | `lib/detect.mjs` | 扩展名加内容嗅探，选读取器 | Teammate |
 | `lib/node/fs.mjs` | 读、原子写、哈希 | Teammate |

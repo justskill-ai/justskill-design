@@ -24,6 +24,9 @@
     <button type="button" id="undo" title="Undo">Undo</button>
     <button type="button" id="redo" title="Redo">Redo</button>
     <button type="button" id="toggle-problems" title="Problems">Problems <span id="problem-count" class="count">0</span></button>
+    <span class="sep"></span>
+    <button type="button" id="export-page" title="Write this page as a standalone HTML file">Export</button>
+    <button type="button" id="export-all" title="Write every page except the library">Export all</button>
   </div>
 </header>
 
@@ -51,9 +54,17 @@
 <section class="drawer" id="problems" hidden>
   <div class="drawer-head">
     <strong>Problems</strong>
-    <button type="button" id="close-problems">Close</button>
+    <span class="drawer-actions">
+      <button type="button" id="fix-text" hidden>Fix text…</button>
+      <button type="button" id="fix-save" hidden>Save and reload</button>
+      <button type="button" id="close-problems">Close</button>
+    </span>
   </div>
   <div class="drawer-body" id="problem-list"></div>
+  <div class="drawer-fix" id="fix-pane" hidden>
+    <p class="drawer-hint" id="fix-hint"></p>
+    <textarea id="fix-textarea" spellcheck="false" wrap="off"></textarea>
+  </div>
 </section>
 
 <div class="toast" id="toast" hidden></div>

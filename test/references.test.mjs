@@ -14,6 +14,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { iconNames } from "../lib/icons.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
 
@@ -38,12 +40,15 @@ test("SKILL.md stays inside the size a skill body should be", () => {
   assert.ok(lines < 500, `SKILL.md is ${lines} lines; keep it under 500 and move detail into references/`);
 });
 
-test("SKILL.md names every verb the CLI exposes", () => {
-  const skill = readFileSync(join(ROOT, "SKILL.md"), "utf8");
-  for (const verb of ["new", "validate", "format", "ls", "show", "add", "set", "remove", "move", "export", "import", "serve"]) {
-    assert.match(skill, new RegExp(`design\\.mjs ${verb}\\b`), `SKILL.md does not show \`design.mjs ${verb}\``);
-  }
-});
+/**
+ * "SKILL.md names every verb the CLI exposes" moved to `test/contract.test.mjs`, which
+ * derives the list from `VERBS` in `design.mjs`.
+ *
+ * This test held a hand-written list of twelve names. It passed for as long as the CLI
+ * happened not to grow a verb, and when it did — `rename`, `migrate`, `tokens` — the copy
+ * had to be edited by hand or it would have gone on passing while SKILL.md said nothing
+ * about them. A second copy of the truth is a second truth, and the copy is what rots.
+ */
 
 test("the frontmatter carries a name and a description", () => {
   const skill = readFileSync(join(ROOT, "SKILL.md"), "utf8");
@@ -53,4 +58,28 @@ test("the frontmatter carries a name and a description", () => {
   assert.match(front, /^description: >-$/m);
   const description = front.slice(front.indexOf("description:"));
   assert.ok(description.length > 300, "the description is the trigger, so it must say when to use this");
+});
+
+test("no reference document has a hole in it", () => {
+  // `ICONS.length` on an object put the word "undefined" into schema.md, and the
+  // `--check` above stayed green the whole time because the generator and the
+  // artifact were wrong in the same way. A consistency check is not a
+  // correctness check, so this one looks at the words.
+  for (const name of ["styling.md", "schema.md", "cookbook.md"]) {
+    const text = readFileSync(join(ROOT, "references", name), "utf8");
+    assert.doesNotMatch(text, /\bundefined\b/, `references/${name} says "undefined"`);
+    assert.doesNotMatch(text, /\bNaN\b/, `references/${name} says "NaN"`);
+    assert.doesNotMatch(text, /\[object Object\]/, `references/${name} stringified an object`);
+  }
+});
+
+test("the reference states the glyph count the table actually has", () => {
+  const schema = readFileSync(join(ROOT, "references", "schema.md"), "utf8");
+  const count = iconNames().length;
+  assert.ok(count > 0, "the icon table is empty");
+  assert.match(
+    schema,
+    new RegExp(`with ${count} glyphs`),
+    `references/schema.md must say ${count} glyphs`,
+  );
 });

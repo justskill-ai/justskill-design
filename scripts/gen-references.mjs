@@ -25,7 +25,7 @@ import {
   ID_PATTERN, TAG_TO_TYPE, TYPE_HAS_CHILDREN, COMMON_MISTAKES,
 } from "../lib/table.mjs";
 import { SCHEMA_VERSION, SCHEMA_META_NAME } from "../lib/validate.mjs";
-import { ICON_LIBRARY, ICONS } from "../lib/icons.mjs";
+import { ICON_LIBRARY, ICON_VIEW_BOX, iconNames } from "../lib/icons.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
@@ -95,7 +95,11 @@ function stylingDoc() {
   lines.push("Tokens are declared once, in the `<head>`:");
   lines.push("");
   lines.push("```html");
-  lines.push(`<style>:root{ --color-bg:#0b0d12; ${TOKEN_GROUPS.filter((g) => TOKEN_GROUP_UNIT[g]).map((g) => `--${g}-md:16px`)[0]} }</style>`);
+  // The sample has to name a group that actually carries a unit. Reading `[0]`
+  // off the filtered list renders the word "undefined" into the document when no
+  // group does, which is the same defect as `ICONS.length` in a different place.
+  const unitGroup = TOKEN_GROUPS.find((group) => TOKEN_GROUP_UNIT[group]);
+  lines.push(`<style>:root{ --color-bg:#0b0d12;${unitGroup ? ` --${unitGroup}-md:16px` : ""} }</style>`);
   lines.push("```");
   lines.push("");
   lines.push(`The group is the text before the first hyphen, and it must be one of: ${TOKEN_GROUPS.map((g) => `\`${g}\``).join(", ")}.`);
@@ -165,7 +169,7 @@ function schemaDoc() {
   lines.push("| `data-hidden` | `\"true\"` hides the element while keeping it in the file. |");
   lines.push("| `data-locked` | `\"true\"` stops the canvas moving it. It produces no CSS. |");
   lines.push("");
-  lines.push("## The eight types");
+  lines.push(`## The ${Object.keys(TYPE_TAGS).length} types`);
   lines.push("");
   lines.push("| `data-type` | Tag | Required attributes | May contain elements |");
   lines.push("|---|---|---|---|");
@@ -187,7 +191,26 @@ function schemaDoc() {
   lines.push("| `instance` | `data-ref` | The `data-id` of a component. |");
   lines.push("| `instance` | `data-overrides` | JSON. Field-level patches, keyed by a descendant's `data-id`. |");
   lines.push("| `image` | `data-credit` | Attribution. Never rendered. |");
+  lines.push(`| \`icon\` | \`viewBox\` | The grid the geometry was drawn on, normally \`${ICON_VIEW_BOX}\`. Required as soon as the icon has geometry: without it the SVG has no coordinate system, so a browser clips the geometry instead of scaling it. |`);
+  lines.push("| `icon` | `fill`, `stroke`, `stroke-width` | Presentation attributes on the `<svg>` element itself, which the base stroke rule reads. |");
+  lines.push("| `icon` | `data-fill` | Opts out of the base stroke rule, so the geometry's own `fill` and `stroke` win. |");
   lines.push("");
+  // A guard, because this table is hand-written prose while the attribute names
+  // are not: `viewBox` was missing here for exactly as long as it was missing
+  // from `ATTR_BY_TYPE`, and the icon example below omitted it too. Any attribute
+  // the format accepts and this table does not name is a hole a model falls into,
+  // so refuse to write a reference that has one.
+  const documented = lines.join("\n").toLowerCase();
+  const undocumented = [];
+  for (const [type, contract] of Object.entries(ATTR_BY_TYPE)) {
+    for (const name of [...(contract.required ?? []), ...(contract.optional ?? [])]) {
+      if (COMMON_OPTIONAL.includes(name)) continue;
+      if (!documented.includes(`\`${name.toLowerCase()}\``)) undocumented.push(`${type}.${name}`);
+    }
+  }
+  if (undocumented.length > 0) {
+    throw new Error(`references/schema.md would not document: ${undocumented.join(", ")}`);
+  }
   lines.push("## A tag maps to a default type");
   lines.push("");
   lines.push("Useful when the file omits `data-type`, which is an error, so the message can name the");
@@ -199,11 +222,12 @@ function schemaDoc() {
   lines.push("");
   lines.push("## Icons");
   lines.push("");
-  lines.push(`The built-in set is \`${ICON_LIBRARY}\` with ${ICONS.length} glyphs. An \`icon\` element holds its own geometry,`);
+  lines.push(`The built-in set is \`${ICON_LIBRARY}\` with ${iconNames().length} glyphs. An \`icon\` element holds its own geometry,`);
   lines.push("so it needs no network request and no icon font:");
   lines.push("");
   lines.push("```html");
   lines.push('<svg data-id="home__icon" data-type="icon" data-icon="shield-check" data-icon-library="lucide"');
+  lines.push(`     viewBox="${ICON_VIEW_BOX}"`);
   lines.push('     style="width:24px;height:24px;color:var(--color-ink)">');
   lines.push('  <path d="M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6z"></path>');
   lines.push("</svg>");
@@ -352,6 +376,22 @@ const FILES = {
   "schema.md": schemaDoc(),
   "cookbook.md": cookbookDoc(),
 };
+
+// These documents are read and copied by a model, so a hole in the output is
+// worse than a crash. `ICONS.length` on an object put the word "undefined" into
+// schema.md and `--check` stayed green the whole time, because the generator and
+// the artifact were wrong in the same way: a consistency check is not a
+// correctness check. Refuse to publish text with a hole in it, in either mode.
+const HOLES = [/\bundefined\b/, /\bNaN\b/, /\[object Object\]/];
+for (const [name, content] of Object.entries(FILES)) {
+  for (const pattern of HOLES) {
+    const hit = pattern.exec(content);
+    if (hit) {
+      console.error(`hole      references/${name} would contain ${JSON.stringify(hit[0])}`);
+      process.exit(1);
+    }
+  }
+}
 
 const check = process.argv.includes("--check");
 let stale = 0;

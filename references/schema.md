@@ -28,7 +28,7 @@ Optional on any element:
 | `data-hidden` | `"true"` hides the element while keeping it in the file. |
 | `data-locked` | `"true"` stops the canvas moving it. It produces no CSS. |
 
-## The eight types
+## The 8 types
 
 | `data-type` | Tag | Required attributes | May contain elements |
 |---|---|---|---|
@@ -53,6 +53,9 @@ Additional attributes by type:
 | `instance` | `data-ref` | The `data-id` of a component. |
 | `instance` | `data-overrides` | JSON. Field-level patches, keyed by a descendant's `data-id`. |
 | `image` | `data-credit` | Attribution. Never rendered. |
+| `icon` | `viewBox` | The grid the geometry was drawn on, normally `0 0 24 24`. Required as soon as the icon has geometry: without it the SVG has no coordinate system, so a browser clips the geometry instead of scaling it. |
+| `icon` | `fill`, `stroke`, `stroke-width` | Presentation attributes on the `<svg>` element itself, which the base stroke rule reads. |
+| `icon` | `data-fill` | Opts out of the base stroke rule, so the geometry's own `fill` and `stroke` win. |
 
 ## A tag maps to a default type
 
@@ -76,11 +79,12 @@ type the tag implied.
 
 ## Icons
 
-The built-in set is `lucide` with undefined glyphs. An `icon` element holds its own geometry,
+The built-in set is `lucide` with 67 glyphs. An `icon` element holds its own geometry,
 so it needs no network request and no icon font:
 
 ```html
 <svg data-id="home__icon" data-type="icon" data-icon="shield-check" data-icon-library="lucide"
+     viewBox="0 0 24 24"
      style="width:24px;height:24px;color:var(--color-ink)">
   <path d="M12 2l8 4v6c0 5-8 10-8 10S4 17 4 12V6z"></path>
 </svg>
