@@ -155,10 +155,14 @@ What the suite pins, in order of what breaks first if it fails:
 | Tests | — | 369 pass, 0 fail |
 
 The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
-nodes. It imports to 1515 elements, 23 components, 239 instances and 140
-instances carrying overrides, in about 60 ms, and the result validates and is
-already canonical. One node in that file has four different corner radii, which
-this format does not have a spelling for, and the ledger says so by name.
+nodes. It imports to 1515 elements — the ledger counts the nodes that became a
+design node, so the 26 artboards are not in that number — plus 23 components,
+239 instances and 140 instances carrying overrides, in about 60 ms. The result
+validates and is already canonical: `examples/miniprogram.html` carries 1541
+`data-id`s (the 1515 elements and the 26 pages) and 1754 tags in all, the rest
+being `<svg>` geometry and wrappers that are not design nodes. One node in that
+file has four different corner radii, which this format does not have a spelling
+for, and the ledger says so by name.
 
 The legibility metric means: the first response is always usable, whether it
 accepts the snippet or refuses it with a code, a target and a fix. The 20

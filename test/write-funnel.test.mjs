@@ -156,6 +156,41 @@ test("an edit that repairs an existing error is allowed", () => {
   assert.equal(newErrors(before, after).length, 0, "the repair introduces nothing new");
 });
 
+test("an edit that adds only a geometric warning is applied anyway", () => {
+  // The invariant that keeps a layout observation from becoming a gate. A
+  // geometric finding is a warning, and the funnel compares only the errors, so
+  // a design that overflows can still be edited — which is the whole point:
+  // somebody has to be able to fix it.
+  const result = applyFragment(
+    START,
+    `<div data-id="home__strip" data-type="frame" style="display:flex;flex-direction:row;width:100px;overflow:hidden">
+       <div data-id="home__chip" data-type="frame" style="flex:0 0 auto;width:400px"></div>
+     </div>`,
+    { in: "home__root" },
+  );
+  assert.ok(!result.refused, "a warning is not a refusal");
+  assert.notEqual(result.text, START, "the edit reaches the file");
+
+  const found = validateDesign(parse(result.text));
+  const clipped = found.filter((d) => d.code === "geometry/clipped");
+  assert.equal(clipped.length, 1, "the finding is reported after the write");
+  assert.equal(clipped[0].severity, "warning");
+  assert.equal(newErrors(validateDesign(parse(START)), found).length, 0, "and it is not counted as a new error");
+});
+
+test("an edit that adds only a contrast warning is applied anyway", () => {
+  const result = applyFragment(
+    START,
+    `<div data-id="home__card" data-type="frame" style="background-color:#ffffff">
+       <p data-id="home__faint" data-type="text" style="font-size:12px;color:#cccccc">faint</p>
+     </div>`,
+    { in: "home__root" },
+  );
+  assert.ok(!result.refused, "a warning is not a refusal");
+  const found = validateDesign(parse(result.text));
+  assert.equal(found.filter((d) => d.code === "a11y/low-contrast").length, 1);
+});
+
 test("a pre-existing error does not block an unrelated edit", () => {
   const broken = START.replace("<body>", "<body>\n  <canvas data-id=\"stray\"></canvas>");
   const before = validateDesign(parse(broken));

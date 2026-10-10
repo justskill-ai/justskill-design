@@ -329,21 +329,38 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 | `syntax/` | `lib/parse.mjs` | 未闭合标签、未闭合字符串、坏属性、坏注释 |
 | `style/` | `lib/table.mjs` + `lib/validate.mjs` + `lib/tokens.mjs` | 未知属性、未知取值、别名、简写、未知块、令牌名（`style/token-name`）、重复令牌（`style/duplicate-token`）、令牌环（`style/token-cycle`） |
 | `structure/` | `lib/validate.mjs` | 缺 id、重复 id、缺 type、类型与标签不符、未识别标签、页在错误位置、页面自己写位置，以及**除下面两条以外**的缺必填属性 |
-| `a11y/` | `lib/validate.mjs` | 图片缺 alt（`a11y/missing-alt`） |
+| `a11y/` | `lib/validate.mjs` | 图片缺 alt（`a11y/missing-alt`）、文字与背景的对比度（`a11y/low-contrast`） |
+
+`a11y/low-contrast` 逐层向上求出文字底下压着的颜色，取 WCAG AA 的 4.5:1 为界，**按最差的那个背景计分**（渐变给出每一个不透明色标，文字压在它们全部之上）。**三种情形不报**，因为比值不可知：背景是一张照片（`url(...)`，看不到图里是什么）、渐变没有任何不透明色标、以及**半透明层底下没有不透明颜色**（页面之下的surface 属于交付物，不属于文件，猜一个底色就是自信地算错）。
+
+半透明层**是合成的，不是弃权的**：一层 `background-color` 的 alpha 叠在不透明底色上是 sRGB 里的算术，浏览器就是这么合的。白字压在白卡片上的一层 `#00000080` 之上读到的是 `#7f7f7f`（不是手算容易得到的 `#808080`），比值 3.97:1，是一条真缺陷。多层按顺序依次合成。v1 在这里**沿用祖先的填充**，把遮罩当成卡片本身来打分，那是另一种错。
 | `asset/` | `lib/validate.mjs` | 图片缺 src（`asset/missing-src`） |
 | `component/` | `lib/validate.mjs` | 未知组件、循环、未知覆盖目标、覆盖里给字形写文本 |
 | `version/` | `lib/validate.mjs` | 缺 `design-schema`、版本不支持 |
+| `geometry/` | `lib/geometry.mjs` | 装不下：溢出（`geometry/overflow`）、裁切（`geometry/clipped`）、塌陷（`geometry/fill-collapsed`）、绝对定位越界（`geometry/absolute-outside`）、min 与 max 冲突（`geometry/axis-conflict`） |
 | `ops/` | `lib/ops.mjs` | 坏 op、节点未找到、令牌块不唯一或不存在（`ops/ambiguous-token-block`、`ops/no-token-block`）、没有那个令牌（`ops/no-such-token`）、逆 op 不属于本文档（`ops/stale-inverse`） |
+
+`geometry/` 的五个码**全是 warning**，所以它们永不阻塞写入 —— 这不是约定，是结构：`newErrors` 只对 `severity === "error"` 的诊断做差集。它们**不带 `offset`**（说的是布局，不是文本位置），因此键是 `code|""|target|message` —— 下面那条「`target` 不能省」的规则，主要是为它们写的。
+
+`geometry/` 里没有布局引擎，这是刻意的：第二份 flexbox 实现会在边角上和浏览器不一致，而**会喊狼来了的检查比安静的检查更糟**。凡是需要测量才能知道的量（一段文字多宽、一张图多大、没有展开的实例多大）一律是 `unknown` 并向上传播，依赖它的检查随即不报。同一个码最多报 20 条。
+
+`geometry/` 读 `display` 时只认 `none` 和 `flex` 两个值，其余一律**不下压 flex 语义**：
+
+- `display:none` 与 `data-hidden="true"` 等价（见 §5），所在子树不进父级的排版，自己也不被走查。
+- `display:flex`、或没写 `display`（`data-type="frame"` 在本文档里就是 flex 容器）按 flex 算。
+- `display:block` 是表里的合法取值，但 block 布局不是 flexbox：`flex-direction` 在它身上无效，`flex-shrink` 也不作用于它的孩子。按 flex 算会换来一批新的漏报，所以它**两个轴都不检查**，自己需要 hug 的轴也不报；它自己声明的 `width`/`height` 照读。
+
+`geometry/` 读 `margin` 时只读**主轴那一对**（row 读左右，column 读上下），作为孩子占用的空间计入。`margin` 是表里的正式成员，只接受四值简写；`margin-top` 一类的单边写法在 `REJECTED_PROPERTIES` 里，所以这里也只读简写。百分比的 margin **四个方向都按包含块的宽度**解析（含上下），负值保留符号，`auto` 不可知因而弃权。交叉轴那一对仍不读。
+
+`geometry/` **不检查交叉轴**的溢出：200px 的列里放 500px 的孩子，命令行不报。这是 v1 的 `lib/geometry.mjs` 就有的限制（它同样只算主轴）。画布的实测遍会报，因为它比的是两个真实盒子的两个轴。
+
+`geometry/` 里 `position:absolute` 的节点，包含块是**最近的定位祖先**而不是父级：父级 `static` 而祖父 `relative` 时，浏览器按祖父摆放。没有定位祖先时包含块是初始包含块，其尺寸不在文件里，因此弃权。页面算作包含块 —— 页面不允许自己写 `position`（`structure/page-position`），不这样规定这类盒子就没有基准。绝对定位的盒子**不拉伸**（`align-items` 到不了脱离文档流的盒子），需要尺寸时按 hug 算。
 
 规则一直是 `lib/table.mjs` 的（`ATTR_BY_TYPE` 说哪个属性必填），校验器只负责给它一个名字。`image` 是唯一有两个必填属性的类型，所以也只有它有两条例外：缺 `alt` 是可达性发现，缺 `src` 是资产发现。其余类型（`icon` 缺 `data-icon-library`、`instance` 缺 `data-ref`）仍是 `structure/missing-attribute`。
 
 `a11y/` 与 `asset/` 这两行曾经写在表里而在代码里发射 0 条 —— 两个声明过、没人兑现的前缀。名字就是当时缺的东西。
 
-**未实现，别照这份文档写代码：**
-
-- `geometry/`（溢出、塌陷、裁切）。它曾经占着这张表的一行，归给一个不存在的模块。**这个前缀在代码里发射 0 条**，画布虽然已经能测量（`canvas/app.mjs` 的 `measurePageBoxes` 与 `getBoundingClientRect`），但把实测结果接回诊断是独立的一项工作。
-- `a11y/` 的对比度检查。v1 有一份可参考的实现（`contrastRatio`），带三条弃权规则：照片让比值不可知、半透明填充抑制检查、渐变按最差的色标计分。
-- `asset/` 的未知字体族。与之相关但不同的一条是 `style/no-generic-family`：字体族末尾必须有一个通用族。
+**划掉一条，不实现：`asset/` 的未知字体族。** `lib/` 是纯的：它没有文件系统，也没有网络，所以它无法知道一个字体族是否存在。唯一确定的判据是「这个族不在系统字体表里」，而那**几乎每个真实设计都命中**（Inter、Noto Sans SC），正撞在「会喊狼来了的检查比安静的检查更糟」上。这个风险已经由两条规则覆盖：`style/no-generic-family`，以及读取器给每个字体族补通用尾。要做它只能做成显式开关（`validate --offline`），那是一个功能，不是一条码。
 
 诊断的键：`code + "|" + offset + "|" + target + "|" + message`，缺的字段写空串。用于"只在新错误时拒绝"的差集，也用于报告去重。
 
@@ -393,7 +410,7 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 
 直接 `import` 这张表的就是下面这些模块，一个不多（测试不算）：
 
-`lib/fragment.mjs`（片段编译）、`lib/validate.mjs`（校验）、`lib/tokens.mjs`（令牌的名字、组与单位）、`lib/normalize.mjs`（归一化）、`lib/render.mjs`（渲染；画布经它间接读表）、`lib/export-html.mjs`（导出）、`lib/readers/pen.mjs`（pen 导入）、`lib/node/verbs/set.mjs`、`lib/node/verbs/rename.mjs` 与 `lib/node/write-verbs.mjs`（CLI 写入）、`scripts/gen-references.mjs`（生成 `references/` 里的文档）。
+`lib/fragment.mjs`（片段编译）、`lib/validate.mjs`（校验）、`lib/geometry.mjs`（几何检查：读长度、padding、border 与 gap 的取值语法）、`lib/tokens.mjs`（令牌的名字、组与单位）、`lib/normalize.mjs`（归一化）、`lib/render.mjs`（渲染；画布经它间接读表）、`lib/export-html.mjs`（导出）、`lib/readers/pen.mjs`（pen 导入）、`lib/node/verbs/set.mjs`、`lib/node/verbs/rename.mjs` 与 `lib/node/write-verbs.mjs`（CLI 写入）、`scripts/gen-references.mjs`（生成 `references/` 里的文档）。
 
 **`lib/ops.mjs` 不在这张表里，这是有意的。** 它是每个模块都依赖的引擎，所以宁可自己重写三个 `data-type` 名字也不 import 这张表 —— 表里某个条目被改名时，它仍要能加载。令牌 op 因此只要求名字以 `--` 开头，组别与单位由 `lib/tokens.mjs` 判定（见 §4.4）。
 
@@ -417,9 +434,10 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 | `lib/parse.mjs` | HTML → 文档模型，带偏移 | Lead |
 | `lib/serialize.mjs` | 文档模型 → 文本，最小改动 | Lead |
 | `lib/table.mjs` | 格式表 | Lead |
-| `lib/validate.mjs` | 四层校验 | Lead |
+| `lib/validate.mjs` | 四层校验 + 对比度（`a11y/low-contrast`） | Lead |
 | `lib/normalize.mjs` | 两层归一化 | Lead |
-| `lib/tokens.mjs` | 令牌：名字、组、值、寻址、环 | Teammate |
+| `lib/tokens.mjs` | 令牌：名字、组、值、寻址、环、`var()` 解析 | Teammate |
+| `lib/geometry.mjs` | 几何检查：只报确定的事，算不出的量一律 unknown | Lead |
 | `lib/diagnostics.mjs` | 分组、过滤、定位 | Teammate |
 | `lib/spans.mjs` | 区间替换与重叠检查 | Teammate |
 | `lib/levenshtein.mjs` | 距离与建议 | Teammate |

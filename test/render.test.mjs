@@ -1,13 +1,12 @@
 /**
  * The renderer is shared by the canvas and the export path, so these tests pin
- * two things: what the user sees is what the file says, and the renderer's own
- * declaration splitter agrees with the parser's.
+ * what the user sees: that it is what the file says.
  */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { parse, parseDeclarations } from "../lib/parse.mjs";
+import { parse, parseDeclarations, styleMapOf as parseStyleMapOf } from "../lib/parse.mjs";
 import {
   renderModel, renderNodeHtml, styleMapOf, styleStringOf, resolveTokens,
   canvasPositionOf, expandInstance, componentMap, arrangePages, pageCss, pageTree,
@@ -20,26 +19,52 @@ function file(body, head = HEAD) {
   return parse(`<!doctype html>\n<html lang="zh">\n${head}\n<body>\n${body}\n</body>\n</html>\n`);
 }
 
-// -- the splitter agrees with the parser --------------------------------------
+// -- styleMapOf ---------------------------------------------------------------
 
-test("the renderer's declaration splitter agrees with the parser's on every hard case", () => {
+test("styleMapOf is the parser's splitter seen as a property map", () => {
+  // There is one splitter now, so this cannot fail by two implementations
+  // disagreeing. It can still fail by the re-export being severed, and it says
+  // what the projection promises: lowercased property names, the last declaration
+  // of a property winning, and comments dropped. The old name claimed it pinned two
+  // splitters against each other. It pinned one binding against itself.
+  assert.equal(styleMapOf, parseStyleMapOf, "render.mjs re-exports the parser's one binding");
   const cases = [
     'background-image:url("data:image/svg+xml;base64,AAA");color:#ffffff',
     "font-family:\"Foo;Bar\", \"Baz;Qux\", sans-serif;font-size:14px",
     "background-image:url(a;b.svg);background-size:cover",
     "color:var(--color-ink);padding:16px 16px 16px 16px",
     "a:/* ; */1;b:2",
+    "COLOR:#ffffff;color:#000000",
     "line-height:1.5",
     "",
     "   ",
   ];
   for (const css of cases) {
-    const fromParser = parseDeclarations(css).map((d) => `${d.property}=${d.value}`);
     const map = styleMapOf({ attrs: [{ name: "style", value: css }] });
-    const fromRenderer = [...map.entries()].map(([p, v]) => `${p}=${v}`).join("|");
-    const parserJoined = fromParser.join("|");
-    assert.equal(fromRenderer, parserJoined, `disagreement on ${JSON.stringify(css)}`);
+    const expected = new Map();
+    for (const declaration of parseDeclarations(css)) {
+      if (declaration.property) expected.set(declaration.property, declaration.value);
+    }
+    assert.deepEqual([...map.entries()], [...expected.entries()], `disagreement on ${JSON.stringify(css)}`);
   }
+  const winner = styleMapOf({ attrs: [{ name: "style", value: "COLOR:#ffffff;color:#000000" }] });
+  assert.equal(winner.get("color"), "#000000", "the property is lowercased and the last one wins");
+  assert.equal(styleMapOf({ attrs: [{ name: "style", value: "a:/* ; */1" }] }).get("a"), "1", "the comment is gone");
+  assert.deepEqual([...styleMapOf({ attrs: [] }).entries()], [], "no style attribute is an empty map");
+});
+
+test("a repeated read of one style attribute gives a fresh map from one parse", () => {
+  // The cache behind `styleMapOf` is what keeps the measurement, the normalizer and
+  // the checks from splitting the same attribute three times over. Splitting is
+  // pure, so the declarations may be shared — but the Map a caller holds must not
+  // be, or one caller's edit would be the next caller's input.
+  const node = { attrs: [{ name: "style", value: "display:flex;flex-direction:row;width:10px" }] };
+  const first = styleMapOf(node);
+  const second = styleMapOf(node);
+  assert.deepEqual([...first.entries()], [...second.entries()]);
+  assert.notEqual(first, second, "each caller gets its own Map");
+  first.set("width", "999px");
+  assert.equal(styleMapOf(node).get("width"), "10px", "mutating one result does not poison the next");
 });
 
 // -- tokens -------------------------------------------------------------------

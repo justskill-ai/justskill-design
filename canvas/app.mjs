@@ -24,6 +24,8 @@ import {
   renderModel, canvasMountCss, pagePaperRadius, renderNodeHtml, styleMapOf, styleStringOf,
   arrangePages, pageTree, resolveTokens, webfontLinks,
 } from "/lib/render.mjs";
+import { collectTokens, lintContrast } from "/lib/validate.mjs";
+import { lintGeometry, overhangOf, MAX_REPORTED_PER_CODE } from "/lib/geometry.mjs";
 
 // -- wire --------------------------------------------------------------------
 
@@ -83,6 +85,9 @@ const state = {
   canRedo: false,
   busy: false,
 };
+
+/** Counts mounts, so a font callback from a replaced mount can be ignored. */
+let mountGeneration = 0;
 
 const ui = {
   viewport: document.getElementById("viewport"),
@@ -203,12 +208,280 @@ async function loadDocument({ keepCamera = false } = {}) {
   renderChrome();
 }
 
+/**
+ * The geometric findings, in the shape the drawer already renders.
+ *
+ * The service sends the file text and its metadata, never a document tree, so
+ * the browser is the one that decides what the file means. This check is pure,
+ * so it runs here on the same parse the canvas renders — the arithmetic and the
+ * drawing cannot disagree about what the file says.
+ *
+ * It is deliberately the only validator family the drawer shows. The rest of the
+ * report belongs to `node design.mjs validate`, which is where a writer reads it.
+ */
+function geometryDiagnostics(doc) {
+  const { tokens } = collectTokens(doc);
+  return lintGeometry(doc, tokens).map((entry) => ({
+    severity: entry.severity,
+    code: entry.code,
+    message: entry.message,
+    target: entry.target,
+    path: entry.path,
+    hint: entry.hint,
+  }));
+}
+
+/**
+ * Contrast, as the drawer wants it.
+ *
+ * Contrast is in the drawer because of what the count on the Problems button
+ * means. It is read as "this file has this many problems", and the canvas is the
+ * only place a reader sees the drawing they are being told about. A file the
+ * canvas called clean and `design.mjs validate` called 22 warnings is the canvas
+ * lying by omission — the same disagreement between two readers of one result that
+ * the `add` receipt used to have.
+ *
+ * The rest of `validateDesign` is deliberately not run. Structure and property
+ * findings are about the file's shape, not the drawing, and a file being edited is
+ * allowed to be half-written; 43 rows of `structure/missing-id` in a layout tool is
+ * noise that buries the layout. `design.mjs validate` is the full report, and it is
+ * the one the write funnel consults.
+ */
+function contrastDiagnostics(doc) {
+  const { tokens } = collectTokens(doc);
+  return lintContrast(doc, tokens).map((entry) => ({
+    severity: entry.severity ?? "warning",
+    code: entry.code,
+    message: entry.message,
+    target: entry.target,
+    path: entry.path,
+    hint: entry.hint,
+  }));
+}
+
+/**
+ * What the browser can prove and the arithmetic cannot.
+ *
+ * `lib/geometry.mjs` works on the file, so it is blind to anything that needs a
+ * measurement: a run of text, the intrinsic size of an image, an instance whose
+ * component it has not expanded. Here the page is mounted, so every one of those
+ * has a real box. This pass reads them.
+ *
+ * Three traps, each one a way to report something untrue:
+ *
+ *   - **Zoom.** `applyCamera` puts `transform: scale(zoom)` on `ui.canvas`, so
+ *     every rectangle is in screen pixels. Both rectangles are scaled the same way,
+ *     so the comparison itself does not care — but the numbers in the message do, so
+ *     everything is divided back to CSS pixels first.
+ *   - **Expanded instances.** `expandInstance` copies a component's subtree into
+ *     the page, so the component's `data-id`s appear more than once. An op never
+ *     addresses a copy, so a finding about one would name an element the writer
+ *     cannot edit. A repeated id is skipped.
+ *   - **Sub-pixel layout.** A fraction of a pixel of overhang is rounding, not a
+ *     defect. `lib/geometry.mjs` holds the tolerance.
+ */
+/**
+ * The box an absolutely positioned element is really laid out against.
+ *
+ * A child in flow is laid out by its parent, so the parent is the box to compare
+ * it with. An absolutely positioned child is not: it resolves against its nearest
+ * positioned ancestor, and a static parent in between is not that box. Comparing
+ * with it reported boxes as leaving a parent they were never inside — and the
+ * arithmetic pass in `lib/geometry.mjs` applies the same rule, so both passes name
+ * the same box and the merge can still collapse them.
+ *
+ * A page counts, the same way it does there, because a page may not be positioned.
+ */
+function containingBlockOf(element) {
+  let node = element.parentElement;
+  while (node) {
+    const position = getComputedStyle(node).position;
+    if ((position && position !== "static") || node.getAttribute?.("data-type") === "page") return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
+function measuredGeometryDiagnostics() {
+  const zoom = state.camera.zoom || 1;
+  const mounted = [];
+  const counts = new Map();
+
+  for (const host of ui.canvas.querySelectorAll(".page-box .page-host")) {
+    const root = host.shadowRoot;
+    if (!root) continue;
+    for (const element of root.querySelectorAll("[data-id]")) {
+      const id = element.getAttribute("data-id");
+      counts.set(id, (counts.get(id) || 0) + 1);
+      mounted.push([element, id]);
+    }
+  }
+
+  const worstByParent = new Map();
+  for (const [element, id] of mounted) {
+    if (counts.get(id) > 1) continue;
+    // Which box this element is measured against. A positioned element is the one
+    // case where the parent is the wrong answer; for everything else it is right,
+    // and it is also the element the finding has to name.
+    const selfStyle = getComputedStyle(element);
+    const parent = selfStyle.position === "absolute"
+      ? containingBlockOf(element)
+      : element.parentElement?.closest?.("[data-id]") ?? null;
+    if (!parent) continue;
+
+    const self = element.getBoundingClientRect();
+    if (self.width < 1 || self.height < 1) continue;
+    const outer = parent.getBoundingClientRect();
+    if (outer.width < 1 || outer.height < 1) continue;
+
+    // Back to CSS pixels, where `getComputedStyle` also lives.
+    const style = getComputedStyle(parent);
+    const num = (value) => parseFloat(value) || 0;
+    const padLeft = num(style.paddingLeft) + num(style.borderLeftWidth);
+    const padTop = num(style.paddingTop) + num(style.borderTopWidth);
+    const contentW = outer.width / zoom - padLeft - num(style.paddingRight) - num(style.borderRightWidth);
+    const contentH = outer.height / zoom - padTop - num(style.paddingBottom) - num(style.borderBottomWidth);
+
+    const left = (self.left - outer.left) / zoom - padLeft;
+    const top = (self.top - outer.top) / zoom - padTop;
+    const width = self.width / zoom;
+    const height = self.height / zoom;
+
+    const clipped = ["hidden", "auto", "scroll"].includes(style.overflow);
+    const measured = overhangOf(
+      { left, top, width, height },
+      { width: contentW, height: contentH },
+      { positioned: selfStyle.position === "absolute", clips: clipped },
+    );
+    if (!measured) continue;
+    const { over, code } = measured;
+
+    const parentId = parent.getAttribute("data-id");
+
+    // Who the finding is about, and how many of them to emit.
+    //
+    // `geometry/absolute-outside` is about the node that is out of place, so it
+    // is reported per node, exactly as `lib/geometry.mjs` reports it. The other
+    // two are about the frame that is too small: a row of three children that do
+    // not fit produces the same fact three times, and three copies of one fact is
+    // how a report stops being read. One per frame is also what the writer has to
+    // change, and it is what the arithmetic pass names, so the two passes
+    // describe the same defect the same way and the merge can collapse them.
+    const aboutChild = code === "geometry/absolute-outside";
+    const key = aboutChild ? `${code}|${id}` : `${code}|${parentId}`;
+    const previous = worstByParent.get(key);
+    if (previous && previous.over >= over) continue;
+    worstByParent.set(key, {
+      severity: "warning",
+      code,
+      target: aboutChild ? id : parentId,
+      over,
+      message: code === "geometry/absolute-outside"
+        ? `A positioned child ${Math.round(width)}x${Math.round(height)} at (${Math.round(left)}, ${Math.round(top)}) is not fully inside this box's content area of ${Math.round(contentW)}x${Math.round(contentH)}`
+        : code === "geometry/clipped"
+          ? `A child overhangs this box's content area of ${Math.round(contentW)}x${Math.round(contentH)} by ${Math.round(over)}px, and the box hides the rest`
+          : `A child overhangs this box's content area of ${Math.round(contentW)}x${Math.round(contentH)} by ${Math.round(over)}px`,
+      hint: `measured on the canvas: the widest child is ${Math.round(width)}x${Math.round(height)}, so this is the box the browser drew, not an estimate`,
+    });
+  }
+  return [...worstByParent.values()].map(({ over, ...entry }) => entry);
+}
+
+/**
+ * The arithmetic findings, with the measured ones given precedence.
+ *
+ * Both passes can name the same element and the same code. The measured one
+ * carries the box the browser actually drew, so it is the one worth reading.
+ *
+ * The per-code limit is applied **after** the merge, because the merge is where
+ * the findings the reader will see are finally assembled. `lintGeometry` keeps the
+ * limit on its own half, and the measured half can add more of a code the
+ * arithmetic half never saw at all — 25 frames whose text overflows are invisible
+ * to the arithmetic and 25 rows in the drawer is exactly the report §6 promises
+ * not to hand anyone.
+ */
+function mergeGeometry(arithmetic, measured) {
+  const measuredKeys = new Set(measured.map((entry) => `${entry.code}|${entry.target}`));
+  const merged = [
+    ...arithmetic.filter((entry) => !measuredKeys.has(`${entry.code}|${entry.target}`)),
+    ...measured,
+  ];
+  const counts = new Map();
+  return merged.filter((entry) => {
+    const seen = counts.get(entry.code) || 0;
+    counts.set(entry.code, seen + 1);
+    return seen < MAX_REPORTED_PER_CODE;
+  });
+}
+
+function recomputeDiagnostics() {
+  if (!state.doc) return;
+  const arithmetic = geometryDiagnostics(state.doc);
+  state.diagnostics = [
+    ...(state.doc.diagnostics ?? []),
+    ...mergeGeometry(arithmetic, measuredGeometryDiagnostics()),
+    ...contrastDiagnostics(state.doc),
+  ];
+  // `renderProblems` writes the badge as well as the list, so the two cannot
+  // disagree. The badge used to be written only by `renderChrome`, which runs
+  // before the measured pass finishes: the drawer filled in and the badge went on
+  // showing the arithmetic count.
+  renderProblems();
+}
+
+/**
+ * Wait until the mounted pages can be measured.
+ *
+ * Text laid out in a fallback family is a different width, and an image with no
+ * bytes yet is 0x0. A box measured before either arrives is a box the reader never
+ * sees, reported as overflow that is not there. Fonts first, then the images that
+ * are still loading.
+ *
+ * The images are given a deadline. An image that never answers — a host that
+ * accepts the connection and then says nothing — must not leave the drawer
+ * showing a half-finished report for the rest of the session. Two seconds is
+ * longer than a local file takes and shorter than a reader's patience; an image
+ * that misses it is measured as it stands, and the next mount measures it again.
+ */
+const IMAGE_WAIT_MS = 2000;
+
+function layoutSettled() {
+  const fonts = typeof document.fonts?.ready?.then === "function" ? document.fonts.ready : Promise.resolve();
+  return fonts.then(() => {
+    const pending = [];
+    for (const host of ui.canvas.querySelectorAll(".page-box .page-host")) {
+      for (const image of host.shadowRoot?.querySelectorAll("img") ?? []) {
+        if (image.complete) continue;
+        pending.push(
+          new Promise((resolve) => {
+            const done = () => resolve();
+            image.addEventListener("load", done, { once: true });
+            image.addEventListener("error", done, { once: true });
+          }),
+        );
+      }
+    }
+    if (pending.length === 0) return undefined;
+    return Promise.race([
+      Promise.all(pending),
+      new Promise((resolve) => setTimeout(resolve, IMAGE_WAIT_MS)),
+    ]);
+  });
+}
+
 function mountAll() {
   const started = performance.now();
+  const generation = ++mountGeneration;
   state.doc = parse(state.text);
   state.model = renderModel(state.doc);
-  state.diagnostics = state.doc.diagnostics ?? [];
-
+  // The parser's syntax findings, plus what the layout arithmetic can prove.
+  // The parser's syntax findings, plus what the file itself can be held to. The
+  // measured pass adds the rest once the page has settled.
+  state.diagnostics = [
+    ...(state.doc.diagnostics ?? []),
+    ...geometryDiagnostics(state.doc),
+    ...contrastDiagnostics(state.doc),
+  ];
   state.boxes = new Map();
   const positions = arrangePages(state.model.pages, { gap: 48, perRow: 4 });
   state.model.pages.forEach((page, index) => {
@@ -234,6 +507,21 @@ function mountAll() {
   measurePageBoxes();
   applyCamera();
   drawOverlay();
+  renderProblems();
+
+  // The measured pass has to wait until the page has settled. Text laid out in a
+  // fallback family is a different width, and an image with no bytes yet is 0x0; a
+  // box measured before either arrives is a box the reader never sees, reported as
+  // overflow that is not there. The arithmetic pass above needs no waiting, so the
+  // drawer is never empty while this runs.
+  //
+  // It runs once per mount. A later change — a resize, an edit, a font that
+  // arrives after its deadline — is measured by the next mount, not by this one.
+  layoutSettled().then(() => {
+    // A newer mount has already replaced this one; its own pass will run.
+    if (generation !== mountGeneration) return;
+    recomputeDiagnostics();
+  });
 
   const ms = Math.round(performance.now() - started);
   ui.revision.textContent = `${state.revision} · ${ms}ms`;
@@ -456,9 +744,6 @@ function renderChrome() {
     }
   }
 
-  const errors = state.diagnostics.filter((d) => d.severity === "error").length;
-  ui.problemCount.textContent = String(state.diagnostics.length);
-  ui.problemCount.classList.toggle("has-errors", errors > 0);
   document.getElementById("undo").disabled = !state.canUndo || state.readOnly;
   document.getElementById("redo").disabled = !state.canRedo || state.readOnly;
   // A file that does not parse has nothing to export, and the service would answer 409.
@@ -468,6 +753,19 @@ function renderChrome() {
 
   renderProblems();
   renderInspector();
+}
+
+/**
+ * The count on the Problems button.
+ *
+ * It is a summary of the list beside it, so it is written wherever the list is.
+ * Keeping it inside `renderChrome` meant the measured pass — which only redrew the
+ * list — left a badge reading 2 above a drawer holding 7 rows.
+ */
+function renderProblemCount() {
+  const errors = state.diagnostics.filter((d) => d.severity === "error").length;
+  ui.problemCount.textContent = String(state.diagnostics.length);
+  ui.problemCount.classList.toggle("has-errors", errors > 0);
 }
 
 function findPageOfId(id) {
@@ -480,6 +778,7 @@ function findPageOfId(id) {
 }
 
 function renderProblems() {
+  renderProblemCount();
   ui.problemList.textContent = "";
   if (state.diagnostics.length === 0) {
     const row = document.createElement("div");

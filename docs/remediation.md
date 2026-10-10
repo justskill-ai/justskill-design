@@ -439,7 +439,7 @@ pen 的 `stroke` 可以只有 `{align, thickness}` 而**没有画笔**（这份�
 ## 5. 验证方法
 
 ```sh
-node --test "test/*.test.mjs"             # 546 通过
+node --test "test/*.test.mjs"             # 557 通过
 node scripts/gen-references.mjs --check   # 三份 references
 node design.mjs validate examples/design.html
 ```
@@ -486,3 +486,270 @@ node design.mjs validate examples/design.html
 | 契约与设计 | `docs/format-v3.md`、`docs/plan.md`、`SKILL.md`、`README.md` |
 | evals | `evals/evals.json` |
 | 新测试 | `test/contract.test.mjs`、`test/purity.test.mjs`、`test/evals.test.mjs`、`test/tokens.test.mjs`、`test/rename.test.mjs`、`test/migrate.test.mjs`、`test/icon-fragment.test.mjs`、`test/skill-doc.test.mjs`；另在 `test/pen-reader.test.mjs` 补了一条守卫（§3.20），`test/verbs.test.mjs` 补了 4 条（§3.18、§3.19、§3.21） |
+
+---
+
+# 第二轮：几何检查与对比度（本次）
+
+> 第一轮清掉了「契约说了、代码没做」的东西。这一轮清掉 `docs/format-v3.md` §6 里最后那段
+> **「未实现，别照这份文档写代码」**：实现两件，划掉一件。契约里不再有任何声明过、没人兑现的条目。
+
+## R0. 结果
+
+```
+node --test "test/*.test.mjs"            → 604 通过 / 0 失败
+node scripts/gen-references.mjs --check  → 三份 references 全部 ok
+```
+
+测试 557 → 604。新增 `test/geometry.test.mjs`（30 条）、`test/contrast.test.mjs`（15 条）、
+`test/write-funnel.test.mjs` 补 2 条。
+
+**真实文件诊断数（本次之后）**：
+
+| 文件 | 第一轮之后 | 本次之后 |
+|---|---|---|
+| `examples/design.html` | 0 | **1**（`a11y/low-contrast`） |
+| `examples/miniprogram.html` | 0 | **22**（`a11y/low-contrast` 20 条上限 + `geometry/clipped` 1 + `geometry/absolute-outside` 1） |
+| `test/fixtures/real/pen-pages.html` | 65 | **84**（+19 `a11y/low-contrast`） |
+| `test/fixtures/real/open-design-components.html` | 141 | **141**（未变） |
+
+**没有任何既有编码改变条数。** 增加的全部来自两个新族。20 条上限见 R2。
+
+## R1. `lib/geometry.mjs`（新）
+
+确定性算术，不建布局引擎。算不出的量一律 `unknown` 并向上传播，依赖它的检查随即不报 ——
+**会喊狼来了的检查比安静的检查更糟**。文本、图片、字形、未展开的实例都没有可测的固有尺寸，
+所以文本多的设计几乎不产生几何报告，这是有意的。
+
+五个码，全是 warning：`geometry/overflow`、`geometry/clipped`、`geometry/fill-collapsed`、
+`geometry/absolute-outside`、`geometry/axis-conflict`。接在 `validateDesign` 末尾。
+
+**这一轮最要紧的一条规则：能收缩的子节点不算进溢出。**
+第一版忽略了 CSS 的 `flex-shrink` 默认值 1，于是 `test/fixtures/real/pen-pages.html` 报了
+**9 条越界，全是假的** —— 一个 Tabs 行里三个 `width:100%` 的孩子被算成 981px 塞进 327px 的框，
+而浏览器把它们各缩到三分之一。改成只在**不能收缩**（`flex-shrink:0` 或 `flex:0 0 auto`）的孩子
+之和超过内容尺寸时报，同一份文件变成 0 条。
+
+改完的模型抓的是真的东西：`examples/miniprogram.html` 的 "Months" 是三个 `width:236px;flex-shrink:0`
+的孩子放在 343px 且 `overflow:hidden` 的行里，236×3 + 10×2 = 728 —— 真的被切掉（那是一条横向滚动条）。
+
+## R2. 对比度（`a11y/low-contrast`）
+
+阈值 4.5:1，一条规则，不加大字号例外。三条弃权，都是「比值不可知」的情形：照片、半透明填充、
+所有色标都半透明的渐变。渐变按**最差**色标计分 —— 文字确实坐在每个色标上。
+
+**纠正 v1 的一处：** v1 遇到半透明的填充会**保留祖先的填充**继续打分。白底上一层 `#00000080`
+之上再拿白字跟祖先的白比，是自信地算错。契约 §6 的原话本来就是「半透明填充抑制检查」，
+所以弃权才是让契约成真的那一版，v1 的代码是偏离的那个。
+
+**两个码都加了每条 20 条的上限。** 参考文件里一个 faint 令牌用在 92 个文本节点上，产生 92 条
+*真实* 的对比度发现。92 条一样的行就是一份没人读的报告，而没人读的检查等于不存在。
+上限是 20，第一轮 §3.0 的 152 条因此降到 22 条。
+
+## R3. 计划外：`add` 的回执少报警告
+
+**症状**：同一个文件，`validate` 与 `set` 说 `22 warnings`，`add` 说 `0 errors, 0 warnings`。
+
+**根因**：`lib/node/verbs/add.mjs` 的 `buildReceipt` 把 `compiled.diagnostics`（**片段编译**的发现）
+当作摘要来源，而 `lib/node/write-verbs.mjs` 用的是 `after`（**写盘后整份文件**的诊断）。
+两者回答的本来是同一个问题。
+
+**为什么一直没被发现**：`examples/miniprogram.html` 在第一轮之后是 0 条诊断，两种口径给出同一个
+数字。这一轮它有了 22 条 warning，分歧才现形。**是我的改动把它照出来的，不是它自己冒出来的。**
+
+**改法**：`buildReceipt` 接受 `diagnostics`，两个调用点都传 `after`。现在三条命令都报 22。
+
+回执是模型唯一的反馈通道。一份说「0 warnings」而文件里有 22 条的回执，等于告诉模型相反的事实 ——
+这正是第一轮 §3.18 修掉的那一类「同一份结果、两种读者互相矛盾」。
+
+## R4. 阶段 0：两处搬移（消除反向依赖）
+
+`lib/geometry.mjs` 需要逐节点声明表与令牌解析，两者原本都在 `lib/render.mjs` 里。
+把它们搬到更低的层，`render.mjs` 导入后再导出，**调用点一处未改**：
+
+- `styleMapOf` → `lib/parse.mjs`，与 `parseDeclarations` 同处。
+- `resolveTokens` → `lib/tokens.mjs`，与它遵守的深度上限和环规则同处。
+
+**搬移顺手删掉了一份重复的声明切分器。** `render.mjs` 里那份 `parseDeclarationsLocal` 带着一条
+注释，说从 `parse.mjs` 取这个 helper「would be a cycle」—— 而 `render.mjs` 本来就 import 了
+`parse` 与 `getAttr`，环根本不存在。注释是错的，副本是多余的，两份实现就是两次在
+`url("data:…;base64,…")` 上分叉的机会。
+
+**搬移过程中被吞掉的一个错误值得记下来**：删掉那份本地切分器之后，`lib/render.mjs` 里还有三处
+调用它。抛出的 `ReferenceError` 被 `expandInstance` 外面的「坏引用不能把画布整块弄白」的兜底
+捕获了，于是实例静静地不展开。表现是 5 个实例相关的测试变红，而不是崩。**兜底能藏住编码错误，
+这一点在改动共享模块时要记得。**
+
+## R5. 划掉：`asset/` 的未知字体族
+
+`lib/` 是纯的，没有文件系统也没有网络，所以无法知道一个字体族是否存在。唯一确定的判据是
+「不在系统字体表里」，而它几乎命中每个真实设计（Inter、Noto Sans SC）。契约已经把这条划掉，
+并写明要做只能做成 `validate --offline` 那样的显式开关。
+
+## R6. 阶段 3：画布
+
+两遍，都接在 `canvas/app.mjs`。
+
+**算术遍**（`lintGeometry`）在 `mountAll` 里随解析一起跑，所以抽屉从不空着。
+
+**实测遍**在 `document.fonts.ready` 之后跑 —— 用回退字体量出来的盒子不是读者看到的盒子，
+会把不存在的溢出报成溢出。挂载代数（`mountGeneration`）保证被替换掉的那次挂载的回调不会写入。
+
+三个陷阱，各是一种报错话的方式，都处理了：
+
+- **缩放。** `applyCamera` 在 `ui.canvas` 上写 `transform: scale(zoom)`，所以每个矩形都是屏幕像素。
+  父子同倍缩放，比较本身不受影响 —— 但消息里的数字受影响，所以一律先除回 CSS 像素。
+- **展开的实例。** 展开会把组件的 `data-id` 复制多份，而 op 永远不定位副本。重复 id 直接跳过。
+  实测确认有效：`q8yFj` 同时出现在两个实例里，被正确跳过。
+- **亚像素。** 不到 1px 的超出是舍入，不是缺陷。
+
+**粒度**：`geometry/absolute-outside` 按节点报（和算术遍一致，这样两遍说同一件事、同一地址，
+合并时能收拢）；另外两个码**按帧报一条**，取最差的那个孩子 —— 一行三个放不下的孩子是同一个事实，
+报三遍就是没人读的报告。参考文件上第一版报了 10 条，按帧收拢后 7 条（**10 条不可重放**：那一版已被覆盖；7 条可以，见 R8）。
+
+**合并规则**：`code|target` 相同就以实测那条为准，它带浏览器画的真数字。
+
+**实测结果（`examples/miniprogram.html`，26 页）**：7 条 —— 6 条 `geometry/clipped` + 1 条
+`geometry/absolute-outside`，逐条人工核对为真。最典型的一条：3 个 `width:236px;flex-shrink:0`
+的孩子放在 343px 且 `overflow:hidden` 的行里，最宽的那个超出 **385px**。
+
+实测遍补的正是**算术遍看不见**的那部分：那 6 个帧的孩子里有文字或图片，算术遍一律 unknown。
+
+**可测性**：比较本身（内容盒、四边超出、容差、选码）抽成 `lib/geometry.mjs` 的纯函数
+`overhangOf`，由 `test/geometry.test.mjs` 覆盖（+6 条）。画布里只剩取 DOM 的那一半 ——
+和 v1 把 `snap` / `view` / `layers` 抽成无 DOM 模块、好让 `node --test` 够得着是同一个做法。
+
+## R7. 有意没做
+
+| 不做 | 为什么 |
+|---|---|
+| 大字号 3:1 的对比度规则 | v1 没有。加它会把范围扩大到一个没有参考实现的判断上。 |
+| 检查 `background-image` 上的 `background-color` | 目前只要有 `background-image` 就以它为准。一个同时写了色和图的元素，图在上，所以这个选择是对的。 |
+| 交叉轴溢出（200px 的列里放 500px 的孩子） | 算术遍只回答「主轴装得下吗」。v1 同样如此。实测遍用两个真实盒子的两条轴比较，所以画布上抓得到；命令行上保持沉默 —— 这是错也应该错的方向。已写进 `lib/geometry.mjs` 的文件头。 |
+| 抽屉显示完整的校验报告 | 抽屉今天显示解析层 + 几何。其余诊断归 `design.mjs validate`。这是既有状态，不在本轮范围。 |
+
+## R8. 第二轮复核：按清单整改
+
+第二轮由另一会话逐条复核，附真实环境反例。**八条 A/B 类我都在 Chrome 里重新量过**，
+不是采信清单的说法；量完再改。三处清单本身说错了，记在下面。
+
+### 假报（A 类）
+
+三例都出在 `display` 上。这个模块只读 `display` 的 `none`，其余一律不下压 flex 语义：
+
+- **`display:none` 的孩子仍被算进父级。** 契约 §5 本来就写「`data-hidden="true"` 等价 `display:none`」，
+  而代码只认前者。浏览器量到 `scrollWidth 100 = clientWidth 100`，模型报 `overflow`。
+  现在两者走同一个 `isHidden`，子树的走查也一并跳过。
+- **`display:none` 的帧自己仍被排版。** 浏览器 `offsetWidth 0`，整帧不渲染。现在 `walk` 入口直接返回。
+- **`display:block` 被套上 flex 语义。** 浏览器把两个 80px 孩子纵向堆叠（top 0 / 10，`scrollWidth 100`），
+  模型按 row 相加报溢出。**没有**把它当列 —— block 布局里 `flex-shrink` 不生效，套 flex 语义只会
+  换来一批新漏报。它两个轴都不检查，自己声明的 `width`/`height` 照读。
+
+清单把这三条列在「最高优先」。**它们在本仓库 34 个 HTML 里出现 0 次**：没有任何内联 `display:none`
+或 `display:block`（`display:grid` 出现 1 次，在 `evals/snippets/s07.html`，那是 `refused` 夹具，
+报 `style/bad-enum`）。所以它们是「可达但未观测」的假报，不是正在害人的假报。改动仍然做了：
+`display` 是表里的合法取值，agent 用 `set` 就能写出来，写出来工具就会撒谎。
+
+### 漏报（B 类）
+
+- **`margin` 完全不读。** `margin` 是表里的正式成员（§6 留着它，因为 pen 导出用
+  `margin:-0.5px 0 0 0` 顶焦点环），`evals/snippets/s01.html` 是 `accepted` 而且用 `margin:16px 0`。
+  浏览器：300px 的行里两个 150px 孩子本来正好，第二个加 `margin:0 0 0 50px` 后 `scrollWidth 350`。
+  现在主轴那一对计入（**按包含块宽度解析百分比，含上下** —— 浏览器量到 400×200 的列里
+  `margin:10% 0 0 0` 是 **40** 不是 20），负值保留符号，`auto` 弃权。只读简写：单边写法在
+  `REJECTED_PROPERTIES` 里，那样的文档该拿的是 `style/rejected-property`。
+- **`flex-wrap:wrap` 的一刀切 return。** 单个 400px 孩子放进 100px 的 wrap 行，
+  浏览器 `scrollWidth 400` —— 没有第二行可去，照样溢出。现在 wrap 只抑制「多个孩子相加」那条路径。
+- **hug 不理会 wrap。** 浏览器：300px 的 wrap 行里两个 200×60 是**两行 120px**，模型算 60。
+  现在 wrap 的**交叉轴**是 `unknown`（主轴不受影响：hug 主轴时容器正好等于孩子所需，不会换行 ——
+  浏览器量到 400，模型也给 400）。行数取决于可用宽度，那不是节点自己的属性。
+- **`clamp` 的次序与 CSS 相反。** 先 max 后 min，**max 赢**；CSS 是 min 赢。这与本模块
+  `checkAxisConflict` 那条 hint 的原文自相矛盾。浏览器：`width:100px;min-width:120px;max-width:80px`
+  画在 **120**，模型给 80。现在 120，hint 与实现一致。
+- **绝对定位盒被当 stretch。** 浏览器：空盒子是 **0px**，不是父级的 300px；而里面放一个 400px 孩子时
+  是 **400px**（shrink-to-fit 被内容自身的下限托住，所以 hug 才是对的答案）。现在绝对定位不拉伸，
+  需要尺寸时按 hug 算。
+
+### 包含块（F1，清单标为「未验证」）
+
+清单说「未构造用例」。构造了：**这是假报，不只是漏报**。父级 `static`、祖父 `relative` 时，
+浏览器按祖父摆放；两遍都拿 `static` 父级去比，于是一个稳稳坐在祖父里的盒子被报成越界。
+现在包含块是**最近的定位祖先**，两遍同一条规则（算术遍 `containingBoxOf`，实测遍
+`containingBlockOf`），没有定位祖先就弃权。页面算包含块 —— 页面不允许自己写 `position`，
+否则这类盒子没有基准。
+
+`measureById` 与 `checkAbsolute` 的基准**必须分开**：一个节点如果是定位的，它为后代建立基准，
+但**不为自己**。第一版把两者写成一个值，于是每个绝对定位盒都成了自己的包含块 ——
+一个盒子永远不可能在自己外面。测试当场抓住。
+
+### 文档与注释硬错误（C 类）
+
+- R0 的「596 通过」→ **604**（同一段下一行就写着 604，且 557+30+15+2 也算得 604）。
+- `#world` **不存在**。`applyCamera` 写的是 `ui.canvas`。全仓库 `world` 只命中那条注释本身，
+  代码一直是对的，注释在骗读者。`canvas/app.mjs` 与本文档 R6 都改了。
+- **「同一个码最多报 20 条」在画布上不成立。** `lintGeometry` 有上限，画布的实测遍没有。
+  构造了 25 个文字溢出的帧：CLI 报 **0** 条（算术遍量不到文字宽度），抽屉列出 25 行。
+  现在上限在 `mergeGeometry` **之后**施 —— 合并之后才是读者真正会看到的那份集合。
+  实测：抽屉 20 行，页面上量到 25 处真溢出。
+- `test/render.test.mjs` 那条「两个切分器一致」是**同义反复**：`render.mjs` 的 `styleMapOf` 与
+  `parse.mjs` 的是同一个绑定。改名并改成断言投影本身的承诺（属性小写、后声明胜出、注释剥离），
+  外加显式断言两个绑定相等。
+- `lib/node/static.mjs` 里 `/lib/geometry.mjs` 那行**是多余的**：`buildRoutes` 扫 `lib/`，
+  实测 21 条 `lib/` 路由一条不缺。注释里补了一句「这条表是文档，不是必需」。
+
+### 被删掉的缓存（C4，清单只提了一句）
+
+`styleMapOf` 的**文本键缓存**随那份重复切分器一起被删了，而它是 HEAD 就有的。
+实测：`validateDesign` 一个文件切 **13889** 次声明，占 13.9ms/42ms；1440 个 `style` 属性里只有 **361** 个互不相同。
+缓存搬回 `lib/parse.mjs`（`parseDeclarations` 旁边，一份实现一份缓存），数组与其中的对象都
+`Object.freeze` —— 共享可变结果会毒化缓存，冻结让这件事在出错的那次测试里就炸。
+中位耗时 **32.1ms → 19.6ms**。
+
+### 画布一致性（D 类）
+
+- **徽标不更新。** `renderChrome` 在 `mountAll` 之后跑，而实测遍只调 `renderProblems`。
+  实测：徽标 **0**、抽屉 26 行；修完徽标 27、抽屉 27。现在 `renderProblems` 自己写徽标，
+  两个视图不可能再分家。
+- **实测遍只等字体、不等图片。** 图片没字节时是 0×0，拿它量出来的盒子不是读者看到的盒子。
+  现在等「字体 + 已挂载且未 complete 的图片」，图片有 2s 上限（挂住的图片不能把抽屉永远留在半成品状态）。
+  用一个延迟 1500ms 的图片实测：t=26ms 图片已挂载且 `complete:false`、徽标 0；
+  t=1537ms 图片完成**同一瞬间**徽标变 1 —— 确实在等。
+
+### 需要拍板的（E 类）
+
+- **半透明填充：改成合成，不再弃权。** 清单的反例成立：白字压在白卡片上的 `#00000080` 遮罩，
+  合成后是 `#7f7f7f`，比值 **3.97:1** 是真缺陷；而同一文件去掉遮罩（白字压白底）反而报 1 条。
+  代价不是「少报一条假报」，是「放过一条真报、留下一条更荒谬的报」。一层 `background-color`
+  的 alpha 是不透明底色上的 sRGB 算术，浏览器就是这么合的，所以它属于「算得出」那一类。
+  **仍然弃权**的是：没有不透明底色的半透明层（页面之下的 surface 属于交付物，不属于文件）、
+  照片、全半透明色标的渐变。先量了影响再改：参考文件未截断前 150 条 → 158 条，
+  两边都撞 20 条上限，**34 个文件的报告集合一个字节都没变**。
+- **抽屉现在显示 `a11y/low-contrast`。** 徽标上的数字被读成「这个文件有多少问题」，
+  而画布是读者唯一能看见那张图的地方。同一个文件画布说 2、`validate` 说 22，
+  就是画布在靠省略撒谎 —— 与本轮 R3 修掉的 `add` 回执是同一类错。
+  其余诊断仍不进抽屉：结构/属性说的是文件的形状，正在编辑的文件允许是半成品，
+  43 行 `structure/missing-id` 会把布局埋掉。
+- **「继承自 v1」不是不可考。** 清单说本仓库 HEAD 发 0 条 `geometry/*` 所以无从考证 ——
+  但 v1 是另一个目录，`skill-design/lib/geometry.mjs` 就在那儿，它同样只算主轴
+  （通篇 "on the main axis"）。出处现在写明了文件名。
+
+### 清单本身说错的三处
+
+1. **B2 的验收写「新样例报 `clipped`」。** 那个样例没有 `overflow`，默认 `visible`，
+   内容溢出不裁切，正确编码是 **`overflow`**。测试按 `overflow` 写。
+2. **B5 标为「低」，理由说反了。** 清单说方向是漏报。实测两个方向都错：空盒子模型给 300
+   而浏览器给 **0**（假报方向），宽孩子模型给 300 而浏览器给 **400**（漏报方向）。
+   修法是同一个：不拉伸、按 hug 算。
+3. **F3 的「1515 应该改成 1754」。** 1515 是**导入账本**的数字（只数变成设计节点的那些，
+   26 个画板不在内），1541 是 `.pen` 的输入节点数**也**是产物 HTML 的 `data-id` 数，
+   1754 是 HTML 的标签总数（多出来的是 `<svg>` 几何和包装元素）。三个数各说的是不同的东西。
+   README 的原句没错但看不出口径，改成写明口径。（**写错的是我**：我在交付摘要里
+   把 1515 当成了 HTML 的元素数。）
+
+### 本轮不做
+
+| 不做 | 为什么 |
+|---|---|
+| R6 的「第一版报 10 条、按帧收拢后 7 条」改成可重放 | 那是历史记录，第一版已被覆盖。7 条可独立复现，10 条不可。记录里说明它不可重放即可，不必回填。 |
+| `mountGeneration` 竞态的自动化测试 | 只有代码阅读，构造不出「旧挂载的 fonts 回调晚于新挂载」的时序。守卫本身是对的（回调里比代数），没有测试是覆盖缺口，不是已知缺陷。 |
+| `geometry/` 检查交叉轴 | 见 R7。 |
