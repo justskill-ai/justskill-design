@@ -367,6 +367,46 @@ test("funnel: a valid op writes, returns a receipt, and bumps the revision", asy
   });
 });
 
+/**
+ * An edit whose inverse is a whole node still has to come back as JSON.
+ *
+ * Every op list is JSON-shaped except through one key: an inverse carries the
+ * removed content as *live* node objects, so `applyOps` can put the exact object
+ * back, and those objects hold `parent` links — a cycle through `children`.
+ * Style ops hid this, because their inverse is a string: `{\"op\":\"set\",\"value\":\"40px\"}`.
+ * A text op's inverse is the text node itself, so the response threw inside
+ * `JSON.stringify` and answered 500 — *after* the file had been written. The
+ * canvas showed "Refused: internal" for an edit that had landed, which is the
+ * worst of both: the work is done and the tool says it was refused, so the next
+ * thing anyone does is try again.
+ */
+test("a text op answers JSON, and undo of it does too", async () => {
+  const file = fixture(VALID);
+  await withServer(file, async (server) => {
+    const res = await post(server, "/api/ops", {
+      baseRevision: revisionOf(readFileSync(file, "utf8")),
+      ops: [{ op: "set", target: "home__title", prop: "text", value: "你好2" }],
+    });
+
+    assert.equal(res.status, 200, "a text edit is not a server error");
+    assert.equal(res.json.ok, true);
+    assert.equal(res.json.changed, true);
+    assert.match(readFileSync(file, "utf8"), />你好2</);
+
+    // The live half is what an in-process caller needs; the wire half has to be
+    // JSON, and it has to still describe the same op.
+    assert.equal(res.json.applied[0].prop, "text");
+    assert.equal(res.json.inverse[0].prop, "text");
+    assert.ok(!("parent" in res.json.inverse[0]), "no parent links on the wire");
+    assert.doesNotThrow(() => JSON.stringify(res.json));
+
+    const undone = await post(server, "/api/undo", {});
+    assert.equal(undone.status, 200, "undoing a text edit is not a server error either");
+    assert.equal(undone.json.ok, true);
+    assert.match(readFileSync(file, "utf8"), />你好</);
+  });
+});
+
 test("funnel: a new error is refused with 409 and the file is byte identical", async () => {
   const file = fixture(VALID);
   await withServer(file, async (server) => {
