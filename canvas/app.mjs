@@ -28,7 +28,7 @@ import { collectTokens, lintContrast } from "/lib/validate.mjs";
 import { lintGeometry, overhangOf, MAX_REPORTED_PER_CODE } from "/lib/geometry.mjs";
 import {
   newView, pageRoots, isOpen, toggleNode, openPath, visibleNodes, hasChildren, pathTo,
-  expandAll, collapseAll,
+  expandAll, collapseAll, rungAt,
 } from "./tree.mjs";
 import {
   groupedFields, controlFor, valuesFor, hintFor, rangeFor, scrubFor, isNumericValue,
@@ -91,6 +91,12 @@ const state = {
   canUndo: false,
   canRedo: false,
   busy: false,
+  // What the pointer is over, and which page it is over — ids repeat across
+  // pages, so the id alone does not name an element. The selection remembers its
+  // page for the same reason: the box has to be drawn around the copy the user
+  // picked, not around the first copy with that id in the document.
+  hoveringPage: null,
+  selectionPage: null,
   // The layer tree: the nested nodes, what is open, and which row has the keyboard.
   tree: [],
   treeView: newView(),
@@ -100,6 +106,14 @@ const state = {
   // Set by a selection made on the canvas: the row has to be opened to and
   // scrolled to even when the selection did not change.
   expandRow: false,
+  /*
+   * The rung the canvas is standing on, as a depth: 1 is "the page's own
+   * children", 2 is "their children", and 0 happens when someone selects a page
+   * itself. A depth rather than an element, because the solid box follows the
+   * pointer — hovering the next section along has to land on *that* section, and
+   * an element-shaped level could only ever name one of them.
+   */
+  levelDepth: 1,
   // The inspector sections the user folded shut, by section id.
   folded: new Set(),
 };
@@ -893,17 +907,27 @@ function addressOf(node) {
   return null;
 }
 
+/**
+ * What a canvas event is over, and *which page* it is over.
+ *
+ * The page is not decoration. Ids repeat across a document — every instance of a
+ * component expands into a copy that keeps the component's inner ids — so an id
+ * on its own names one element per instantiation, and a lookup that does not say
+ * which artboard to look in answers with a copy somewhere else on the canvas.
+ * The composed path knows: the page box is in it, after the element.
+ */
 function targetFromEvent(event) {
   const path = event.composedPath ? event.composedPath() : [];
+  const pageBox = path.find((entry) => entry?.classList?.contains("page-box")) ?? null;
+  const pageId = pageBox?.dataset.pageId ?? null;
   for (const entry of path) {
     if (entry?.nodeType !== 1) continue;
-    if (entry.classList?.contains("page-box")) {
-      const id = entry.dataset.pageId;
-      const pageNode = state.model.pages.find((p) => p.id === id)?.node;
-      return pageNode ? { id, element: entry, kind: "page" } : null;
+    if (entry === pageBox) {
+      const pageNode = state.model.pages.find((p) => p.id === pageId)?.node;
+      return pageNode ? { id: pageId, element: entry, kind: "page", pageId } : null;
     }
     if (entry.hasAttribute?.("data-id")) {
-      return { id: entry.getAttribute("data-id"), element: entry, kind: "element" };
+      return { id: entry.getAttribute("data-id"), element: entry, kind: "element", pageId };
     }
   }
   return null;
@@ -923,32 +947,68 @@ function elementForId(id) {
 
 // -- overlay -----------------------------------------------------------------
 
+/**
+ * The boxes on the canvas, in the order they are painted.
+ *
+ *   the selection   solid, with the four resize handles
+ *   the level       solid, thinner, no handles — what the pointer is standing on
+ *   its children    dashed — one click each, and one level down
+ *   the one under the pointer   dashed, with a wash, so "what will I get" is not
+ *                               a guess between two boxes that overlap
+ *
+ * The level is drawn as a box of its own only when it is not already the
+ * selection, because two borders on one element reads as a mistake.
+ */
 function drawOverlay() {
   ui.overlay.textContent = "";
   const rect = ui.viewport.getBoundingClientRect();
-  for (const [id, className] of [[state.selection, "outline"], [state.hovering, "outline hover"]]) {
-    if (!id) continue;
-    const element = elementForId(id);
-    if (!element) continue;
-    const box = element.getBoundingClientRect();
-    const node = document.createElement("div");
-    node.className = className;
-    node.style.left = `${box.left - rect.left}px`;
-    node.style.top = `${box.top - rect.top}px`;
-    node.style.width = `${box.width}px`;
-    node.style.height = `${box.height}px`;
-    if (className === "outline") {
-      for (const [hx, hy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
-        const handle = document.createElement("div");
-        handle.className = "handle";
-        handle.dataset.handle = `${hx}${hy}`;
-        handle.style.left = `${hx ? box.width : 0}px`;
-        handle.style.top = `${hy ? box.height : 0}px`;
-        node.appendChild(handle);
-      }
-    }
-    ui.overlay.appendChild(node);
+
+  if (state.selection) {
+    // The page it was picked in, when that is known; otherwise the id is all
+    // there is and the first match is the answer, as it always was.
+    const element = (state.selectionPage ? elementInPage(state.selectionPage, state.selection) : null)
+      ?? elementForId(state.selection);
+    if (element) ui.overlay.appendChild(boxOver(element, rect, "outline", { handles: true, id: state.selection }));
   }
+
+  const picture = hoverPicture();
+  if (!picture) return;
+
+  if (picture.levelId !== state.selection) {
+    const element = elementInPage(picture.pageId, picture.levelId);
+    if (element) ui.overlay.appendChild(boxOver(element, rect, "outline level", { id: picture.levelId }));
+  }
+
+  for (const child of picture.children) {
+    const element = elementInPage(picture.pageId, child.id);
+    if (!element) continue;
+    const className = child.id === picture.underId ? "outline child under" : "outline child";
+    ui.overlay.appendChild(boxOver(element, rect, className, { id: child.id }));
+  }
+}
+
+function boxOver(element, rect, className, { handles = false, id = null } = {}) {
+  const box = element.getBoundingClientRect();
+  const node = document.createElement("div");
+  node.className = className;
+  // Which element this box is around. Nothing reads it but a test and a
+  // console; a box that cannot say what it is a box around is a box nobody can
+  // debug.
+  if (id) node.dataset.id = id;
+  node.style.left = `${box.left - rect.left}px`;
+  node.style.top = `${box.top - rect.top}px`;
+  node.style.width = `${box.width}px`;
+  node.style.height = `${box.height}px`;
+  if (!handles) return node;
+  for (const [hx, hy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    const handle = document.createElement("div");
+    handle.className = "handle";
+    handle.dataset.handle = `${hx}${hy}`;
+    handle.style.left = `${hx ? box.width : 0}px`;
+    handle.style.top = `${hy ? box.height : 0}px`;
+    node.appendChild(handle);
+  }
+  return node;
 }
 
 // -- chrome ------------------------------------------------------------------
@@ -1128,23 +1188,99 @@ function pageBadge(node) {
   return box ? `${box.width}×${Math.round(box.height)}` : "";
 }
 
-function treeNodeFor(id) {
-  const path = pathTo(state.tree, id);
-  if (path.length === 0) return null;
-  let nodes = state.tree;
-  let found = null;
-  for (const step of path) {
-    found = nodes.find((node) => node.id === step) ?? null;
-    if (!found) return null;
-    nodes = found.children;
-  }
-  return found;
+/**
+ * The nodes from a page down to `id`, or an empty list if it is not in the tree.
+ *
+ * One walk, because everything the pointer needs is a *chain*: which rung to
+ * stand on, which child is under the pointer, and what a click would select are
+ * three readings of the same chain.
+ */
+function pathNodesOf(id, pageId = null) {
+  // Scoped to a page when the caller knows one, because a chain found in the
+  // wrong page is a chain of the wrong elements.
+  const root = pageId ? state.tree.filter((node) => node.id === pageId) : state.tree;
+  const trail = [];
+  const descend = (nodes) => {
+    for (const node of nodes) {
+      trail.push(node);
+      if (node.id === id) return true;
+      if (descend(node.children)) return true;
+      trail.pop();
+    }
+    return false;
+  };
+  return descend(root) ? [...trail] : [];
 }
 
-function setHovering(id) {
-  if (state.hovering === id) return;
+function treeNodeFor(id) {
+  const path = pathNodesOf(id);
+  return path.length > 0 ? path[path.length - 1] : null;
+}
+
+/**
+ * The element for `id`, inside the page it belongs to.
+ *
+ * Ids repeat across pages — a component instance expands into copies that keep
+ * the component's inner ids — so a lookup that does not say *which page* can
+ * answer with the same element in a different artboard, and the box is then
+ * drawn around something off screen. Scoping the search to the page the pointer
+ * is in is what keeps the boxes on the thing they name.
+ */
+function elementInPage(pageId, id) {
+  const pageBox = ui.canvas.querySelector(`.page-box[data-page-id="${CSS.escape(pageId)}"]`);
+  if (!pageBox) return null;
+  if (id === pageId) return pageBox;
+  for (const host of pageBox.querySelectorAll("*")) {
+    const root = host.shadowRoot;
+    if (!root) continue;
+    const found = root.querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
+ * What the pointer is offering: the level it is standing on, and the children
+ * of that level — one of which a click will select.
+ */
+function hoverPicture() {
+  if (!state.hovering) return null;
+  const path = pathNodesOf(state.hovering, state.hoveringPage);
+  if (path.length === 0) return null;
+  const rung = rungAt(path.map((node) => node.id), state.levelDepth);
+  const level = path[rung.depth];
+  return {
+    pageId: path[0].id,
+    levelId: rung.levelId,
+    level,
+    children: level.children ?? [],
+    underId: rung.underId,
+    insideChild: rung.insideChild,
+  };
+}
+
+/** The element a press would select: the child under the pointer, or the level. */
+function pressTarget(hoveredId, pageId = null) {
+  const path = pathNodesOf(hoveredId, pageId);
+  if (path.length === 0) return null;
+  const rung = rungAt(path.map((node) => node.id), state.levelDepth);
+  return { pageId: path[0].id, node: path[rung.depth + (rung.insideChild ? 1 : 0)] };
+}
+
+function setHovering(id, pageId = null) {
+  if (state.hovering === id && state.hoveringPage === pageId) return;
   state.hovering = id;
+  state.hoveringPage = pageId;
   drawOverlay();
+}
+
+/** The page a tree row belongs to: the outermost row it sits in. */
+function pageIdOfTreeRow(item) {
+  let root = item;
+  for (let el = item?.parentElement; el && el.id !== "layer-tree"; el = el.parentElement) {
+    if (el.classList.contains("tree-item")) root = el;
+  }
+  return root?.dataset.nodeId ?? null;
 }
 
 /**
@@ -1182,7 +1318,8 @@ function rowItemOf(target) {
 }
 
 ui.layerTree.addEventListener("mouseover", (event) => {
-  setHovering(rowItemOf(event.target)?.dataset.nodeId ?? null);
+  const item = rowItemOf(event.target);
+  setHovering(item?.dataset.nodeId ?? null, item ? pageIdOfTreeRow(item) : null);
 });
 ui.layerTree.addEventListener("mouseleave", () => setHovering(null));
 
@@ -1202,7 +1339,7 @@ ui.layerTree.addEventListener("click", (event) => {
     return;
   }
   item.focus({ preventScroll: true });
-  select(id, { reveal: true });
+  select(id, { reveal: true, pageId: pageIdOfTreeRow(item) });
 });
 
 /**
@@ -1251,7 +1388,7 @@ ui.layerTree.addEventListener("keydown", (event) => {
     case "End": standOn(visible[visible.length - 1].id); break;
     case "Enter":
     case " ":
-      select(node.id, { reveal: true });
+      select(node.id, { reveal: true, pageId: pageIdOfTreeRow(treeRows.get(node.id) ?? ui.layerTree) });
       break;
   }
 });
@@ -1683,6 +1820,11 @@ function findNode(id) {
  */
 function select(id, options = {}) {
   state.selection = id;
+  state.selectionPage = id ? options.pageId ?? null : null;
+  // Selecting something is also standing on it: the canvas then shows it solid
+  // and its own children dashed, ready for the next click down. Nothing selected
+  // is back to the first rung — the page's own children.
+  state.levelDepth = id ? pathNodesOf(id).length - 1 : 1;
   if (options.reveal) reveal(id);
   if (options.expand) state.expandRow = true;
   renderChrome();
@@ -1821,15 +1963,22 @@ ui.viewport.addEventListener("pointerdown", (event) => {
 
   const hit = targetFromEvent(event);
   if (hit) {
-    select(hit.id, { expand: true });
+    // A press takes the box the pointer is offering — the level's child it is
+    // inside, or the level itself — not the deepest element under the cursor.
+    // That is the whole point of the rungs: clicking a card must not land on the
+    // word inside it.
+    const target = pressTarget(hit.id, hit.pageId)
+      ?? { pageId: hit.pageId, node: treeNodeFor(hit.id) ?? { id: hit.id } };
+    select(target.node.id, { expand: true, pageId: target.pageId });
     // A page is placed by `data-canvas`, and that is the only spelling for it.
     // This used to fall through to the frame path below, which writes
     // `position:absolute` plus `left`/`top`: the canvas ignores those on a page
     // because it positions one from `data-canvas`, so the file looked right
     // here while `export` shipped the page pushed off its own top-left corner.
+    const moving = elementInPage(target.pageId, target.node.id) ?? hit.element;
     drag = hit.kind === "page"
       ? pageDrag(hit.element, hit.id, event)
-      : { kind: "maybe-move", id: hit.id, startX: event.clientX, startY: event.clientY, moved: false, element: elementForId(hit.id) };
+      : { kind: "maybe-move", id: target.node.id, startX: event.clientX, startY: event.clientY, moved: false, element: moving };
     capturePointer(ui.viewport, event.pointerId);
   } else {
     select(null);
@@ -1850,11 +1999,7 @@ function pageDrag(pageBox, id, event) {
 ui.viewport.addEventListener("pointermove", (event) => {
   if (!drag) {
     const hit = targetFromEvent(event);
-    const next = hit?.id ?? null;
-    if (next !== state.hovering) {
-      state.hovering = next;
-      drawOverlay();
-    }
+    setHovering(hit?.id ?? null, hit?.pageId ?? null);
     return;
   }
 
@@ -1999,7 +2144,11 @@ window.addEventListener("keydown", (event) => {
     return;
   }
   if (event.key === "Escape") {
-    select(null);
+    // Up one rung, and the selection goes with it: from a card to the section it
+    // sits in, and from the first rung to nothing selected at all.
+    const path = state.selection ? pathNodesOf(state.selection, state.selectionPage) : [];
+    if (path.length - 1 > 1) select(path[path.length - 2].id, { pageId: path[0].id });
+    else select(null);
     return;
   }
   const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };

@@ -157,6 +157,32 @@ export function openPath(nodes, id, view) {
   return path;
 }
 
+/**
+ * Where a pointer at `path` lands, given the rung the panel is standing on.
+ *
+ * `path` is the chain from the page down to the element under the pointer, so
+ * `path[0]` is the page and `path[d]` is the container `d` rungs down. The rung
+ * is a *depth*, not an element: hovering a different section at the same depth
+ * has to land on that section, which is what "the solid box follows the mouse"
+ * means. And the pointer is always either inside one of the level's children —
+ * the thing a click selects — or on the level itself, when it is over padding or
+ * a gap.
+ *
+ * `path` may be shorter than the rung (the pointer is on the page itself, or on
+ * a page with no elements): then the deepest rung that exists is the level.
+ */
+export function rungAt(path, levelDepth) {
+  if (path.length === 0) return null;
+  const depth = Math.max(0, Math.min(levelDepth, path.length - 1));
+  const insideChild = path.length > depth + 1;
+  return {
+    depth,
+    levelId: path[depth],
+    underId: insideChild ? path[depth + 1] : path[depth],
+    insideChild,
+  };
+}
+
 /** The rows to draw, in document order: everything not inside a closed node. */
 export function visibleNodes(nodes, view) {
   const out = [];

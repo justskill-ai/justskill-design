@@ -88,7 +88,10 @@ The canvas is three columns: the layer tree on the left — every page with its
 elements nested under it, opening closed, with expand-all and collapse-all in the
 header and picking an element on the canvas opening the path down to it — the
 design in the middle, and the selected element's own properties on the right,
-grouped into sections and edited with the control its grammar asks for. Either side folds away with the
+grouped into sections and edited with the control its grammar asks for.
+Hovering shows the container the pointer is standing on, solid, and that
+container's direct children, dashed — a click takes the dashed box under the
+pointer, and Escape walks back up one rung. Either side folds away with the
 button on the canvas edge or `⌘\` (the tree) and `⇧⌘\` (the inspector), and
 either edge drags to resize. None of that is document state: the panels remember
 themselves in the browser and never write a byte to the design file.

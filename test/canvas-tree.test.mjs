@@ -20,7 +20,7 @@ import assert from "node:assert/strict";
 
 import {
   nest, walk, byId, pathTo, hasChildren, isOpen, toggleNode, openPath, visibleNodes,
-  pageRoots, newView, expandAll, collapseAll,
+  pageRoots, newView, expandAll, collapseAll, rungAt,
 } from "../canvas/tree.mjs";
 
 /** A row, in the shape `pageTree()` produces. */
@@ -263,4 +263,57 @@ test("a page with elements is closed like everything else", () => {
 
   expandAll(view);
   assert.equal(visibleNodes(roots, view).length, 8, "the page, its rows, and their children");
+});
+
+/* ------------------------------------------------------------------ *
+ * The rung a pointer is standing on
+ * ------------------------------------------------------------------ */
+
+/** page > section > card > label, the shape a phone screen has. */
+const CHAIN = ["home", "section", "card", "label"];
+
+test("the first rung is the page's own child, not the page", () => {
+  const rung = rungAt(CHAIN, 1);
+  assert.equal(rung.levelId, "section", "the page is the canvas, not a level to stand on");
+  assert.equal(rung.underId, "card", "the pointer is inside one of the level's children");
+  assert.equal(rung.insideChild, true);
+});
+
+test("a click on the level's own padding has no child under it", () => {
+  const rung = rungAt(["home", "section"], 1);
+  assert.equal(rung.levelId, "section");
+  assert.equal(rung.underId, "section", "nothing deeper is under the pointer, so the level is the target");
+  assert.equal(rung.insideChild, false);
+});
+
+test("the pointer over the page itself stands on the page", () => {
+  const rung = rungAt(["home"], 1);
+  assert.equal(rung.depth, 0);
+  assert.equal(rung.levelId, "home", "there is no deeper rung to stand on");
+  assert.equal(rung.underId, "home");
+  assert.equal(rung.insideChild, false);
+});
+
+test("drilling in takes the same pointer one rung deeper", () => {
+  const shallow = rungAt(CHAIN, 1);
+  const deep = rungAt(CHAIN, 2);
+  assert.equal(shallow.levelId, "section");
+  assert.equal(deep.levelId, "card", "the rung moved down, the pointer did not move at all");
+  assert.equal(deep.underId, "label");
+});
+
+test("a rung deeper than the pointer goes is answered by the deepest rung there is", () => {
+  const rung = rungAt(["home", "section"], 4);
+  assert.equal(rung.levelId, "section", "not a crash, and not the page");
+  assert.equal(rung.underId, "section");
+});
+
+test("a depth below zero is the page, not an index error", () => {
+  const rung = rungAt(CHAIN, -2);
+  assert.equal(rung.levelId, "home");
+  assert.equal(rung.underId, "section", "the page's child, which is the rung a pointer starts on");
+});
+
+test("an empty path has no rung", () => {
+  assert.equal(rungAt([], 1), null);
 });

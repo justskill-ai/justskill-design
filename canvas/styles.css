@@ -420,7 +420,23 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   pointer-events: none;
 }
 
-.outline.hover { border-style: dashed; background: none; border-color: #8fb4ff; }
+/*
+ * The level the pointer is standing on: solid, like the selection, but thinner
+ * and without handles. The difference has to be visible at a glance, because the
+ * two can be on screen at once — you can be standing on one section while
+ * another one is selected.
+ */
+.outline.level { border-color: #7ea9ff; }
+
+/* Its direct children: one click each, one rung down. */
+.outline.child {
+  border-style: dashed;
+  border-color: #8fb4ff;
+  background: none;
+}
+
+/* The one the pointer is actually over — the box a click would take. */
+.outline.child.under { background: #4c8dff14; border-color: var(--chrome-accent); }
 
 .handle {
   position: absolute;

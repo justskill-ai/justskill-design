@@ -230,6 +230,12 @@ your commands, so a drag cannot write something `validate` would refuse. If a
 drag is refused, the canvas shows what it would have introduced. Clicking the
 empty canvas clears the selection; dragging it pans.
 
+Picking is by rungs, not by depth: hovering outlines the container the canvas is
+standing on (solid) and that container's direct children (dashed), and a click
+takes the dashed box under the pointer — the child, not the deepest element
+inside it. That is how a person selects a card without landing on the word in
+it; they click again to go one rung deeper. Escape walks back up a rung.
+
 The canvas has three columns: a layer tree (every page, its elements nested,
 opening fully collapsed, with expand-all and collapse-all in the header — picking
 an element on the canvas opens the tree down to it and selects that row), the
