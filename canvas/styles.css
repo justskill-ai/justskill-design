@@ -413,30 +413,72 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 
 .overlay { position: absolute; inset: 0; pointer-events: none; }
 
+/*
+ * A box is a line *around* the element, and nothing else.
+ *
+ * Three decisions, all of them about not covering the thing being looked at:
+ *
+ *   `outline`, not `border`. An outline is painted outside the border box, so
+ *   the weight of the line costs the design nothing — a border eats the first
+ *   pixels of every edge, and on a 3px-wide element at 11% zoom that is the whole
+ *   element. Because the line is free, its weight can be chosen for legibility
+ *   alone: two pixels, drawn in viewport pixels rather than the design's, so it
+ *   is the same at 11% and at 400%. One pixel was a hairline against a dark page
+ *   or a busy photograph.
+ *   No fill. The selection used to be washed with 10% blue, which on a full-page
+ *   frame is a veil over the entire artboard: you cannot judge a colour, a
+ *   gradient or a photograph through it.
+ *   Weight by kind, colour by commitment. Two pixels means "a level", one means
+ *   "a child of one". *Which* level — the committed one or the one the pointer is
+ *   standing on — is said by the colour and by the four handles, which only the
+ *   selection has. Encoding that in weight instead left the hover box thinner
+ *   than the children it was framing, which is backwards: the container is the
+ *   frame of the decision, not a cursor.
+ */
 .outline {
   position: absolute;
-  border: 1px solid var(--chrome-accent);
-  background: #4c8dff1a;
+  outline: 2px solid var(--chrome-accent);
+  outline-offset: 0;
+  background: none;
   pointer-events: none;
 }
 
 /*
- * The level the pointer is standing on: solid, like the selection, but thinner
- * and without handles. The difference has to be visible at a glance, because the
- * two can be on screen at once — you can be standing on one section while
- * another one is selected.
+ * The level the pointer is standing on: the same weight as the selection, a
+ * lighter blue, and no handles.
  */
-.outline.level { border-color: #7ea9ff; }
+.outline.level { outline-color: #8fb4ff; }
 
-/* Its direct children: one click each, one rung down. */
+/*
+ * Its direct children: one click each, one rung down.
+ *
+ * One pixel, and spelled out rather than inherited from `.outline`, which is a
+ * rule the class shares — the width was inherited once, and thickening the
+ * selection thickened every dashed box with it.
+ *
+ * One, not two, because a stack of rows with no gaps between them is the case
+ * this has to survive: thirteen rows in a card, each with a two pixel dashed box,
+ * is 26 pixels of dash across a 148 pixel card at 29% zoom — a mesh rather than
+ * thirteen boxes. Fading the colour instead only makes the mesh paler, which is
+ * why the width is what moved.
+ */
 .outline.child {
-  border-style: dashed;
-  border-color: #8fb4ff;
-  background: none;
+  outline-style: dashed;
+  outline-width: 1px;
+  outline-color: #8fb4ff;
 }
 
-/* The one the pointer is actually over — the box a click would take. */
-.outline.child.under { background: #4c8dff14; border-color: var(--chrome-accent); }
+/*
+ * The one the pointer is actually over — the box a click would take.
+ *
+ * It cannot be told apart by a wash any more, so it is told apart by the line:
+ * two pixels against its siblings' one, and brighter. It still reads as a dashed
+ * box, which is what it is — the child you are about to step into.
+ */
+.outline.child.under {
+  outline-width: 2px;
+  outline-color: #cfe0ff;
+}
 
 .handle {
   position: absolute;
