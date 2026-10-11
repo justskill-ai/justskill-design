@@ -948,11 +948,17 @@ function elementForId(id) {
 /**
  * The boxes on the canvas, in the order they are painted.
  *
- *   the selection   solid, with the four resize handles
- *   the level       solid, thinner, no handles — what the pointer is standing on
- *   its children    dashed — one click each, and one level down
- *   the one under the pointer   dashed, with a wash, so "what will I get" is not
- *                               a guess between two boxes that overlap
+ *   the selection   solid, the saturated blue, with the four resize handles
+ *   the level       solid, the same two pixels, lighter, no handles — what the
+ *                   pointer is standing on
+ *   its children    dashed, one pixel — one click each, and one level down
+ *   the one under the pointer   dashed, two pixels and brighter, so "what will I
+ *                               get" is not a guess between two boxes that overlap
+ *
+ * Weight says what kind of box it is — a level, or a child of one — and the
+ * colour says *which* level: the committed one or the one the pointer is standing
+ * on. The other way round made the hover box thinner than the children it was
+ * framing, which is backwards; `styles.css` carries the measurements.
  *
  * The level is drawn as a box of its own only when it is not already the
  * selection, because two borders on one element reads as a mistake.
