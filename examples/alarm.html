@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>晨光闹钟 · 闹钟 App 设计</title>
+  <meta name="design-schema" content="3.0">
+  <style>*,*::before,*::after{box-sizing:border-box}
+*{margin:0}
+img{display:block}
+svg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:root{ --color-bg:#0b0d13; --color-surface:#151a26; --color-ink:#f7f9fc; --color-muted:#93a0b8; --color-line:#242c3e; --color-accent:#f7b955; --space-xs:4px; --space-sm:8px; --space-md:16px; --space-lg:24px; --space-xl:32px; --radius-sm:8px; --radius-md:12px; --radius-lg:16px; --radius-full:9999px; --size-caption:12px; --size-label:14px; --size-body:16px; --size-title:20px; --size-headline:24px; --size-display:32px; --font-body:Inter, system-ui, sans-serif; --shadow-card:0 1px 2px #00000033; --color-surface-2:#1e2536; --color-track:#2a3245; --color-accent-soft:#f7b9552e; --color-accent-ink:#20170a; --color-glow:#f7b9551f; --color-mint:#4fd1a5; --color-danger:#f2555f; --color-danger-soft:#f2555f24; --radius-xl:24px; --shadow-fab:0 10px 24px #f7b95540; --border-hairline:1px solid #242c3e }</style>
+  <style>section[data-type="page"]{ margin:0 0 24px }</style>
+</head>
+<body>
+  
+<section data-id="alarms" data-type="page" data-canvas="0,0" data-name="闹钟" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="alarms__root" data-type="frame" style="display:flex;flex-direction:column;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-body)">
+      <div data-id="alarms__status" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0">
+        <p data-id="alarms__status-time" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">7:30</p>
+        <div data-id="alarms__status-icons" data-type="frame" style="display:flex;align-items:center;gap:6px">
+          <svg data-id="alarms__status-signal" data-type="icon" data-icon="signal" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+          <svg data-id="alarms__status-wifi" data-type="icon" data-icon="wifi" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg>
+          <svg data-id="alarms__status-battery" data-type="icon" data-icon="battery-full" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect height="12" rx="2" width="16" x="2" y="6"></rect></svg>
+        </div>
+      </div>
+      <div data-id="alarms__header" data-type="frame" style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:6px 24px 18px 24px;flex-shrink:0">
+        <div data-id="alarms__header-text" data-type="frame" style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <p data-id="alarms__title" data-type="text" style="font-size:32px;font-weight:700;line-height:1.1;color:var(--color-ink)">闹钟</p>
+          <p data-id="alarms__subtitle" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">4 个闹钟 · 2 个已开启</p>
+        </div>
+        <div data-id="alarms__add" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0;background-color:var(--color-accent);border-radius:50%;box-shadow:var(--shadow-fab)">
+          <svg data-id="alarms__add-icon" data-type="icon" data-icon="plus" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-accent-ink)"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+        </div>
+      </div>
+      <div data-id="alarms__body" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:0 24px;min-height:0;flex:1 1 auto;overflow:hidden">
+        <div data-id="alarms__next" data-type="frame" style="display:flex;flex-direction:column;gap:6px;padding:16px 18px;background-color:var(--color-accent);border-radius:24px;box-shadow:0 14px 30px #f7b95526">
+          <div data-id="alarms__next-head" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <p data-id="alarms__next-label" data-type="text" style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:#4a3407">下一个闹钟</p>
+            <svg data-id="alarms__next-icon" data-type="icon" data-icon="bell" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:#4a3407"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+          </div>
+          <p data-id="alarms__next-time" data-type="text" style="font-size:46px;font-weight:700;line-height:1.05;color:var(--color-accent-ink)">08:00</p>
+          <div data-id="alarms__next-foot" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <p data-id="alarms__next-meta" data-type="text" style="font-size:13px;font-weight:500;line-height:1.4;color:#4a3407">上班 · 还有 30 分钟</p>
+            <p data-id="alarms__next-badge" data-type="text" style="padding:4px 10px;background-color:#20170a1f;border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:#3a2805">已开启</p>
+          </div>
+        </div>
+        <p data-id="alarms__list-label" data-type="text" style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--color-muted)">我的闹钟</p>
+        <div data-id="alarms__row-1" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:20px">
+          <div data-id="alarms__row-1-top" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div data-id="alarms__row-1-text" data-type="frame" style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <p data-id="alarms__row-1-time" data-type="text" style="font-size:28px;font-weight:700;line-height:1.15;color:var(--color-ink)">06:30</p>
+              <p data-id="alarms__row-1-label" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">工作日</p>
+            </div>
+            <div data-id="alarms__row-1-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-accent);border-radius:9999px">
+              <div data-id="alarms__row-1-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:23px;top:3px;width:22px;height:22px;background-color:#ffffff;border-radius:50%;box-shadow:0 1px 2px #00000033"></div>
+            </div>
+          </div>
+          <div data-id="alarms__row-1-days" data-type="frame" style="display:flex;flex-wrap:nowrap;gap:6px">
+            <p data-id="alarms__row-1-day-1" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">一</p>
+            <p data-id="alarms__row-1-day-2" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">二</p>
+            <p data-id="alarms__row-1-day-3" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">三</p>
+            <p data-id="alarms__row-1-day-4" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">四</p>
+            <p data-id="alarms__row-1-day-5" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">五</p>
+            <p data-id="alarms__row-1-day-6" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">六</p>
+            <p data-id="alarms__row-1-day-7" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">日</p>
+          </div>
+        </div>
+        <div data-id="alarms__row-2" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:20px">
+          <div data-id="alarms__row-2-top" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div data-id="alarms__row-2-text" data-type="frame" style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <p data-id="alarms__row-2-time" data-type="text" style="font-size:28px;font-weight:700;line-height:1.15;color:var(--color-muted)">07:15</p>
+              <p data-id="alarms__row-2-label" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">周末跑步</p>
+            </div>
+            <div data-id="alarms__row-2-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:9999px">
+              <div data-id="alarms__row-2-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:3px;top:3px;width:22px;height:22px;background-color:var(--color-muted);border-radius:50%"></div>
+            </div>
+          </div>
+          <div data-id="alarms__row-2-days" data-type="frame" style="display:flex;flex-wrap:nowrap;gap:6px">
+            <p data-id="alarms__row-2-day-1" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">一</p>
+            <p data-id="alarms__row-2-day-2" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">二</p>
+            <p data-id="alarms__row-2-day-3" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">三</p>
+            <p data-id="alarms__row-2-day-4" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">四</p>
+            <p data-id="alarms__row-2-day-5" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">五</p>
+            <p data-id="alarms__row-2-day-6" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">六</p>
+            <p data-id="alarms__row-2-day-7" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">日</p>
+          </div>
+        </div>
+        <div data-id="alarms__row-3" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:20px">
+          <div data-id="alarms__row-3-top" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div data-id="alarms__row-3-text" data-type="frame" style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <p data-id="alarms__row-3-time" data-type="text" style="font-size:28px;font-weight:700;line-height:1.15;color:var(--color-ink)">08:00</p>
+              <p data-id="alarms__row-3-label" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">上班</p>
+            </div>
+            <div data-id="alarms__row-3-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-accent);border-radius:9999px">
+              <div data-id="alarms__row-3-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:23px;top:3px;width:22px;height:22px;background-color:#ffffff;border-radius:50%;box-shadow:0 1px 2px #00000033"></div>
+            </div>
+          </div>
+          <div data-id="alarms__row-3-days" data-type="frame" style="display:flex;flex-wrap:nowrap;gap:6px">
+            <p data-id="alarms__row-3-day-1" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">一</p>
+            <p data-id="alarms__row-3-day-2" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">二</p>
+            <p data-id="alarms__row-3-day-3" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">三</p>
+            <p data-id="alarms__row-3-day-4" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">四</p>
+            <p data-id="alarms__row-3-day-5" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">五</p>
+            <p data-id="alarms__row-3-day-6" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">六</p>
+            <p data-id="alarms__row-3-day-7" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-surface-2);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-muted);text-align:center">日</p>
+          </div>
+        </div>
+        <div data-id="alarms__row-4" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 16px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:20px">
+          <div data-id="alarms__row-4-top" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <div data-id="alarms__row-4-text" data-type="frame" style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <p data-id="alarms__row-4-time" data-type="text" style="font-size:28px;font-weight:700;line-height:1.15;color:var(--color-muted)">22:45</p>
+              <p data-id="alarms__row-4-label" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">睡前阅读</p>
+            </div>
+            <div data-id="alarms__row-4-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:9999px">
+              <div data-id="alarms__row-4-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:3px;top:3px;width:22px;height:22px;background-color:var(--color-muted);border-radius:50%"></div>
+            </div>
+          </div>
+          <div data-id="alarms__row-4-days" data-type="frame" style="display:flex;flex-wrap:nowrap;gap:6px">
+            <p data-id="alarms__row-4-day-1" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">一</p>
+            <p data-id="alarms__row-4-day-2" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">二</p>
+            <p data-id="alarms__row-4-day-3" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">三</p>
+            <p data-id="alarms__row-4-day-4" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">四</p>
+            <p data-id="alarms__row-4-day-5" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">五</p>
+            <p data-id="alarms__row-4-day-6" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">六</p>
+            <p data-id="alarms__row-4-day-7" data-type="text" style="padding:3px 0;width:28px;background-color:var(--color-accent-soft);border-radius:9999px;font-size:11px;font-weight:600;line-height:1.3;color:var(--color-accent);text-align:center">日</p>
+          </div>
+        </div>
+      </div>
+      <div data-id="alarms__tabs" data-type="frame" style="display:flex;padding:10px 16px 0 16px;height:66px;flex-shrink:0;background-color:var(--color-surface);border-width:1px 0 0 0;border-style:solid;border-color:var(--color-line)">
+        <div data-id="alarms__tab-alarms" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="alarms__tab-alarms-icon" data-type="icon" data-icon="alarm-clock" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-accent)"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>
+          <p data-id="alarms__tab-alarms-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-accent)">闹钟</p>
+        </div>
+        <div data-id="alarms__tab-sleep" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="alarms__tab-sleep-icon" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <p data-id="alarms__tab-sleep-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">就寝</p>
+        </div>
+        <div data-id="alarms__tab-timer" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="alarms__tab-timer-icon" data-type="icon" data-icon="timer" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M10 2h4"></path><path d="M12 14v-4"></path><circle cx="12" cy="14" r="8"></circle></svg>
+          <p data-id="alarms__tab-timer-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">计时器</p>
+        </div>
+        <div data-id="alarms__tab-settings" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="alarms__tab-settings-icon" data-type="icon" data-icon="settings" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <p data-id="alarms__tab-settings-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">设置</p>
+        </div>
+      </div>
+      <div data-id="alarms__home" data-type="frame" style="display:flex;align-items:center;justify-content:center;height:24px;flex-shrink:0">
+        <div data-id="alarms__home-bar" data-type="shape" data-kind="rect" style="width:134px;height:5px;background-color:var(--color-track);border-radius:9999px"></div>
+      </div>
+    </div>
+  </section><section data-id="edit" data-type="page" data-canvas="430,0" data-name="新建闹钟" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="edit__root" data-type="frame" style="display:flex;flex-direction:column;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-body)">
+      <div data-id="edit__status" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0">
+        <p data-id="edit__status-time" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">7:30</p>
+        <div data-id="edit__status-icons" data-type="frame" style="display:flex;align-items:center;gap:6px">
+          <svg data-id="edit__status-signal" data-type="icon" data-icon="signal" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+          <svg data-id="edit__status-wifi" data-type="icon" data-icon="wifi" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg>
+          <svg data-id="edit__status-battery" data-type="icon" data-icon="battery-full" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect height="12" rx="2" width="16" x="2" y="6"></rect></svg>
+        </div>
+      </div>
+      <div data-id="edit__nav" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 24px 8px 24px;flex-shrink:0">
+        <div data-id="edit__close" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;background-color:var(--color-surface);border:var(--border-hairline);border-radius:50%">
+          <svg data-id="edit__close-icon" data-type="icon" data-icon="x" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:var(--color-muted)"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </div>
+        <p data-id="edit__nav-title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">新建闹钟</p>
+        <p data-id="edit__save" data-type="text" style="width:36px;font-size:15px;font-weight:600;color:var(--color-accent);text-align:right">保存</p>
+      </div>
+      <div data-id="edit__main" data-type="frame" style="display:flex;flex-direction:column;gap:12px;padding:0 24px;min-height:0;flex:1 1 auto;overflow:hidden">
+        <div data-id="edit__readout" data-type="frame" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0 0 0">
+          <p data-id="edit__readout-time" data-type="text" style="font-size:64px;font-weight:700;line-height:1.05;color:var(--color-ink)">07:30</p>
+          <p data-id="edit__readout-hint" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">周一至周五 · 明天早上响铃</p>
+        </div>
+        <div data-id="edit__picker" data-type="frame" style="position:relative;height:260px;flex-shrink:0;overflow:hidden">
+          <div data-id="edit__picker-band" data-type="frame" style="position:absolute;left:0;top:105px;width:100%;height:50px;background-color:var(--color-surface-2);border-radius:14px"></div>
+          <div data-id="edit__picker-cols" data-type="frame" style="display:flex;flex-direction:row;position:absolute;left:0;top:5px;width:100%">
+            <div data-id="edit__picker-hours" data-type="frame" style="display:flex;flex-direction:column;min-width:0;flex:1 1 0%">
+              <p data-id="edit__picker-hour-1" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">05</p>
+              <p data-id="edit__picker-hour-2" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">06</p>
+              <p data-id="edit__picker-hour-3" data-type="text" style="height:50px;font-size:30px;font-weight:700;line-height:50px;color:var(--color-ink);text-align:center">07</p>
+              <p data-id="edit__picker-hour-4" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">08</p>
+              <p data-id="edit__picker-hour-5" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">09</p>
+            </div>
+            <div data-id="edit__picker-colon" data-type="frame" style="display:flex;flex-direction:column;padding:100px 0 0 0;width:24px;flex-shrink:0">
+              <p data-id="edit__picker-colon-text" data-type="text" style="height:50px;font-size:26px;font-weight:600;line-height:50px;color:var(--color-muted);text-align:center">:</p>
+            </div>
+            <div data-id="edit__picker-minutes" data-type="frame" style="display:flex;flex-direction:column;min-width:0;flex:1 1 0%">
+              <p data-id="edit__picker-minute-1" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">20</p>
+              <p data-id="edit__picker-minute-2" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">25</p>
+              <p data-id="edit__picker-minute-3" data-type="text" style="height:50px;font-size:30px;font-weight:700;line-height:50px;color:var(--color-ink);text-align:center">30</p>
+              <p data-id="edit__picker-minute-4" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">35</p>
+              <p data-id="edit__picker-minute-5" data-type="text" style="height:50px;font-size:20px;font-weight:500;line-height:50px;color:var(--color-muted);text-align:center">40</p>
+            </div>
+          </div>
+          <div data-id="edit__picker-fade-top" data-type="frame" style="position:absolute;left:0;top:0;width:100%;height:56px;background-image:linear-gradient(180deg,#0b0d13,#0b0d1300)"></div>
+          <div data-id="edit__picker-fade-bottom" data-type="frame" style="position:absolute;left:0;top:204px;width:100%;height:56px;background-image:linear-gradient(0deg,#0b0d13,#0b0d1300)"></div>
+        </div><div data-id="edit__spacer" data-type="frame" style="min-height:0;flex:1 1 0%"></div>
+        <div data-id="edit__repeat" data-type="frame" style="display:flex;flex-direction:column;gap:10px">
+          <div data-id="edit__repeat-head" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <p data-id="edit__repeat-label" data-type="text" style="font-size:13px;font-weight:600;color:var(--color-ink)">重复</p>
+            <p data-id="edit__repeat-value" data-type="text" style="font-size:13px;color:var(--color-muted)">周一至周五</p>
+          </div>
+          <div data-id="edit__repeat-days" data-type="frame" style="display:flex;flex-wrap:nowrap;justify-content:space-between;gap:8px">
+            <p data-id="edit__repeat-day-1" data-type="text" style="width:36px;height:36px;background-color:var(--color-accent);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-accent-ink);text-align:center">一</p>
+            <p data-id="edit__repeat-day-2" data-type="text" style="width:36px;height:36px;background-color:var(--color-accent);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-accent-ink);text-align:center">二</p>
+            <p data-id="edit__repeat-day-3" data-type="text" style="width:36px;height:36px;background-color:var(--color-accent);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-accent-ink);text-align:center">三</p>
+            <p data-id="edit__repeat-day-4" data-type="text" style="width:36px;height:36px;background-color:var(--color-accent);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-accent-ink);text-align:center">四</p>
+            <p data-id="edit__repeat-day-5" data-type="text" style="width:36px;height:36px;background-color:var(--color-accent);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-accent-ink);text-align:center">五</p>
+            <p data-id="edit__repeat-day-6" data-type="text" style="width:36px;height:36px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-muted);text-align:center">六</p>
+            <p data-id="edit__repeat-day-7" data-type="text" style="width:36px;height:36px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:50%;font-size:13px;font-weight:600;line-height:36px;color:var(--color-muted);text-align:center">日</p>
+          </div>
+        </div>
+        <div data-id="edit__options" data-type="frame" style="display:flex;flex-direction:column;background-color:var(--color-surface);border:var(--border-hairline);border-radius:18px;overflow:hidden">
+          <div data-id="edit__row-name" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <p data-id="edit__row-name-label" data-type="text" style="font-size:15px;color:var(--color-ink)">标签</p>
+            <div data-id="edit__row-name-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="edit__row-name-value" data-type="text" style="font-size:15px;color:var(--color-muted)">上班</p>
+              <svg data-id="edit__row-name-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="edit__row-sound" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <p data-id="edit__row-sound-label" data-type="text" style="font-size:15px;color:var(--color-ink)">铃声</p>
+            <div data-id="edit__row-sound-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="edit__row-sound-value" data-type="text" style="font-size:15px;color:var(--color-muted)">晨光</p>
+              <svg data-id="edit__row-sound-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="edit__row-snooze" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <p data-id="edit__row-snooze-label" data-type="text" style="font-size:15px;color:var(--color-ink)">稍后提醒</p>
+            <div data-id="edit__row-snooze-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="edit__row-snooze-value" data-type="text" style="font-size:15px;color:var(--color-muted)">9 分钟</p>
+              <svg data-id="edit__row-snooze-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="edit__row-vibrate" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px">
+            <p data-id="edit__row-vibrate-label" data-type="text" style="font-size:15px;color:var(--color-ink)">振动</p>
+            <div data-id="edit__row-vibrate-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-accent);border-radius:9999px">
+              <div data-id="edit__row-vibrate-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:23px;top:3px;width:22px;height:22px;background-color:#ffffff;border-radius:50%;box-shadow:0 1px 2px #00000033"></div>
+            </div>
+          </div>
+        </div>
+        <div data-id="edit__delete" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:15px 0;background-color:var(--color-danger-soft);border-radius:16px">
+          <p data-id="edit__delete-label" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-danger)">删除闹钟</p>
+        </div>
+      </div>
+      <div data-id="edit__home" data-type="frame" style="display:flex;align-items:center;justify-content:center;height:24px;flex-shrink:0">
+        <div data-id="edit__home-bar" data-type="shape" data-kind="rect" style="width:134px;height:5px;background-color:var(--color-track);border-radius:9999px"></div>
+      </div>
+    </div>
+  </section><section data-id="ring" data-type="page" data-canvas="860,0" data-name="响铃" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="ring__root" data-type="frame" style="display:flex;flex-direction:column;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-body);background-image:linear-gradient(180deg,var(--color-glow),#0b0d1300)">
+      <div data-id="ring__status" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0">
+        <p data-id="ring__status-time" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">8:00</p>
+        <div data-id="ring__status-icons" data-type="frame" style="display:flex;align-items:center;gap:6px">
+          <svg data-id="ring__status-signal" data-type="icon" data-icon="signal" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+          <svg data-id="ring__status-wifi" data-type="icon" data-icon="wifi" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg>
+          <svg data-id="ring__status-battery" data-type="icon" data-icon="battery-full" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect height="12" rx="2" width="16" x="2" y="6"></rect></svg>
+        </div>
+      </div>
+      <div data-id="ring__main" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:0 32px;min-height:0;flex:1 1 auto">
+        <div data-id="ring__badge" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:116px;height:116px;flex-shrink:0;background-color:var(--color-accent-soft);border:1px solid var(--color-glow);border-radius:50%">
+          <svg data-id="ring__badge-icon" data-type="icon" data-fill="" data-icon="bell" data-icon-library="lucide" viewBox="0 0 24 24" style="width:44px;height:44px;color:var(--color-accent)"><path d="M10.268 21a2 2 0 0 0 3.464 0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"></path></svg>
+        </div>
+        <p data-id="ring__time" data-type="text" style="font-size:76px;font-weight:700;line-height:1.05;color:var(--color-ink)">08:00</p>
+        <p data-id="ring__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-accent)">上班</p>
+        <p data-id="ring__hint" data-type="text" style="font-size:14px;line-height:1.5;color:var(--color-muted);text-align:center">周一至周五 · 该起床了</p>
+      </div>
+      <div data-id="ring__actions" data-type="frame" style="display:flex;flex-direction:row;align-items:flex-start;justify-content:center;gap:56px;padding:0 0 28px 0;flex-shrink:0">
+        <div data-id="ring__snooze" data-type="frame" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div data-id="ring__snooze-btn" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:88px;height:88px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:50%">
+            <svg data-id="ring__snooze-icon" data-type="icon" data-icon="refresh-ccw" data-icon-library="lucide" viewBox="0 0 24 24" style="width:30px;height:30px;color:var(--color-ink)"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+          </div>
+          <p data-id="ring__snooze-label" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">稍后提醒</p>
+          <p data-id="ring__snooze-sub" data-type="text" style="font-size:12px;color:var(--color-muted)">9 分钟后</p>
+        </div>
+        <div data-id="ring__stop" data-type="frame" style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div data-id="ring__stop-btn" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:88px;height:88px;background-color:var(--color-accent);border-radius:50%;box-shadow:var(--shadow-fab)">
+            <svg data-id="ring__stop-icon" data-type="icon" data-icon="x" data-icon-library="lucide" viewBox="0 0 24 24" style="width:32px;height:32px;color:var(--color-accent-ink)"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </div>
+          <p data-id="ring__stop-label" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">停止</p>
+          <p data-id="ring__stop-sub" data-type="text" style="font-size:12px;color:var(--color-muted)">关闭闹钟</p>
+        </div>
+      </div>
+      <div data-id="ring__home" data-type="frame" style="display:flex;align-items:center;justify-content:center;height:24px;flex-shrink:0">
+        <div data-id="ring__home-bar" data-type="shape" data-kind="rect" style="width:134px;height:5px;background-color:var(--color-track);border-radius:9999px"></div>
+      </div>
+    </div>
+  </section><section data-id="sleep" data-type="page" data-canvas="0,880" data-name="就寝" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="sleep__root" data-type="frame" style="display:flex;flex-direction:column;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-body)">
+      <div data-id="sleep__status" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0">
+        <p data-id="sleep__status-time" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">7:30</p>
+        <div data-id="sleep__status-icons" data-type="frame" style="display:flex;align-items:center;gap:6px">
+          <svg data-id="sleep__status-signal" data-type="icon" data-icon="signal" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+          <svg data-id="sleep__status-wifi" data-type="icon" data-icon="wifi" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg>
+          <svg data-id="sleep__status-battery" data-type="icon" data-icon="battery-full" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect height="12" rx="2" width="16" x="2" y="6"></rect></svg>
+        </div>
+      </div>
+      <div data-id="sleep__header" data-type="frame" style="display:flex;flex-direction:column;gap:4px;padding:6px 24px 18px 24px;flex-shrink:0">
+        <p data-id="sleep__title" data-type="text" style="font-size:32px;font-weight:700;line-height:1.1;color:var(--color-ink)">就寝</p>
+        <p data-id="sleep__subtitle" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">目标 7 小时 30 分 · 已连续 12 天达标</p>
+      </div>
+      <div data-id="sleep__main" data-type="frame" style="display:flex;flex-direction:column;gap:12px;padding:0 24px;min-height:0;flex:1 1 auto;overflow:hidden">
+        <div data-id="sleep__window" data-type="frame" style="display:flex;flex-direction:column;gap:14px;padding:20px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:24px">
+          <div data-id="sleep__window-head" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <p data-id="sleep__window-label" data-type="text" style="font-size:13px;font-weight:600;color:var(--color-ink)">睡眠时间</p>
+            <p data-id="sleep__window-goal" data-type="text" style="font-size:13px;font-weight:600;color:var(--color-accent)">7 小时 30 分</p>
+          </div>
+          <div data-id="sleep__window-times" data-type="frame" style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+            <div data-id="sleep__window-from" data-type="frame" style="display:flex;flex-direction:column;gap:2px">
+              <p data-id="sleep__window-from-label" data-type="text" style="font-size:12px;color:var(--color-muted)">就寝</p>
+              <p data-id="sleep__window-from-time" data-type="text" style="font-size:26px;font-weight:700;line-height:1.1;color:var(--color-ink)">23:00</p>
+            </div>
+            <div data-id="sleep__window-to" data-type="frame" style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+              <p data-id="sleep__window-to-label" data-type="text" style="font-size:12px;color:var(--color-muted)">起床</p>
+              <p data-id="sleep__window-to-time" data-type="text" style="font-size:26px;font-weight:700;line-height:1.1;color:var(--color-ink)">06:30</p>
+            </div>
+          </div>
+          <div data-id="sleep__track" data-type="frame" style="position:relative;height:18px;flex-shrink:0">
+            <div data-id="sleep__track-rail" data-type="frame" style="position:absolute;left:0;top:4px;width:100%;height:10px;background-color:var(--color-track);border-radius:9999px"></div>
+            <div data-id="sleep__track-fill" data-type="frame" style="position:absolute;left:0;top:4px;width:266px;height:10px;background-color:var(--color-accent);border-radius:9999px"></div>
+            <div data-id="sleep__track-from" data-type="shape" data-kind="ellipse" style="position:absolute;left:0;top:0;width:18px;height:18px;background-color:#ffffff;border:4px solid var(--color-accent);border-radius:50%"></div>
+            <div data-id="sleep__track-to" data-type="shape" data-kind="ellipse" style="position:absolute;left:257px;top:0;width:18px;height:18px;background-color:#ffffff;border:4px solid var(--color-accent);border-radius:50%"></div>
+          </div>
+          <div data-id="sleep__window-foot" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <p data-id="sleep__window-foot-from" data-type="text" style="font-size:12px;color:var(--color-muted)">22:45 提醒就寝</p>
+            <p data-id="sleep__window-foot-to" data-type="text" style="font-size:12px;color:var(--color-muted)">06:30 闹钟响起</p>
+          </div>
+        </div>
+        <div data-id="sleep__week" data-type="frame" style="display:flex;flex-direction:column;gap:14px;padding:20px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:24px">
+          <div data-id="sleep__week-head" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <p data-id="sleep__week-label" data-type="text" style="font-size:13px;font-weight:600;color:var(--color-ink)">最近 7 天</p>
+            <div data-id="sleep__week-trend" data-type="frame" style="display:flex;align-items:center;gap:6px">
+              <svg data-id="sleep__week-trend-icon" data-type="icon" data-icon="trending-up" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-mint)"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>
+              <p data-id="sleep__week-trend-value" data-type="text" style="font-size:12px;font-weight:600;color:var(--color-mint)">平均 7 小时 12 分</p>
+            </div>
+          </div>
+          <div data-id="sleep__week-bars" data-type="frame" style="display:flex;flex-direction:row;align-items:flex-end;gap:6px">
+            <div data-id="sleep__day-mon" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-mon-bar" data-type="shape" data-kind="rect" style="width:20px;height:62px;background-color:var(--color-track);border-radius:8px"></div>
+              <p data-id="sleep__day-mon-label" data-type="text" style="font-size:11px;color:var(--color-muted)">一</p>
+            </div>
+            <div data-id="sleep__day-tue" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-tue-bar" data-type="shape" data-kind="rect" style="width:20px;height:48px;background-color:var(--color-track);border-radius:8px"></div>
+              <p data-id="sleep__day-tue-label" data-type="text" style="font-size:11px;color:var(--color-muted)">二</p>
+            </div>
+            <div data-id="sleep__day-wed" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-wed-bar" data-type="shape" data-kind="rect" style="width:20px;height:70px;background-color:var(--color-track);border-radius:8px"></div>
+              <p data-id="sleep__day-wed-label" data-type="text" style="font-size:11px;color:var(--color-muted)">三</p>
+            </div>
+            <div data-id="sleep__day-thu" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-thu-bar" data-type="shape" data-kind="rect" style="width:20px;height:55px;background-color:var(--color-track);border-radius:8px"></div>
+              <p data-id="sleep__day-thu-label" data-type="text" style="font-size:11px;color:var(--color-muted)">四</p>
+            </div>
+            <div data-id="sleep__day-fri" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-fri-bar" data-type="shape" data-kind="rect" style="width:20px;height:76px;background-color:var(--color-accent);border-radius:8px"></div>
+              <p data-id="sleep__day-fri-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-accent)">五</p>
+            </div>
+            <div data-id="sleep__day-sat" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-sat-bar" data-type="shape" data-kind="rect" style="width:20px;height:40px;background-color:var(--color-track);border-radius:8px"></div>
+              <p data-id="sleep__day-sat-label" data-type="text" style="font-size:11px;color:var(--color-muted)">六</p>
+            </div>
+            <div data-id="sleep__day-sun" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:8px;height:104px;min-width:0;flex:1 1 0%">
+              <div data-id="sleep__day-sun-bar" data-type="shape" data-kind="rect" style="width:20px;height:66px;background-color:var(--color-track);border-radius:8px"></div>
+              <p data-id="sleep__day-sun-label" data-type="text" style="font-size:11px;color:var(--color-muted)">日</p>
+            </div>
+          </div>
+        </div>
+        <div data-id="sleep__options" data-type="frame" style="display:flex;flex-direction:column;background-color:var(--color-surface);border:var(--border-hairline);border-radius:18px;overflow:hidden">
+          <div data-id="sleep__row-remind" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <p data-id="sleep__row-remind-label" data-type="text" style="font-size:15px;color:var(--color-ink)">就寝提醒</p>
+            <div data-id="sleep__row-remind-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-accent);border-radius:9999px">
+              <div data-id="sleep__row-remind-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:23px;top:3px;width:22px;height:22px;background-color:#ffffff;border-radius:50%;box-shadow:0 1px 2px #00000033"></div>
+            </div>
+          </div>
+          <div data-id="sleep__row-mode" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <p data-id="sleep__row-mode-label" data-type="text" style="font-size:15px;color:var(--color-ink)">睡眠模式</p>
+            <div data-id="sleep__row-mode-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="sleep__row-mode-value" data-type="text" style="font-size:15px;color:var(--color-muted)">23:00 自动开启</p>
+              <svg data-id="sleep__row-mode-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="sleep__row-music" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px">
+            <p data-id="sleep__row-music-label" data-type="text" style="font-size:15px;color:var(--color-ink)">助眠声音</p>
+            <div data-id="sleep__row-music-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="sleep__row-music-value" data-type="text" style="font-size:15px;color:var(--color-muted)">雨声</p>
+              <svg data-id="sleep__row-music-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div data-id="sleep__start" data-type="frame" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0;background-color:var(--color-accent);border-radius:16px;box-shadow:var(--shadow-fab)">
+          <svg data-id="sleep__start-icon" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-accent-ink)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <p data-id="sleep__start-label" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-accent-ink)">开始睡前放松</p>
+        </div>
+      </div>
+      <div data-id="sleep__tabs" data-type="frame" style="display:flex;padding:10px 16px 0 16px;height:66px;flex-shrink:0;background-color:var(--color-surface);border-width:1px 0 0 0;border-style:solid;border-color:var(--color-line)">
+        <div data-id="sleep__tab-alarms" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="sleep__tab-alarms-icon" data-type="icon" data-icon="alarm-clock" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>
+          <p data-id="sleep__tab-alarms-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">闹钟</p>
+        </div>
+        <div data-id="sleep__tab-sleep" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="sleep__tab-sleep-icon" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-accent)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <p data-id="sleep__tab-sleep-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-accent)">就寝</p>
+        </div>
+        <div data-id="sleep__tab-timer" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="sleep__tab-timer-icon" data-type="icon" data-icon="timer" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M10 2h4"></path><path d="M12 14v-4"></path><circle cx="12" cy="14" r="8"></circle></svg>
+          <p data-id="sleep__tab-timer-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">计时器</p>
+        </div>
+        <div data-id="sleep__tab-settings" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="sleep__tab-settings-icon" data-type="icon" data-icon="settings" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <p data-id="sleep__tab-settings-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">设置</p>
+        </div>
+      </div>
+      <div data-id="sleep__home" data-type="frame" style="display:flex;align-items:center;justify-content:center;height:24px;flex-shrink:0">
+        <div data-id="sleep__home-bar" data-type="shape" data-kind="rect" style="width:134px;height:5px;background-color:var(--color-track);border-radius:9999px"></div>
+      </div>
+    </div>
+  </section><section data-id="timer" data-type="page" data-canvas="430,880" data-name="计时器" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="timer__root" data-type="frame" style="display:flex;flex-direction:column;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-body)">
+      <div data-id="timer__status" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0">
+        <p data-id="timer__status-time" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">9:12</p>
+        <div data-id="timer__status-icons" data-type="frame" style="display:flex;align-items:center;gap:6px">
+          <svg data-id="timer__status-signal" data-type="icon" data-icon="signal" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+          <svg data-id="timer__status-wifi" data-type="icon" data-icon="wifi" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg>
+          <svg data-id="timer__status-battery" data-type="icon" data-icon="battery-full" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect height="12" rx="2" width="16" x="2" y="6"></rect></svg>
+        </div>
+      </div>
+      <div data-id="timer__header" data-type="frame" style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:6px 24px 14px 24px;flex-shrink:0">
+        <p data-id="timer__title" data-type="text" style="font-size:32px;font-weight:700;line-height:1.1;color:var(--color-ink)">计时器</p>
+        <p data-id="timer__header-hint" data-type="text" style="font-size:13px;color:var(--color-muted)">正在运行</p>
+      </div>
+      <div data-id="timer__main" data-type="frame" style="display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 24px;min-height:0;flex:1 1 auto;overflow:hidden">
+        <div data-id="timer__ring" data-type="frame" style="position:relative;width:240px;height:240px;flex-shrink:0">
+          <svg data-id="timer__ring-svg" data-type="icon" data-fill="" data-icon="timer-ring" data-icon-library="lucide" viewBox="0 0 240 240" style="width:240px;height:240px">
+            <circle cx="120" cy="120" fill="none" r="104" stroke="#242c3e" stroke-width="12"></circle>
+            <path d="M120 16 A104 104 0 0 1 160.3 215.9" fill="none" stroke="#f7b955" stroke-linecap="round" stroke-width="12"></path>
+          </svg>
+          <div data-id="timer__ring-body" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;position:absolute;left:0;top:0;width:240px;height:240px">
+            <p data-id="timer__ring-label" data-type="text" style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--color-muted)">冥想</p>
+            <p data-id="timer__ring-time" data-type="text" style="font-size:50px;font-weight:700;line-height:1.05;color:var(--color-ink)">05:40</p>
+            <p data-id="timer__ring-hint" data-type="text" style="font-size:12px;color:var(--color-muted)">09:18 结束</p>
+          </div>
+        </div>
+        <div data-id="timer__stats" data-type="frame" style="display:flex;flex-direction:row;gap:12px;width:100%">
+          <div data-id="timer__stat-count" data-type="frame" style="display:flex;flex-direction:column;gap:4px;padding:14px 16px;min-width:0;flex:1 1 0%;background-color:var(--color-surface);border:var(--border-hairline);border-radius:16px">
+            <p data-id="timer__stat-count-label" data-type="text" style="font-size:12px;color:var(--color-muted)">今日专注</p>
+            <p data-id="timer__stat-count-value" data-type="text" style="font-size:24px;font-weight:700;line-height:1.2;color:var(--color-ink)">3 次</p>
+          </div>
+          <div data-id="timer__stat-total" data-type="frame" style="display:flex;flex-direction:column;gap:4px;padding:14px 16px;min-width:0;flex:1 1 0%;background-color:var(--color-surface);border:var(--border-hairline);border-radius:16px">
+            <p data-id="timer__stat-total-label" data-type="text" style="font-size:12px;color:var(--color-muted)">累计时长</p>
+            <p data-id="timer__stat-total-value" data-type="text" style="font-size:24px;font-weight:700;line-height:1.2;color:var(--color-ink)">52 分</p>
+          </div>
+        </div>
+        <div data-id="timer__actions" data-type="frame" style="display:flex;flex-direction:row;gap:12px;width:100%">
+          <div data-id="timer__pause" data-type="frame" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0;min-width:0;flex:1 1 0%;background-color:var(--color-accent);border-radius:16px;box-shadow:var(--shadow-fab)">
+            <svg data-id="timer__pause-icon" data-type="icon" data-fill="" data-icon="pause" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-accent-ink)"><rect fill="currentColor" height="16" rx="1" width="4" x="6" y="4"></rect><rect fill="currentColor" height="16" rx="1" width="4" x="14" y="4"></rect></svg>
+            <p data-id="timer__pause-label" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-accent-ink)">暂停</p>
+          </div>
+          <div data-id="timer__reset" data-type="frame" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 0;width:120px;flex-shrink:0;background-color:var(--color-surface);border:var(--border-hairline);border-radius:16px">
+            <svg data-id="timer__reset-icon" data-type="icon" data-icon="refresh-ccw" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+            <p data-id="timer__reset-label" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-ink)">重置</p>
+          </div>
+        </div>
+        <div data-id="timer__recent" data-type="frame" style="display:flex;flex-direction:column;width:100%;background-color:var(--color-surface);border:var(--border-hairline);border-radius:18px;overflow:hidden">
+          <div data-id="timer__recent-row-1" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <div data-id="timer__recent-row-1-left" data-type="frame" style="display:flex;align-items:center;gap:10px;min-width:0">
+              <svg data-id="timer__recent-row-1-icon" data-type="icon" data-icon="focus" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-accent)"><circle cx="12" cy="12" r="3"></circle><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path></svg>
+              <p data-id="timer__recent-row-1-label" data-type="text" style="font-size:14px;color:var(--color-ink)">番茄钟</p>
+            </div>
+            <p data-id="timer__recent-row-1-value" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-muted)">25:00</p>
+          </div><div data-id="timer__recent-row-4" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)"><div data-id="timer__recent-row-4-left" data-type="frame" style="display:flex;align-items:center;gap:10px;min-width:0"><svg data-id="timer__recent-row-4-icon" data-type="icon" data-icon="zap" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-accent)"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"></path></svg><p data-id="timer__recent-row-4-label" data-type="text" style="font-size:14px;color:var(--color-ink)">高强度间歇</p></div><p data-id="timer__recent-row-4-value" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-muted)">45:00</p></div>
+          <div data-id="timer__recent-row-2" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <div data-id="timer__recent-row-2-left" data-type="frame" style="display:flex;align-items:center;gap:10px;min-width:0">
+              <svg data-id="timer__recent-row-2-icon" data-type="icon" data-icon="timer" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-mint)"><path d="M10 2h4"></path><path d="M12 14v-4"></path><circle cx="12" cy="14" r="8"></circle></svg>
+              <p data-id="timer__recent-row-2-label" data-type="text" style="font-size:14px;color:var(--color-ink)">冥想</p>
+            </div>
+            <p data-id="timer__recent-row-2-value" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-muted)">10:00</p>
+          </div>
+          <div data-id="timer__recent-row-3" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px">
+            <div data-id="timer__recent-row-3-left" data-type="frame" style="display:flex;align-items:center;gap:10px;min-width:0">
+              <svg data-id="timer__recent-row-3-icon" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+              <p data-id="timer__recent-row-3-label" data-type="text" style="font-size:14px;color:var(--color-ink)">小睡</p>
+            </div>
+            <p data-id="timer__recent-row-3-value" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-muted)">20:00</p>
+          </div>
+        </div>
+      </div>
+      <div data-id="timer__tabs" data-type="frame" style="display:flex;padding:10px 16px 0 16px;height:66px;flex-shrink:0;background-color:var(--color-surface);border-width:1px 0 0 0;border-style:solid;border-color:var(--color-line)">
+        <div data-id="timer__tab-alarms" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="timer__tab-alarms-icon" data-type="icon" data-icon="alarm-clock" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>
+          <p data-id="timer__tab-alarms-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">闹钟</p>
+        </div>
+        <div data-id="timer__tab-sleep" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="timer__tab-sleep-icon" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <p data-id="timer__tab-sleep-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">就寝</p>
+        </div>
+        <div data-id="timer__tab-timer" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="timer__tab-timer-icon" data-type="icon" data-icon="timer" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-accent)"><path d="M10 2h4"></path><path d="M12 14v-4"></path><circle cx="12" cy="14" r="8"></circle></svg>
+          <p data-id="timer__tab-timer-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-accent)">计时器</p>
+        </div>
+        <div data-id="timer__tab-settings" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="timer__tab-settings-icon" data-type="icon" data-icon="settings" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <p data-id="timer__tab-settings-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">设置</p>
+        </div>
+      </div>
+      <div data-id="timer__home" data-type="frame" style="display:flex;align-items:center;justify-content:center;height:24px;flex-shrink:0">
+        <div data-id="timer__home-bar" data-type="shape" data-kind="rect" style="width:134px;height:5px;background-color:var(--color-track);border-radius:9999px"></div>
+      </div>
+    </div>
+  </section><section data-id="settings" data-type="page" data-canvas="860,880" data-name="设置" style="width:390px;height:844px;overflow:hidden">
+    <div data-id="settings__root" data-type="frame" style="display:flex;flex-direction:column;width:100%;height:100%;background-color:var(--color-bg);font-family:var(--font-body)">
+      <div data-id="settings__status" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0">
+        <p data-id="settings__status-time" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">7:30</p>
+        <div data-id="settings__status-icons" data-type="frame" style="display:flex;align-items:center;gap:6px">
+          <svg data-id="settings__status-signal" data-type="icon" data-icon="signal" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M2 20h.01"></path><path d="M7 20v-4"></path><path d="M12 20v-8"></path><path d="M17 20V8"></path><path d="M22 4v16"></path></svg>
+          <svg data-id="settings__status-wifi" data-type="icon" data-icon="wifi" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-ink)"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.859a10 10 0 0 1 14 0"></path><path d="M8.5 16.429a5 5 0 0 1 7 0"></path></svg>
+          <svg data-id="settings__status-battery" data-type="icon" data-icon="battery-full" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:var(--color-ink)"><path d="M10 10v4"></path><path d="M14 10v4"></path><path d="M22 14v-4"></path><path d="M6 10v4"></path><rect height="12" rx="2" width="16" x="2" y="6"></rect></svg>
+        </div>
+      </div>
+      <div data-id="settings__header" data-type="frame" style="display:flex;flex-direction:column;gap:4px;padding:6px 24px 16px 24px;flex-shrink:0">
+        <p data-id="settings__title" data-type="text" style="font-size:32px;font-weight:700;line-height:1.1;color:var(--color-ink)">设置</p>
+        <p data-id="settings__subtitle" data-type="text" style="font-size:13px;line-height:1.4;color:var(--color-muted)">闹钟与睡眠的偏好设置</p>
+      </div>
+      <div data-id="settings__main" data-type="frame" style="display:flex;flex-direction:column;gap:12px;padding:0 24px;min-height:0;flex:1 1 auto;overflow:hidden">
+        <div data-id="settings__profile" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;background-color:var(--color-surface);border:var(--border-hairline);border-radius:20px">
+          <div data-id="settings__profile-left" data-type="frame" style="display:flex;align-items:center;gap:14px;min-width:0">
+            <div data-id="settings__avatar" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;background-color:var(--color-accent-soft);border-radius:50%">
+              <svg data-id="settings__avatar-icon" data-type="icon" data-icon="user" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-accent)"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <div data-id="settings__profile-text" data-type="frame" style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <p data-id="settings__profile-name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">早安，西瓜</p>
+              <p data-id="settings__profile-meta" data-type="text" style="font-size:12px;color:var(--color-muted)">已连续早起 12 天</p>
+            </div>
+          </div>
+          <svg data-id="settings__profile-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+        </div>
+        <p data-id="settings__group-alarm" data-type="text" style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--color-muted)">闹钟</p>
+        <div data-id="settings__card-alarm" data-type="frame" style="display:flex;flex-direction:column;background-color:var(--color-surface);border:var(--border-hairline);border-radius:18px;overflow:hidden">
+          <div data-id="settings__row-snooze" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <div data-id="settings__row-snooze-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-snooze-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-snooze-glyph" data-type="icon" data-icon="refresh-ccw" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-accent)"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M16 16h5v5"></path></svg>
+              </div>
+              <p data-id="settings__row-snooze-label" data-type="text" style="font-size:15px;color:var(--color-ink)">稍后提醒时长</p>
+            </div>
+            <div data-id="settings__row-snooze-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="settings__row-snooze-value" data-type="text" style="font-size:15px;color:var(--color-muted)">9 分钟</p>
+              <svg data-id="settings__row-snooze-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="settings__row-sound" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <div data-id="settings__row-sound-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-sound-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-sound-glyph" data-type="icon" data-icon="bell" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-accent)"><path d="M10.268 21a2 2 0 0 0 3.464 0"></path><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path></svg>
+              </div>
+              <p data-id="settings__row-sound-label" data-type="text" style="font-size:15px;color:var(--color-ink)">默认铃声</p>
+            </div>
+            <div data-id="settings__row-sound-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="settings__row-sound-value" data-type="text" style="font-size:15px;color:var(--color-muted)">晨光</p>
+              <svg data-id="settings__row-sound-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="settings__row-vibrate" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px">
+            <div data-id="settings__row-vibrate-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-vibrate-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-vibrate-glyph" data-type="icon" data-icon="activity" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-accent)"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg>
+              </div>
+              <p data-id="settings__row-vibrate-label" data-type="text" style="font-size:15px;color:var(--color-ink)">响铃时振动</p>
+            </div>
+            <div data-id="settings__row-vibrate-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-accent);border-radius:9999px">
+              <div data-id="settings__row-vibrate-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:23px;top:3px;width:22px;height:22px;background-color:#ffffff;border-radius:50%;box-shadow:0 1px 2px #00000033"></div>
+            </div>
+          </div>
+        </div>
+        <p data-id="settings__group-look" data-type="text" style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--color-muted)">外观</p>
+        <div data-id="settings__card-look" data-type="frame" style="display:flex;flex-direction:column;background-color:var(--color-surface);border:var(--border-hairline);border-radius:18px;overflow:hidden">
+          <div data-id="settings__row-theme" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <div data-id="settings__row-theme-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-theme-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-theme-glyph" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-accent)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+              </div>
+              <p data-id="settings__row-theme-label" data-type="text" style="font-size:15px;color:var(--color-ink)">主题</p>
+            </div>
+            <div data-id="settings__row-theme-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="settings__row-theme-value" data-type="text" style="font-size:15px;color:var(--color-muted)">深色</p>
+              <svg data-id="settings__row-theme-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="settings__row-clock" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px">
+            <div data-id="settings__row-clock-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-clock-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-clock-glyph" data-type="icon" data-icon="timer" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-accent)"><path d="M10 2h4"></path><path d="M12 14v-4"></path><circle cx="12" cy="14" r="8"></circle></svg>
+              </div>
+              <p data-id="settings__row-clock-label" data-type="text" style="font-size:15px;color:var(--color-ink)">24 小时制</p>
+            </div>
+            <div data-id="settings__row-clock-switch" data-type="frame" style="position:relative;width:48px;height:28px;flex-shrink:0;background-color:var(--color-accent);border-radius:9999px">
+              <div data-id="settings__row-clock-knob" data-type="shape" data-kind="ellipse" style="position:absolute;left:23px;top:3px;width:22px;height:22px;background-color:#ffffff;border-radius:50%;box-shadow:0 1px 2px #00000033"></div>
+            </div>
+          </div>
+        </div>
+        <p data-id="settings__group-about" data-type="text" style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:var(--color-muted)">其他</p>
+        <div data-id="settings__card-about" data-type="frame" style="display:flex;flex-direction:column;background-color:var(--color-surface);border:var(--border-hairline);border-radius:18px;overflow:hidden">
+          <div data-id="settings__row-about" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-width:0 0 1px 0;border-style:solid;border-color:var(--color-line)">
+            <div data-id="settings__row-about-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-about-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-about-glyph" data-type="icon" data-icon="info" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-accent)"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+              </div>
+              <p data-id="settings__row-about-label" data-type="text" style="font-size:15px;color:var(--color-ink)">关于晨光闹钟</p>
+            </div>
+            <div data-id="settings__row-about-right" data-type="frame" style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <p data-id="settings__row-about-value" data-type="text" style="font-size:15px;color:var(--color-muted)">3.0</p>
+              <svg data-id="settings__row-about-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+            </div>
+          </div>
+          <div data-id="settings__row-help" data-type="frame" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px">
+            <div data-id="settings__row-help-left" data-type="frame" style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div data-id="settings__row-help-icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;flex-shrink:0;background-color:var(--color-surface-2);border-radius:8px">
+                <svg data-id="settings__row-help-glyph" data-type="icon" data-icon="shield-check" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--color-mint)"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="m9 12 2 2 4-4"></path></svg>
+              </div>
+              <p data-id="settings__row-help-label" data-type="text" style="font-size:15px;color:var(--color-ink)">隐私与数据</p>
+            </div>
+            <svg data-id="settings__row-help-chevron" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+          </div>
+        </div>
+        <p data-id="settings__footer" data-type="text" style="font-size:12px;line-height:1.5;color:var(--color-muted);text-align:center">闹钟数据仅保存在本机</p>
+      </div>
+      <div data-id="settings__tabs" data-type="frame" style="display:flex;padding:10px 16px 0 16px;height:66px;flex-shrink:0;background-color:var(--color-surface);border-width:1px 0 0 0;border-style:solid;border-color:var(--color-line)">
+        <div data-id="settings__tab-alarms" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="settings__tab-alarms-icon" data-type="icon" data-icon="alarm-clock" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M5 3 2 6"></path><path d="m22 6-3-3"></path><path d="M6.38 18.7 4 21"></path><path d="M17.64 18.67 20 21"></path></svg>
+          <p data-id="settings__tab-alarms-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">闹钟</p>
+        </div>
+        <div data-id="settings__tab-sleep" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="settings__tab-sleep-icon" data-type="icon" data-icon="moon" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+          <p data-id="settings__tab-sleep-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">就寝</p>
+        </div>
+        <div data-id="settings__tab-timer" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="settings__tab-timer-icon" data-type="icon" data-icon="timer" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-muted)"><path d="M10 2h4"></path><path d="M12 14v-4"></path><circle cx="12" cy="14" r="8"></circle></svg>
+          <p data-id="settings__tab-timer-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-muted)">计时器</p>
+        </div>
+        <div data-id="settings__tab-settings" data-type="frame" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;flex:1 1 0%">
+          <svg data-id="settings__tab-settings-icon" data-type="icon" data-icon="settings" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px;color:var(--color-accent)"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          <p data-id="settings__tab-settings-label" data-type="text" style="font-size:11px;font-weight:600;color:var(--color-accent)">设置</p>
+        </div>
+      </div>
+      <div data-id="settings__home" data-type="frame" style="display:flex;align-items:center;justify-content:center;height:24px;flex-shrink:0">
+        <div data-id="settings__home-bar" data-type="shape" data-kind="rect" style="width:134px;height:5px;background-color:var(--color-track);border-radius:9999px"></div>
+      </div>
+    </div>
+  </section></body>
+</html>
