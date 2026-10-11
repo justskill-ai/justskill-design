@@ -717,16 +717,16 @@ test("export: writes <page>.export.html next to the design file", async () => {
   });
 });
 
-test("export: --all writes one file per page and skips the library page", async () => {
-  const withLibrary = VALID.replace(
+test("export: --all writes every page", async () => {
+  const twoPages = VALID.replace(
     "</body>",
-    '  <section data-id="kit" data-type="page" data-library="true" style="width:390px;height:844px"></section>\n</body>',
+    '  <section data-id="kit" data-type="page" style="width:390px;height:844px"></section>\n</body>',
   );
-  const file = fixture(withLibrary);
+  const file = fixture(twoPages);
   await withServer(file, async (server) => {
     const { status, json: body } = await post(server, "/api/export", { all: true });
     assert.equal(status, 200);
-    assert.deepEqual(body.files.map((entry) => entry.page), ["home"]);
+    assert.deepEqual(body.files.map((entry) => entry.page), ["home", "kit"]);
   });
 });
 

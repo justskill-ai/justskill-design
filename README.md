@@ -163,19 +163,19 @@ What the suite pins, in order of what breaks first if it fails:
 | Serialization round trip | byte exact | byte exact, 11 fixtures including a 73 KB generated design |
 | Normalization | idempotent | idempotent |
 | `.pen` import | 0 errors, empty `unmapped` | **0 errors, `unmapped` empty** |
-| `.pen` import ledger | every loss named | 1 loss in 1541 nodes (`perCornerRadius`) |
+| `.pen` import ledger | every loss named | 1 loss in 1541 source nodes (`perCornerRadius`) |
 | pen's own export | the same picture | text line boxes and the arrow's four corners within 0.1px, `viewBox` and font identical |
-| Tests | — | 651 pass, 0 fail |
+| Tests | — | 682 pass, 0 fail |
 
 The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
-nodes. It imports to 1515 elements — the ledger counts the nodes that became a
-design node, so the 26 artboards are not in that number — plus 23 components,
-239 instances and 140 instances carrying overrides, in about 60 ms. The result
-validates and is already canonical: `examples/miniprogram.html` carries 1541
-`data-id`s (the 1515 elements and the 26 pages) and 1754 tags in all, the rest
-being `<svg>` geometry and wrappers that are not design nodes. One node in that
-file has four different corner radii, which this format does not have a spelling
-for, and the ledger says so by name.
+source nodes. It imports to 2197 elements in about 100 ms: 239 references are
+inlined, and 140 of them carried field-level patches that are applied during the
+import. The ledger counts emitted elements, so the 26 artboards are not in that
+number and the copies are. The result validates and is already canonical:
+`examples/miniprogram.html` carries 2223 `data-id`s (the 2197 elements and the 26
+pages) and 3066 tags in all, the rest being `<svg>` geometry and wrappers that
+are not design nodes. One node in that file has four different corner radii,
+which this format does not have a spelling for, and the ledger says so by name.
 
 The import is measured against pen's own export, not against itself. The welcome
 document pen ships — one 1000×1458 artboard, two text lines, one rotated arrow —

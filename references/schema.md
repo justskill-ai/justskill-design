@@ -28,30 +28,25 @@ Optional on any element:
 | `data-hidden` | `"true"` hides the element while keeping it in the file. |
 | `data-locked` | `"true"` stops the canvas moving it. It produces no CSS. |
 
-## The 8 types
+## The 6 types
 
 | `data-type` | Tag | Required attributes | May contain elements |
 |---|---|---|---|
 | `page` | `<section>` | — | yes |
 | `frame` | `<div>` | — | yes |
-| `component` | `<div>` | — | yes |
 | `text` | `<p>` `<h1>` `<h2>` `<h3>` `<h4>` `<h5>` `<h6>` `<span>` | — | no |
 | `image` | `<img>` | `src`, `alt` | no |
 | `shape` | `<div>` | `data-kind` | no |
 | `icon` | `<svg>` | `data-icon`, `data-icon-library` | no |
-| `instance` | `<div>` | `data-ref` | no |
 
 Additional attributes by type:
 
 | `data-type` | Attribute | Rule |
 |---|---|---|
 | `page` | `data-canvas` | `"x,y"`, the position on the canvas. |
-| `page` | `data-library` | `"true"` marks a component library page, which `export --all` skips. |
 | `shape` | `data-kind` | One of: `rect`, `ellipse`. |
 | `icon` | `data-icon` | The glyph name. |
 | `icon` | `data-icon-library` | One of: `lucide`. |
-| `instance` | `data-ref` | The `data-id` of a component. |
-| `instance` | `data-overrides` | JSON. Field-level patches, keyed by a descendant's `data-id`. |
 | `image` | `data-credit` | Attribution. Never rendered. |
 | `icon` | `viewBox` | The grid the geometry was drawn on, normally `0 0 24 24`. Required as soon as the icon has geometry: without it the SVG has no coordinate system, so a browser clips the geometry instead of scaling it. |
 | `icon` | `fill`, `stroke`, `stroke-width` | Presentation attributes on the `<svg>` element itself, which the base stroke rule reads. |
@@ -93,20 +88,3 @@ so it needs no network request and no icon font:
 Everything inside an `<svg>` is the opaque layer: kept byte for byte, never indexed, never
 validated as a design element. An id inside an `<svg>` is an error, because nothing can
 address it.
-
-## Components and instances
-
-A component is a `div` with `data-type="component"`. It renders exactly like a frame. An
-instance references it by id, and the file stores no copy:
-
-```html
-<div data-id="card" data-type="component" style="display:flex;gap:4px;padding:16px">
-  <p data-id="card__title" data-type="text" style="font-size:14px">Card</p>
-</div>
-
-<div data-id="home__card" data-type="instance" data-ref="card"
-     data-overrides='{"card__title":{"content":"Hi","style":"font-size:20px"}}'></div>
-```
-
-Overridable fields: `content`, `style`, and any `data-*` attribute. `data-id`, `data-type`
-and the children are not overridable, because they are structure.

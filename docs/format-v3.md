@@ -82,18 +82,16 @@
 
 ## 3. 元素契约
 
-八种 `data-type`。
+六种 `data-type`。
 
 | `data-type` | 允许的标签 | 必填附加属性 | 能带 children |
 |---|---|---|---|
 | `page` | `section` | — | 是 |
 | `frame` | `div` | — | 是 |
-| `component` | `div` | — | 是 |
 | `text` | `p` `h1` `h2` `h3` `h4` `h5` `h6` `span` | — | 否 |
 | `image` | `img` | `src` `alt` | 否 |
 | `shape` | `div` | `data-kind` | 否 |
 | `icon` | `svg` | `data-icon` `data-icon-library`，有几何时还要 `viewBox` | 否 |
-| `instance` | `div` | `data-ref` | 否 |
 
 `font-family` 的末尾要有一个通用族。`"Noto Serif SC"` 单独出现的意思是「Noto Serif SC，或者这台机器的文档默认字体」，而文档默认在多数引擎上是衬线体。装了 webfont 的机器看着对，装不上的机器（离线、走代理、构建机）就是另一个设计。pen 的导出在它写的每个字体族后面都补 `system-ui, sans-serif`，读入器照做。校验器报 `style/no-generic-family`。
 
@@ -113,38 +111,20 @@
 | `data-hidden` | 任何 | `"true"`。等价 `display:none`，保留节点 |
 | `data-locked` | 任何 | `"true"`。画布不拖动。不产生 CSS |
 | `data-canvas` | `page` | `"x,y"`。画布位置。缺省时画布按栅格排布 |
-| `data-library` | `page` | `"true"`。组件库页，不是交付物 |
 | `data-kind` | `shape` | `rect`（默认）｜`ellipse`。`ellipse` 要配 `border-radius:50%` |
 | `data-icon` | `icon` | 字形名 |
 | `data-icon-library` | `icon` | 目前只有 `lucide` |
-| `data-ref` | `instance` | 组件的 `data-id` |
-| `data-overrides` | `instance` | 字段级覆盖。JSON 文本。字段见 §3.1 |
 | `data-credit` | `image` | 署名。永不渲染 |
 
 `data-id` 规则：匹配 `^[A-Za-z_][A-Za-z0-9_-]{0,63}$`。在整个文件内唯一。自动补 id 时带页名前缀，写成 `home__title`。
 
-`data-id` 不是 HTML 的 `id` 属性。展开实例后 `data-id` 重复是预期行为。
+`data-id` 不是 HTML 的 `id` 属性。它只在本文件里有意义，不进交付物的 id 空间。
 
 页面的位置只有一种写法：`data-canvas`。在页面自己的 `style` 里写 `position:absolute` 加 `left`/`top` 不算第二种写法。画布按 `data-canvas` 摆页面，所以文件里的那两句在画布上看不出问题。交付物里看得出：单页导出就是整篇文档，没有可定位的参照物，页面会被推出自己的左上角。导出会丢掉那几句声明，校验器报 `structure/page-position`。
 
 页框块里的 `margin`（默认 `margin:0 0 24px`）是文档流的事：文件在浏览器里打开时，它隔开相邻两页。画布自己摆页面，所以画布把这条外边距清零（`canvasMountCss`）。不清零时它会顶出挂载点，画布的纸就比页面高 24px，底色不是白的页下面会多出一条白边——文件里没有这条边，浏览器里也看不到它。
 
-页面自己的 `border-radius` 是纸的形状（`pagePaperRadius`）：组件库是 24px 的卡片，不是屏幕。纸画在 shadow root 外面，那里的 `var()` 没有定义，所以这个值要先解析。不解析，圆角退回方角，四个角上各留一个月牙形的白。
-
-### 3.1 覆盖的字段
-
-`data-overrides` 是 JSON 文本。键是组件内某个后代的 `data-id`。值是字段对象，只有四种：
-
-| 字段 | 作用 |
-|---|---|
-| `content` | 换掉该节点的文本 |
-| `style` | 追加声明。同名声明覆盖组件自己的 |
-| `data-*` | 换掉一个属性。例如 `data-icon` |
-| `children` | 换掉该节点的 children。值是 HTML 片段 |
-
-`children` 是唯一的整段替换。`svg` 的几何图形在本格式里是字节，不是名字，所以换字形就是换几何：`data-icon` 和 `children` 要一起写。`content` 写进 `<svg>` 里的文本不在 `<text>` 里，一个字都不画。校验器报 `component/text-override-on-icon`。
-
-`style` 覆盖不了主尺寸。组件的 `width` 比 `align-self:stretch` 更硬，所以让实例跨轴填满要写 `width:100%`。
+页面自己的 `border-radius` 是纸的形状（`pagePaperRadius`）：一个 375×812 的手机页可以带 24px 圆角，那是纸的圆角，不是屏幕的。纸画在 shadow root 外面，那里的 `var()` 没有定义，所以这个值要先解析。不解析，圆角退回方角，四个角上各留一个月牙形的白。
 
 ## 4. 文档模型
 
@@ -335,14 +315,13 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 
 半透明层**是合成的，不是弃权的**：一层 `background-color` 的 alpha 叠在不透明底色上是 sRGB 里的算术，浏览器就是这么合的。白字压在白卡片上的一层 `#00000080` 之上读到的是 `#7f7f7f`（不是手算容易得到的 `#808080`），比值 3.97:1，是一条真缺陷。多层按顺序依次合成。v1 在这里**沿用祖先的填充**，把遮罩当成卡片本身来打分，那是另一种错。
 | `asset/` | `lib/validate.mjs` | 图片缺 src（`asset/missing-src`） |
-| `component/` | `lib/validate.mjs` | 未知组件、循环、未知覆盖目标、覆盖里给字形写文本 |
 | `version/` | `lib/validate.mjs` | 缺 `design-schema`、版本不支持 |
 | `geometry/` | `lib/geometry.mjs` | 装不下：溢出（`geometry/overflow`）、裁切（`geometry/clipped`）、塌陷（`geometry/fill-collapsed`）、绝对定位越界（`geometry/absolute-outside`）、min 与 max 冲突（`geometry/axis-conflict`） |
 | `ops/` | `lib/ops.mjs` | 坏 op、节点未找到、令牌块不唯一或不存在（`ops/ambiguous-token-block`、`ops/no-token-block`）、没有那个令牌（`ops/no-such-token`）、逆 op 不属于本文档（`ops/stale-inverse`） |
 
 `geometry/` 的五个码**全是 warning**，所以它们永不阻塞写入 —— 这不是约定，是结构：`newErrors` 只对 `severity === "error"` 的诊断做差集。它们**不带 `offset`**（说的是布局，不是文本位置），因此键是 `code|""|target|message` —— 下面那条「`target` 不能省」的规则，主要是为它们写的。
 
-`geometry/` 里没有布局引擎，这是刻意的：第二份 flexbox 实现会在边角上和浏览器不一致，而**会喊狼来了的检查比安静的检查更糟**。凡是需要测量才能知道的量（一段文字多宽、一张图多大、没有展开的实例多大）一律是 `unknown` 并向上传播，依赖它的检查随即不报。同一个码最多报 20 条。
+`geometry/` 里没有布局引擎，这是刻意的：第二份 flexbox 实现会在边角上和浏览器不一致，而**会喊狼来了的检查比安静的检查更糟**。凡是需要测量才能知道的量（一段文字多宽、一张图多大）一律是 `unknown` 并向上传播，依赖它的检查随即不报。同一个码最多报 20 条。
 
 `geometry/` 读 `display` 时只认 `none` 和 `flex` 两个值，其余一律**不下压 flex 语义**：
 
@@ -356,7 +335,7 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 
 `geometry/` 里 `position:absolute` 的节点，包含块是**最近的定位祖先**而不是父级：父级 `static` 而祖父 `relative` 时，浏览器按祖父摆放。没有定位祖先时包含块是初始包含块，其尺寸不在文件里，因此弃权。页面算作包含块 —— 页面不允许自己写 `position`（`structure/page-position`），不这样规定这类盒子就没有基准。绝对定位的盒子**不拉伸**（`align-items` 到不了脱离文档流的盒子），需要尺寸时按 hug 算。
 
-规则一直是 `lib/table.mjs` 的（`ATTR_BY_TYPE` 说哪个属性必填），校验器只负责给它一个名字。`image` 是唯一有两个必填属性的类型，所以也只有它有两条例外：缺 `alt` 是可达性发现，缺 `src` 是资产发现。其余类型（`icon` 缺 `data-icon-library`、`instance` 缺 `data-ref`）仍是 `structure/missing-attribute`。
+规则一直是 `lib/table.mjs` 的（`ATTR_BY_TYPE` 说哪个属性必填），校验器只负责给它一个名字。`image` 是唯一有两个必填属性的类型，所以也只有它有两条例外：缺 `alt` 是可达性发现，缺 `src` 是资产发现。其余类型（例如 `icon` 缺 `data-icon-library`）仍是 `structure/missing-attribute`。
 
 `a11y/` 与 `asset/` 这两行曾经写在表里而在代码里发射 0 条 —— 两个声明过、没人兑现的前缀。名字就是当时缺的东西。
 
@@ -452,9 +431,9 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 
 并行规则：一个文件只有一个所有者。需要别的模块时按本文档的接口调用，不改别人的文件。
 
-### 9.1 pen 导入的五条规则
+### 9.1 pen 导入的六条规则
 
-读入器把 pen 的模型翻成本格式的拼法，翻不动的一律进 ledger。五处不是直译，各有依据：
+读入器把 pen 的模型翻成本格式的拼法，翻不动的一律进 ledger。六处不是直译，各有依据：
 
 | 规则 | 写法 | 依据 |
 |---|---|---|
@@ -463,6 +442,7 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 | 旋转 | `path` 节点的轮廓绕 viewBox 原点转 `-rotation` 度后写回 `d`（pen 逆时针为正、CSS 顺时针为正，pen 转的是元素左上角），计 `converted.bakedRotation`；其余节点无法表达，计 `lost.rotation` | 本格式没有 `transform`（`REJECTED_PROPERTIES` 点名拒绝 `transform` 与 `rotate`） |
 | 硬换行 | `content` 含换行时写 `white-space:pre-line`，计 `converted.hardBreaks` | 等价于 pen 导出写的 `<br>`：保留换行、折叠空格。`pre-wrap` 还保留空格，行尾空格会参与居中——实测偏离 pen 的导出 11px |
 | 主题变量 | `value` 是数组时取不带 `theme` 的那一项（pen 导出内联的就是它），计 `converted.themedVariables`；整项取不出一个值时**不写**该令牌并计 `lost.unresolvedVariable` | 数组不是值：按值读会写出字符串 `[object Object],[object Object]`，文件还能通过校验。留空比留错好，引用它的地方会由校验器报 `var()` 无定义 |
+| `ref` 引用 | **就地展开**：被引用节点的子树复制到引用处，副本根用引用自己的 id，其后代编号为 `<引用id>__<自己的id>`，`descendants` 的字段级补丁在导入时应用，计 `refs.inlined` 与 `refs.overridesApplied` | 本格式没有"引用"这个概念：一个元素不被另一个元素按 id 命名，所以一个引用只能是它指向的那棵子树。副本必须重编号，因为 `data-id` 在文件内唯一（§3）。解不开的引用报 `pen/unresolved-ref`，成环报 `pen/ref-cycle`，超过 16 层报 `pen/ref-depth` |
 
 ## 10. 硬约束
 

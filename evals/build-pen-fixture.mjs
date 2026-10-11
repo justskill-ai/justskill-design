@@ -163,25 +163,30 @@ function attrsToString(pairs) {
   return pairs.filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => ` ${k}="${escAttr(v)}"`).join("");
 }
 
-function emitElement(node, depth) {
+/**
+ * One pen node as an element.
+ *
+ * `copy` is set while a reference is being inlined: `{ prefix, root }`. The
+ * copied root takes the reference's own id, and every node under it is renumbered
+ * as `<prefix>__<its own id>`, because an id is unique across the document and one
+ * master may be referenced more than once.
+ */
+function emitElement(node, depth, copy = null) {
+  if (node.type === "ref") {
+    emitRef(node, depth, copy);
+    return;
+  }
   const pad = indent(depth);
-  const id = nodeId(node.id, node.name);
+  const id = copy ? copyId(copy, node) : nodeId(node.id, node.name);
   const type = TYPE_OF[node.type] || "frame";
   const pairs = [["data-id", id], ["data-type", type]];
 
   if (node.type === "shape" || node.type === "rectangle" || node.type === "ellipse") pairs.push(["data-kind", node.type === "ellipse" ? "ellipse" : "rect"]);
   if (node.name) pairs.push(["data-name", node.name]);
+  if (node.__dataHidden === "true") pairs.push(["data-hidden", "true"]);
   if (node.type === "icon") {
     pairs.push(["data-icon", node.icon || "square"]);
     pairs.push(["data-icon-library", node.library || "lucide"]);
-  }
-  if (node.type === "ref") {
-    pairs.push(["data-ref", nodeIdForRef(node.ref)]);
-    const ov = overridesOf(node);
-    if (ov) pairs.push(["data-overrides", ov]);
-    pairs.push(["style", styleOf({ ...node, type: "frame", fill: node.fill })]);
-    body.push(`${pad}<div${attrsToString(pairs)}></div>`);
-    return;
   }
 
   const style = styleOf(node);
@@ -214,39 +219,69 @@ function emitElement(node, depth) {
     return;
   }
   body.push(`${pad}<div${attrsToString(pairs)}>`);
-  for (const kid of kids) emitElement(kid, depth + 1);
+  for (const kid of kids) emitElement(kid, depth + 1, copy);
   body.push(`${pad}</div>`);
 }
 
-const TYPE_OF = { frame: "frame", text: "text", icon: "icon", rectangle: "shape", ellipse: "shape", ref: "instance" };
-const TEXT_TAGS = { text: "p" };
-
-const refIdMap = new Map();
-function nodeIdForRef(ref) { return refIdMap.get(ref) || ref; }
-
-function overridesOf(node) {
-  const d = node.descendants;
-  if (!d || typeof d !== "object") return null;
-  const clean = {};
-  for (const [k, v] of Object.entries(d)) clean[nodeIdForRef(k)] = v;
-  return JSON.stringify(clean);
+/** A `ref` is inlined: the node it names is copied in, patches and all. */
+function emitRef(node, depth, copy) {
+  const target = byIdNode.get(node.ref);
+  if (!target) throw new Error(`the reference ${JSON.stringify(node.ref)} points at no node in this document`);
+  const rootId = copy ? copyId(copy, node) : nodeId(node.id, node.name);
+  const clone = structuredClone(target);
+  clone.name = node.name || clone.name;
+  for (const key of ["width", "height"]) {
+    if (node[key] !== undefined) clone[key] = node[key];
+  }
+  applyOverrides(clone, node.descendants);
+  emitElement(clone, depth, { prefix: rootId, root: clone });
 }
 
-// --------------------------------------------------- pass 1: settle ids
-// Ids are derived from pen ids, so a pre-pass fixes the ref -> data-id map
-// and guarantees stability between the ref map and the emitted elements.
-(function collect(nodes) {
-  for (const n of nodes) {
-    const id = nodeId(n.id, n.name);
-    if (n.id) refIdMap.set(n.id, id);
-    if (n.children) collect(n.children);
-  }
-})(doc.children.slice(0, 3));
+function copyId(copy, node) {
+  if (node === copy.root) return copy.prefix;
+  const base = typeof node.id === "string" && node.id !== "" ? node.id : `n${++idSeq}`;
+  let id = `${copy.prefix}__${base}`;
+  if (id.length > 64) id = `${copy.prefix.slice(0, 40)}__${idSeq++}`;
+  let n = 2;
+  while (seenIds.has(id)) id = `${copy.prefix}__${base}-${n++}`;
+  seenIds.add(id);
+  return id;
+}
 
-// The pre-pass consumed the id allocator; reset it so the emit pass replays
-// exactly the same sequence. It does, because both passes call `nodeId` on the
-// same nodes in the same depth-first order.
-seenIds.clear();
+/** A reference's patches, applied to the copy's own nodes. */
+function applyOverrides(clone, descendants) {
+  if (!descendants || typeof descendants !== "object") return;
+  const index = new Map();
+  (function walk(n) {
+    if (typeof n.id === "string" && !index.has(n.id)) index.set(n.id, n);
+    for (const child of n.children || []) walk(child);
+  })(clone);
+  for (const [targetId, fields] of Object.entries(descendants)) {
+    const target = index.get(targetId);
+    if (!target) continue;
+    for (const [key, value] of Object.entries(fields || {})) {
+      if (key === "enabled" || key === "visible") {
+        if (value) delete target.__dataHidden;
+        else target.__dataHidden = "true";
+        continue;
+      }
+      target[key] = value;
+    }
+  }
+}
+
+const TYPE_OF = { frame: "frame", text: "text", icon: "icon", rectangle: "shape", ellipse: "shape" };
+const TEXT_TAGS = { text: "p" };
+
+// A reference may point at a master anywhere in the document, including one that
+// is not among the pages this fixture emits.
+const byIdNode = new Map();
+(function index(nodes) {
+  for (const n of nodes) {
+    if (typeof n.id === "string" && !byIdNode.has(n.id)) byIdNode.set(n.id, n);
+    if (n.children) index(n.children);
+  }
+})(doc.children);
 
 // ------------------------------------------------------------- head block
 
@@ -257,7 +292,6 @@ for (const [i, page] of pages.entries()) {
   const pairs = [["data-id", id], ["data-type", "page"]];
   if (page.name) pairs.push(["data-name", page.name]);
   if (page.x !== undefined || page.y !== undefined) pairs.push(["data-canvas", `${page.x || 0},${page.y || 0}`]);
-  if (i === 0 && /组件库|component|library/i.test(page.name || "")) pairs.push(["data-library", "true"]);
   const w = page.width === "fill_container" ? "100%" : len(page.width);
   const h = page.height === undefined ? null : len(page.height);
   const st = [`width:${w}`, h ? `height:${h}` : null, "overflow:hidden"].filter(Boolean).join(";");

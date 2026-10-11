@@ -550,9 +550,8 @@ function containingBlockOf(element) {
  * What the browser can prove and the arithmetic cannot.
  *
  * `lib/geometry.mjs` works on the file, so it is blind to anything that needs a
- * measurement: a run of text, the intrinsic size of an image, an instance whose
- * component it has not expanded. Here the page is mounted, so every one of those
- * has a real box. This pass reads them.
+ * measurement: a run of text, the intrinsic size of an image. Here the page is
+ * mounted, so every one of those has a real box. This pass reads them.
  *
  * Three traps, each one a way to report something untrue:
  *
@@ -560,10 +559,10 @@ function containingBlockOf(element) {
  *     every rectangle is in screen pixels. Both rectangles are scaled the same way,
  *     so the comparison itself does not care — but the numbers in the message do, so
  *     everything is divided back to CSS pixels first.
- *   - **Expanded instances.** `expandInstance` copies a component's subtree into
- *     the page, so the component's `data-id`s appear more than once. An op never
- *     addresses a copy, so a finding about one would name an element the writer
- *     cannot edit. A repeated id is skipped.
+ *   - **A repeated id.** A file can carry the same `data-id` twice — that is a
+ *     validation error, and the canvas goes read-only for it, but the pages still
+ *     mount and an op could not tell the two apart. A finding about one of them
+ *     would name an element the writer cannot address, so a repeated id is skipped.
  *   - **Sub-pixel layout.** A fraction of a pixel of overhang is rounding, not a
  *     defect. `lib/geometry.mjs` holds the tolerance.
  */
@@ -833,10 +832,9 @@ function buildPageBox(page) {
   // guessed 844 is how a page gets a scrollbar in the file and a hard cut on the
   // canvas, with the bottom third of the design simply not drawn.
   if (box.declaredHeight) element.style.height = `${box.declaredHeight}px`;
-  if (page.isLibrary) element.style.outline = "1px dashed #4c8dff66";
 
-  // The paper is the page's own shape. A page can round its own corners — the
-  // component library is a 24px card, not a screen — and the paper sits behind
+  // The paper is the page's own shape. A page can round its own corners — a card
+  // artboard is a 24px card, not a screen — and the paper sits behind
   // it: a paper with the chrome's own 10px radius under a 24px page shows a white
   // crescent in every corner, a shape the page never drew. The page's radius
   // reaches the paper and the clip, so a page that declares a height is cut at
@@ -846,7 +844,7 @@ function buildPageBox(page) {
 
   const label = document.createElement("div");
   label.className = "page-label";
-  label.textContent = `${page.name}${page.isLibrary ? " · library" : ""}`;
+  label.textContent = page.name;
   element.appendChild(label);
 
   const host = document.createElement("div");
@@ -910,10 +908,10 @@ function addressOf(node) {
 /**
  * What a canvas event is over, and *which page* it is over.
  *
- * The page is not decoration. Ids repeat across a document — every instance of a
- * component expands into a copy that keeps the component's inner ids — so an id
- * on its own names one element per instantiation, and a lookup that does not say
- * which artboard to look in answers with a copy somewhere else on the canvas.
+ * The page is not decoration. The canvas mounts every page of the document, and a
+ * page is a separate shadow root, so an id names one element *per page it appears
+ * in* — the same id in two artboards is two mounts, and a lookup that does not say
+ * which artboard to look in answers with the one somewhere else on the canvas.
  * The composed path knows: the page box is in it, after the element.
  */
 function targetFromEvent(event) {
@@ -1183,7 +1181,6 @@ function treeRow(node) {
 }
 
 function pageBadge(node) {
-  if (node.isLibrary) return "library";
   const box = state.boxes.get(node.id);
   return box ? `${box.width}×${Math.round(box.height)}` : "";
 }
@@ -1220,11 +1217,11 @@ function treeNodeFor(id) {
 /**
  * The element for `id`, inside the page it belongs to.
  *
- * Ids repeat across pages — a component instance expands into copies that keep
- * the component's inner ids — so a lookup that does not say *which page* can
- * answer with the same element in a different artboard, and the box is then
- * drawn around something off screen. Scoping the search to the page the pointer
- * is in is what keeps the boxes on the thing they name.
+ * Ids are unique in the file, but the canvas mounts every page of it, so the same
+ * id can be on screen more than once when a file carries a duplicate. A lookup that
+ * does not say *which page* can answer with the element in a different artboard,
+ * and the box is then drawn around something off screen. Scoping the search to the
+ * page the pointer is in is what keeps the boxes on the thing they name.
  */
 function elementInPage(pageId, id) {
   const pageBox = ui.canvas.querySelector(`.page-box[data-page-id="${CSS.escape(pageId)}"]`);

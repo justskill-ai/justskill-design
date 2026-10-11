@@ -424,8 +424,9 @@ test("import pen titles the file from the document, then from the file name", ()
  *
  * It read the diagnostics the reader returns, which are the parser's, so it
  * caught malformed HTML and nothing else. A `.pen` whose every `ref` pointed at
- * a node that does not exist imported clean, exited 0, and wrote a document the
- * very next `validate` refuses — the one case the gate exists for.
+ * a node that does not exist imported clean and exited 0 — the one case the gate
+ * exists for. The reader refuses an unresolved reference itself now, because a
+ * reference is inlined and there is nothing to inline.
  */
 test("an import that would not validate is refused, and writes nothing", () => {
   const { dir } = workspace();
@@ -443,8 +444,8 @@ test("an import that would not validate is refused, and writes nothing", () => {
 
     const refused = run(["import", "pen", pen, "-o", out]);
     assert.equal(refused.code, 1, `expected a refusal: ${refused.stdout}${refused.stderr}`);
-    assert.match(refused.stdout, /REFUSED/, refused.stdout);
-    assert.match(refused.stdout, /component\/unknown-ref/, "the refusal names the defect, not just its count");
+    assert.match(refused.stdout, /pen\/unresolved-ref/, "the refusal names the defect, not just its count");
+    assert.match(refused.stdout, /ghost/, "and the reference that points at nothing");
     assert.equal(existsSync(out), false, "a refused import writes no file");
 
     // The same command on a file that resolves still imports, so the gate

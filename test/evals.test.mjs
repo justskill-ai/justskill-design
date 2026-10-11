@@ -281,7 +281,7 @@ test("every diagnostic code named in evals.json is one the code can emit", () =>
   for (const entry of evals) {
     for (const match of textOf(entry).matchAll(/([a-z0-9]+\/[a-z][a-z0-9-]+)/g)) {
       const code = match[1];
-      if (!/^(syntax|style|structure|a11y|asset|component|version|ops)\//.test(code)) continue;
+      if (!/^(syntax|style|structure|a11y|asset|version|ops)\//.test(code)) continue;
       if (!emittable.has(code)) unknown.push(`eval ${entry.id} names ${code}, which no module in lib/ emits`);
     }
   }
@@ -295,7 +295,7 @@ test("a code an eval claims as a result is the code that fires", () => {
     for (const clause of clausesOf(textOf(entry))) {
       for (const match of clause.matchAll(/([a-z0-9]+\/[a-z][a-z0-9-]+)/g)) {
         const code = match[1];
-        if (!/^(syntax|style|structure|a11y|asset|component|version|ops)\//.test(code)) continue;
+        if (!/^(syntax|style|structure|a11y|asset|version|ops)\//.test(code)) continue;
         // A clause that says the code does not appear is a claim about absence.
         if (NEGATION.test(clause.slice(0, match.index))) continue;
         if (!actual.has(code)) {

@@ -287,7 +287,7 @@ test("a missing data-type is refused: it is the one attribute that says what a n
 test("an unknown data-type is refused with the list", () => {
   const result = compileFragment(makeDoc(), '<div data-id="n_a" data-type="fraem"></div>', { in: "home__root" });
   assert.equal(result.refused.code, "structure/unknown-type");
-  assert.match(result.refused.hint, /page, frame, component/);
+  assert.match(result.refused.hint, /page, frame/);
   assert.match(result.refused.suggestion, /frame/);
 });
 

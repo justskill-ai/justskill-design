@@ -9,8 +9,8 @@ import assert from "node:assert/strict";
 import { parse, parseDeclarations, styleMapOf as parseStyleMapOf } from "../lib/parse.mjs";
 import {
   renderModel, renderNodeHtml, styleMapOf, styleStringOf, resolveTokens,
-  canvasPositionOf, expandInstance, componentMap, arrangePages, pageCss, pageTree,
-  canvasMountCss, pagePaperRadius, RenderError, escapeText, webfontLinks,
+  canvasPositionOf, arrangePages, pageCss, pageTree,
+  canvasMountCss, pagePaperRadius, escapeText, webfontLinks,
 } from "../lib/render.mjs";
 
 const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--color-ink:#111827;--space-md:16px;--color-bg:#ffffff}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
@@ -170,14 +170,12 @@ test("a family reached through a token is requested by name", () => {
   ]);
 });
 
-test("a library page is marked, and every page is in document order", () => {
+test("every page is in document order", () => {
   const doc = file(`
     <section data-id="home" data-type="page" data-canvas="0,0" style="width:1px;height:1px"></section>
-    <section data-id="lib" data-type="page" data-library="true" data-canvas="0,900" style="width:1px;height:1px"></section>`);
+    <section data-id="detail" data-type="page" data-canvas="0,900" style="width:1px;height:1px"></section>`);
   const model = renderModel(doc);
-  assert.deepEqual(model.pages.map((p) => p.id), ["home", "lib"]);
-  assert.equal(model.pages[0].isLibrary, false);
-  assert.equal(model.pages[1].isLibrary, true);
+  assert.deepEqual(model.pages.map((p) => p.id), ["home", "detail"]);
 });
 
 test("pages with no stated position get a shelf, not a pile", () => {
@@ -253,96 +251,6 @@ test("text is escaped in the mount, not injected", () => {
   assert.match(markup, /A &amp; B &lt; C/);
 });
 
-// -- components and instances -------------------------------------------------
-
-test("an instance expands into the component subtree with its own id", () => {
-  const doc = file(`
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
-      <div data-id="card" data-type="component" style="display:flex;padding:16px">
-        <p data-id="card__title" data-type="text" style="font-size:14px">Card</p>
-      </div>
-    </section>
-    <section data-id="home" data-type="page" data-canvas="0,0" style="width:1px;height:1px">
-      <div data-id="home__card" data-type="instance" data-ref="card" style="width:200px"></div>
-    </section>`);
-  const model = renderModel(doc);
-  const home = model.pages.find((p) => p.id === "home");
-  assert.match(home.markup, /data-id="home__card"/);
-  assert.match(home.markup, /data-id="card__title"/, "the component's descendants are in the mount");
-  assert.match(home.markup, /width:200px/, "the instance's own style wins on the root");
-  assert.match(home.markup, /padding:16px/, "the component's style is the base");
-});
-
-test("an override changes one field and leaves the rest following the component", () => {
-  const doc = file(`
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
-      <div data-id="card" data-type="component" style="display:flex;padding:16px">
-        <p data-id="card__title" data-type="text" style="font-size:14px;color:#111827">Card</p>
-      </div>
-    </section>
-    <section data-id="home" data-type="page" style="width:1px;height:1px">
-      <div data-id="home__card" data-type="instance" data-ref="card" data-overrides='{"card__title":{"content":"你好","style":"font-size:20px"}}' style="width:200px"></div>
-    </section>`);
-  const markup = renderModel(doc).pages.find((p) => p.id === "home").markup;
-  assert.match(markup, />你好</, "the overridden text is used");
-  assert.match(markup, /font-size:20px/, "the overridden size is used");
-  assert.match(markup, /color:#111827/, "an unmentioned field still follows the component");
-});
-
-test("an override can replace a glyph, because a glyph here is geometry", () => {
-  // `content` is text, and text inside an `<svg>` that is not inside a `<text>`
-  // draws nothing. A swapped icon therefore ships the new geometry, and the
-  // name moves with it so the label and the drawing agree.
-  const doc = file(`
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
-      <div data-id="tile" data-type="component" style="display:flex">
-        <svg data-id="tile__icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M1 1h2v2H1z"></path></svg>
-      </div>
-    </section>
-    <section data-id="home" data-type="page" style="width:1px;height:1px">
-      <div data-id="home__tile" data-type="instance" data-ref="tile" data-overrides='{"tile__icon":{"data-icon":"gem","children":"&lt;path d=\\"M9 3 3 9l9 13 9-13-6-6z\\"&gt;&lt;/path&gt;"}}' style="width:64px"></div>
-    </section>`);
-  const markup = renderModel(doc).pages.find((p) => p.id === "home").markup;
-  assert.match(markup, /data-icon="gem"/, "the name follows the swap");
-  assert.match(markup, /M9 3 3 9l9 13 9-13-6-6z/, "the new geometry is drawn");
-  assert.ok(!markup.includes("M1 1h2v2H1z"), "the component's old glyph is gone");
-});
-
-test("a component made of a component resolves through both levels", () => {
-  const doc = file(`
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
-      <div data-id="label" data-type="component" style="display:flex"><p data-id="label__text" data-type="text" style="font-size:12px">L</p></div>
-      <div data-id="card" data-type="component" style="display:flex;padding:8px"><div data-id="card__label" data-type="instance" data-ref="label" style="width:10px"></div></div>
-    </section>
-    <section data-id="home" data-type="page" style="width:1px;height:1px"><div data-id="home__card" data-type="instance" data-ref="card" style="width:200px"></div></section>`);
-  const markup = renderModel(doc).pages.find((p) => p.id === "home").markup;
-  assert.match(markup, /data-id="label__text"/);
-});
-
-test("a broken reference does not blank the page, and the error is reported", () => {
-  const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px"><p data-id="home__t" data-type="text" style="color:#111827">ok</p><div data-id="home__x" data-type="instance" data-ref="nope" style="width:1px;height:1px"></div></section>`);
-  const model = renderModel(doc);
-  assert.match(model.pages[0].markup, />ok</, "the rest of the page still renders");
-  assert.equal(model.pages[0].node.__renderError, "render/unknown-ref");
-});
-
-test("expandInstance refuses an unknown ref and an over-deep chain", () => {
-  const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px"><div data-id="a" data-type="component" style="display:flex"></div></section>`);
-  const components = componentMap(doc);
-  assert.throws(() => expandInstance({ attrs: [{ name: "data-ref", value: "gone" }] }, components), RenderError);
-  assert.throws(() => expandInstance({ attrs: [{ name: "data-ref", value: "a" }] }, components, { depth: 20 }), /16 deep/);
-});
-
-test("nested instances that resolve without a cycle expand", () => {
-  const doc = file(`
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
-      <div data-id="inner" data-type="component" style="display:flex"><p data-id="inner__t" data-type="text" style="font-size:12px">i</p></div>
-    </section>
-    <section data-id="home" data-type="page" style="width:1px;height:1px"><div data-id="home__i" data-type="instance" data-ref="inner" style="width:1px"></div></section>`);
-  const errors = renderModel(doc).pages.find((p) => p.id === "home").node.__renderError;
-  assert.equal(errors, undefined);
-});
-
 // -- shadow root css ----------------------------------------------------------
 
 test("page CSS is the file's own rules, and not a reset the canvas invented", () => {
@@ -402,17 +310,17 @@ test("a page's paper takes the page's own radius, and a token in it is resolved"
   // that rounds itself at 24px leaves a white crescent in every corner — a shape
   // the page never drew.
   const head = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>:root{--radius-card:24px}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
-  const library = renderModel(file(
-    `<section data-id="lib" data-type="page" data-library="true" style="width:460px;border-radius:24px"></section>`,
+  const card = renderModel(file(
+    `<section data-id="card" data-type="page" style="width:460px;border-radius:24px"></section>`,
     head,
   ));
-  assert.equal(pagePaperRadius(library.pages[0], library.tokens), "24px");
+  assert.equal(pagePaperRadius(card.pages[0], card.tokens), "24px");
 
   // The paper is drawn outside the shadow root, where the file's tokens are not
   // defined. A `var()` left unresolved computes to nothing and the corner comes
   // back square, which is exactly the crescent this fixes.
   const tokenised = renderModel(file(
-    `<section data-id="lib" data-type="page" data-library="true" style="width:460px;border-radius:var(--radius-card)"></section>`,
+    `<section data-id="card" data-type="page" style="width:460px;border-radius:var(--radius-card)"></section>`,
     head,
   ));
   assert.equal(pagePaperRadius(tokenised.pages[0], tokenised.tokens), "24px");

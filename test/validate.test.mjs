@@ -10,7 +10,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { parse } from "../lib/parse.mjs";
-import { validateDesign, summarize, newErrors, errorKeys, collectTokens, componentCycles } from "../lib/validate.mjs";
+import { validateDesign, summarize, newErrors, errorKeys, collectTokens } from "../lib/validate.mjs";
 import { parseDeclarations } from "../lib/parse.mjs";
 
 const HEAD = `<head><meta charset="utf-8"><meta name="design-schema" content="3.0"><style>*,*::before,*::after{box-sizing:border-box}\n*{margin:0}\nimg{display:block}\nsvg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}\n:root{--color-ink:#111827;--space-md:16px}</style><style>section[data-type="page"]{margin:0 0 24px}</style></head>`;
@@ -168,9 +168,9 @@ test("a duplicate suggests a free id to rename to", () => {
   assert.match(found.hint, /home__a-3/, "the hint names an id nothing else uses");
 });
 
-test("a duplicate inside a component is caught against the component's own ids", () => {
+test("a duplicate nested inside a frame is caught against the file's own ids", () => {
   const doc = file(page(`
-    <div data-id="card" data-type="component" style="display:flex">
+    <div data-id="card" data-type="frame" style="display:flex">
       <p data-id="card__title" data-type="text" style="font-size:14px">a</p>
     </div>
     <p data-id="card__title" data-type="text" style="font-size:14px">b</p>`));
@@ -204,15 +204,13 @@ test("missing required attributes name what to write, under the right code", () 
 
 test("a required attribute that is not an image rule keeps the generic code", () => {
   // The mapping is per `type:attribute`, not per diagnostic. An icon missing its
-  // library is a malformed element rather than an accessibility finding, and an
-  // instance with no `data-ref` is neither.
+  // library is a malformed element rather than an accessibility finding.
   const doc = file(page(
-    `<svg data-id="i" data-type="icon" data-icon="bell" viewBox="0 0 24 24" style="width:1px;height:1px"><path d="M1 1"/></svg>`
-    + `<div data-id="r" data-type="instance"></div>`,
+    `<svg data-id="i" data-type="icon" data-icon="bell" viewBox="0 0 24 24" style="width:1px;height:1px"><path d="M1 1"/></svg>`,
   ));
   const found = validateDesign(doc).filter((d) => d.code === "structure/missing-attribute");
-  assert.equal(found.length, 2, JSON.stringify(found.map((d) => d.message)));
-  assert.deepEqual(found.map((d) => d.target).sort(), ["i", "r"]);
+  assert.equal(found.length, 1, JSON.stringify(found.map((d) => d.message)));
+  assert.deepEqual(found.map((d) => d.target), ["i"]);
 });
 
 test("an attribute that does not belong to the type is an error", () => {
@@ -336,64 +334,27 @@ test("a token name outside the seven groups is reported", () => {
   assert.match(found.hint, /group/);
 });
 
-// -- components ---------------------------------------------------------------
+// -- the removed component mechanism -------------------------------------------
 
-test("an instance that points at nothing is reported with the known ids", () => {
+test("a data-type the format does not have is refused with the list", () => {
+  // `component` and `instance` were removed. A file that still writes one gets a
+  // diagnostic that names the values the format does have, rather than a silent
+  // mount that draws nothing.
   const doc = file(page(`<div data-id="home__card" data-type="instance" data-ref="card" style="width:1px;height:1px"></div>`));
-  const found = validateDesign(doc).find((d) => d.code === "component/unknown-ref");
-  assert.ok(found);
-  assert.match(found.message, /card/);
+  const found = validateDesign(doc).find((d) => d.code === "structure/unknown-type");
+  assert.ok(found, `expected structure/unknown-type, got ${codes(doc).join(", ")}`);
+  assert.match(found.hint, /page/);
+  assert.ok(!/instance/.test(found.hint), "the hint lists what exists, not what was removed");
 });
 
-test("an override key outside the component is reported", () => {
-  const doc = file(page(`
-    <div data-id="card" data-type="component" style="display:flex;gap:4px">
-      <p data-id="card__title" data-type="text" style="font-size:14px">Card</p>
-    </div>
-    <div data-id="home__a" data-type="instance" data-ref="card" data-overrides='{"card__titel":{"font-size":"20px"}}' style="width:1px"></div>`));
-  const found = validateDesign(doc).find((d) => d.code === "component/unknown-override-target");
-  assert.ok(found);
-  assert.match(found.hint, /card__title/);
-});
-
-test("malformed overrides JSON is reported, not thrown", () => {
-  const doc = file(page(`
-    <div data-id="card" data-type="component" style="display:flex"></div>
-    <div data-id="home__a" data-type="instance" data-ref="card" data-overrides='{oops}' style="width:1px"></div>`));
-  assert.ok(codes(doc).includes("component/bad-overrides"));
-});
-
-test("a content override on a glyph is reported, because nothing would draw it", () => {
-  // Text inside an `<svg>` that is not inside a `<text>` draws nothing, so this
-  // patch leaves the icon in the file and the mount blank.
-  const doc = file(page(`
-    <div data-id="card" data-type="component" style="display:flex">
-      <svg data-id="card__icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M1 1h2v2H1z"></path></svg>
-    </div>
-    <div data-id="home__a" data-type="instance" data-ref="card" data-overrides='{"card__icon":{"content":"gem"}}' style="width:1px"></div>`));
-  const found = validateDesign(doc).find((d) => d.code === "component/text-override-on-icon");
-  assert.ok(found, "the erase is silent otherwise");
-  assert.match(found.hint, /children/);
-
-  const geometry = file(page(`
-    <div data-id="card" data-type="component" style="display:flex">
-      <svg data-id="card__icon" data-type="icon" data-icon="gem" data-icon-library="lucide" viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M1 1h2v2H1z"></path></svg>
-    </div>
-    <div data-id="home__a" data-type="instance" data-ref="card" data-overrides='{"card__icon":{"data-icon":"gem","children":"&lt;path d=\\"M3 3h2v2H3z\\"&gt;&lt;/path&gt;"}}' style="width:1px"></div>`));
-  assert.ok(!codes(geometry).includes("component/text-override-on-icon"), "the geometry patch is the way to swap a glyph");
-});
-
-test("a component loop is detected", () => {
-  const doc = file(page(`
-    <div data-id="a" data-type="component" style="display:flex">
-      <div data-id="a__i" data-type="instance" data-ref="b" style="width:1px"></div>
-    </div>
-    <div data-id="b" data-type="component" style="display:flex">
-      <div data-id="b__i" data-type="instance" data-ref="a" style="width:1px"></div>
-    </div>`));
-  const cycles = componentCycles(doc);
-  assert.ok(cycles.length >= 1);
-  assert.ok(codes(doc).includes("component/cycle"));
+test("the attributes that addressed a component are unknown attributes", () => {
+  const doc = file(`
+    <section data-id="home" data-type="page" data-canvas="0,0" data-library="true" style="width:390px;height:844px">
+      <div data-id="home__a" data-type="frame" data-ref="card" style="display:flex"></div>
+      <div data-id="home__b" data-type="frame" data-overrides='{}' style="display:flex"></div>
+    </section>`);
+  const found = validateDesign(doc).filter((d) => d.code === "structure/unknown-attribute");
+  assert.deepEqual(found.map((d) => d.target).sort(), ["home", "home__a", "home__b"]);
 });
 
 // -- the new-errors gate ------------------------------------------------------

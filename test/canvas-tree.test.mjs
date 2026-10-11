@@ -238,11 +238,11 @@ test("openPath also overrides a node the user had closed", () => {
 });
 
 test("pageRoots makes each page a root and nests its elements under it", () => {
-  const pages = [{ id: "home", name: "Home" }, { id: "library", name: "Library", isLibrary: true }];
+  const pages = [{ id: "home", name: "Home" }, { id: "detail", name: "Detail" }];
   const rowsOf = (page) => (page.id === "home" ? ROWS : []);
   const roots = pageRoots(pages, rowsOf);
 
-  assert.deepEqual(roots.map((node) => node.id), ["home", "library"]);
+  assert.deepEqual(roots.map((node) => node.id), ["home", "detail"]);
   assert.equal(roots[0].depth, 0);
   assert.equal(roots[0].childCount, 3);
   assert.deepEqual(roots[0].children.map((node) => node.id), ["header", "body", "footer"]);

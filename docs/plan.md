@@ -31,7 +31,7 @@
 2. 元素样式一律写在 `style` 属性里。**只允许两个例外**：令牌块与页框块。两者都放在 `<head>` 的 `<style>` 里。
 3. 每个元素必须带两个属性：`data-id` 与 `data-type`。`data-id` 在整个文件内唯一。`data-type` 必须与标签相符。校验器拒绝缺失或不符的元素。
 
-**为什么每个元素都要 `data-type`。** `<div>` 同时是 frame、shape、instance、component 四种类型。只看标签分不出来。把类型写出来，"这是什么"就不再依赖"哪个标记属性在场"。这一条让四个旧概念退休：`data-page`、`data-component`、`data-shape`，以及 `<template>`。
+**为什么每个元素都要 `data-type`。** `<div>` 同时是 frame 与 shape 两种类型。只看标签分不出来。把类型写出来，"这是什么"就不再依赖"哪个标记属性在场"。这一条让三个旧概念退休：`data-page`、`data-shape`，以及 `<template>`。
 
 **为什么允许这两个例外。** CSS 自定义属性必须声明在 `:root`，否则作用域不对。页框块让每页在浏览器里正常显示。元素样式仍然全部内联。
 
@@ -60,8 +60,10 @@
          style="font-size:32px;font-weight:700;color:var(--color-fg)">你好</p>
       <svg data-id="home__icon" data-type="icon" data-icon="shield-check"
            style="width:24px;height:24px;color:var(--color-fg)">…</svg>
-      <div data-id="home__card" data-type="instance" data-ref="card"
-           data-overrides='{"card__title":{"content":"你好"}}'></div>
+      <div data-id="home__card" data-type="frame"
+           style="display:flex;flex-direction:column;gap:4px;padding:16px;background-color:#ffffff">
+        <p data-id="home__card__title" data-type="text" style="font-size:14px;color:var(--color-ink)">Card</p>
+      </div>
     </div>
   </section>
 
@@ -70,12 +72,11 @@
     <div data-id="detail__root" data-type="frame" style="width:100%;height:100%">…</div>
   </section>
 
-  <!-- 组件库也是一个页。组件是一个 div，渲染行为与 frame 完全相同。 -->
-  <section data-id="library" data-type="page" data-name="组件库" data-library="true"
-           data-canvas="0,920" style="width:390px;height:400px;overflow:hidden">
-    <div data-id="card" data-type="component"
+  <section data-id="kit" data-type="page" data-name="起始页" data-canvas="0,920"
+           style="width:390px;height:400px;overflow:hidden">
+    <div data-id="kit__card" data-type="frame"
          style="display:flex;flex-direction:column;gap:4px;padding:16px;background-color:#ffffff">
-      <p data-id="card__title" data-type="text" style="font-size:14px;color:var(--color-ink)">Card</p>
+      <p data-id="kit__card__title" data-type="text" style="font-size:14px;color:var(--color-ink)">Card</p>
     </div>
   </section>
 
@@ -93,7 +94,6 @@
 - 视口 = 页框自己的 `style` 尺寸。例：`style="width:390px;height:844px;overflow:hidden"`。**不引入 `data-viewport`。**
 - 在画布上的位置 = 该 section 的 `data-canvas="x,y"`。
 - 显示名 = `data-name`。文件标题 = `<title>`。
-- 组件库 = 一个**普通的页**。里面的组件元素 `data-type="component"`。它和别的页在同一个文件里，没有单独文件，也不需要惰性容器。`data-ref` 按组件的 `data-id` 引用它。
 - `data-id` 在整个文件内唯一。CLI 自动补 id 时带页名前缀（`home__title`）。
 
 **浏览器与画布的分工。**
@@ -106,7 +106,6 @@
 | 收益 | 说明 |
 |---|---|
 | 令牌只有一份 | `:root` 在整个设计里只出现一次。`tokens set` = 一个文件、一个 op |
-| 组件库就是一个页 | 不需要单独文件，也不需要 `<template>` 惰性容器。组件就是一个 div |
 | 页面列表不依赖文件系统 | 页面 = `[data-type="page"]` 元素 |
 | `.pen` 导入变成 1:1 | 一个 `.pen` → 一个 `.html`。26 个画板 = 26 个 `<section data-type="page">`。画板的 `x`/`y` 直接进 `data-canvas` |
 | 两个写入者更简单 | 只有一个文件要重读，一个 revision |
@@ -182,7 +181,7 @@
 - **建议：两个方向都做，但主次分明。** `.pen` → HTML 做全，是主方向。HTML → `.pen` 尽力，带损失清单，排在最后实现。
 - 理由：`.pen` 若要求可编辑并可写回（读进来改一改再存回 `.pen`），工作量等于做第二个产品。**写出去**比**写回去**便宜得多。
 - 导入必须输出账本。账本记三样：丢失（lost）、改写（converted）、未识别的属性（unmappedProps）。
-- 一个 `.pen` 文件写成一个 `.html` 文件。26 个画板 = 26 个 `<section data-type="page">`。画板的 `x`/`y` 进 `data-canvas`。**pen 的 `reusable: true` 变成 `data-type="component"`**，其余属性不变。pen 的 `type: "ref"` 变成 `data-type="instance"` 加 `data-ref`。参考文件里那个叫"组件库 v2"的顶层画板就是一个普通的页。
+- 一个 `.pen` 文件写成一个 `.html` 文件。26 个画板 = 26 个 `<section data-type="page">`。画板的 `x`/`y` 进 `data-canvas`。pen 的 `type: "ref"` **就地展开**：被引用节点的子树复制到引用处，副本根保留引用自己的 id，其后代按 `<引用id>__<自己的id>` 重编号，`descendants` 覆盖在导入时应用。参考文件里那个装主节点的顶层画板就是一个普通的页。
 - 原稿第 3 条的多实现正为此而设。见 §3.2 读取器与写出器。
 - 导入要检查 id：必须符合 `^[A-Za-z_][A-Za-z0-9_-]{0,63}$`，且全文唯一。pen 官方没有规定 id 的字符集，所以不符合的要重编号，并计入账本的 `converted`。实测参考文件：1541 个 id 全部唯一、全部合规，所以那份文件不需要重编号。
 
@@ -273,23 +272,22 @@ FormatWriter {
 
 | 规则 | 说明 |
 |---|---|
-| 在**设计文件内**唯一 | 跨所有页与所有组件。这是硬规则，校验器拒绝重复 |
-| 在**渲染与导出的 DOM 里会重复** | 一个组件被实例化 3 次，展开后它的后代 id 出现 4 次。这是预期行为 |
-| op 永远不定位展开副本 | 要改实例内部，走 `data-overrides` 路径。见 §4.3 |
-| 为什么用 `data-id` 而不是 HTML 的 `id` | 交付物里重复的 `data-id` 无副作用。重复的 `id` 属性是非法 DOM |
+| 在**设计文件内**唯一 | 跨所有页。这是硬规则，校验器拒绝重复 |
+| 在**画布上每页各出现一次** | 每页是一个 shadow root，同一个 id 在不同页里是两次挂载 |
+| 为什么用 `data-id` 而不是 HTML 的 `id` | 交付物里 `data-id` 无副作用，重复也不构成非法 DOM |
 
-**八种类型，与允许的标签。**
+每条 op 用 `data-id` 寻址，所以一个 id 在一份文件里只指向一个元素。
+
+**六种类型，与允许的标签。**
 
 | `data-type` | 允许的标签 | 能带 children | 说明 |
 |---|---|---|---|
 | `page` | `<section>` | 是 | 一页。不是节点，是页的容器 |
 | `frame` | `<div>` | 是 | 盒子 |
-| `component` | `<div>` | 是 | 组件。渲染行为与 `frame` 相同，且能被 `data-ref` 引用。见 §4.3 |
 | `text` | `<p>` `<h1>`–`<h6>` `<span>` | 否 | 一个元素一段文本 |
 | `image` | `<img>` | 否 | `src` 与 `alt` 必填 |
 | `shape` | `<div>` | 否 | 配 `data-kind` |
 | `icon` | `<svg>` | 否 | 配 `data-icon` 与 `data-icon-library`。字形是内联几何 |
-| `instance` | `<div>` | 否 | 配 `data-ref` 与 `data-overrides` |
 
 **可选属性。**
 
@@ -299,17 +297,14 @@ FormatWriter {
 | `data-hidden` | 任何 | `"true"`。等价 `display:none`，但保留节点 |
 | `data-locked` | 任何 | `"true"`。画布不可拖动。不产生 CSS |
 | `data-canvas` | `page` | `"x,y"`。画布摆放位置 |
-| `data-library` | `page` | `"true"`。这是组件库页，不算交付物。`export --all` 跳过它 |
 | `data-kind` | `shape` | `rect`（默认）｜`ellipse`。**没有 `line`**：一条线是带高度的 `rect` 加 `border-radius`，或者一个 `icon`；表里多一个值就要多一条渲染与校验规则，而它没有换回任何表达能力 |
 | `data-icon` | `icon` | 字形名 |
 | `data-icon-library` | `icon` | 目前只有 `lucide` |
-| `data-ref` | `instance` | 组件的 `data-id` |
-| `data-overrides` | `instance` | 字段级覆盖。JSON |
 | `data-credit` | `image` | 署名。永不渲染 |
 
 **尺寸意图**用 §2.3 的规范 CSS 写法。**不引入 `data-w` / `data-h`。**
 
-**退休的四个旧概念。** `data-page` → `data-id` 加 `data-type="page"`。`data-component` → `data-id` 加 `data-type="component"`。`data-shape` → `data-kind`。`<template>` → 不需要了，组件就是一个 div。
+**退休的三个旧概念。** `data-page` → `data-id` 加 `data-type="page"`。`data-shape` → `data-kind`。`<template>` → 不需要了，一个可复用的盒子就是一个 `frame`。
 
 规则变了：以前靠"哪个标记属性在场"判断类型，现在靠 `data-type` 一个必填字段。
 
@@ -329,84 +324,7 @@ FormatWriter {
 
 **为什么必须有。** 没有令牌，"把品牌色改成紫色"要改 200 处。
 
-### 4.3 组件与实例（原稿第 6 条）
-
-**【定】组件是一个类型。它的渲染行为与 `frame` 完全相同。**
-
-- 组件 = `<div data-type="component">`。它能带 children，能放在任何页里，也能嵌套在另一个组件里。
-- 它的 `data-id` 就是组件名。引用它用 `data-type="instance"` 加 `data-ref`。
-- 它待在原来的位置，照常布局，照常渲染。
-- 所以**组件库就是一个普通的页**，按惯例给它 `data-library="true"`。
-
-```html
-<!-- 组件库页里的一个组件。它就是个 div -->
-<div data-id="card" data-type="component"
-     style="display:flex;flex-direction:column;gap:4px;padding:16px">
-  <p data-id="card__title" data-type="text" style="font-size:14px">Card</p>
-</div>
-
-<!-- 别处引用它。只存引用，不存展开的子树 -->
-<div data-id="home__card" data-type="instance" data-ref="card"
-     data-overrides='{"card__title":{"content":"你好"}}'></div>
-```
-
-**唯一的结构限制。** 组件根必须是一个 `<div>`。所以不能把一个 `<p>` 或 `<img>` 直接变成组件，要那样做就包一层。
-
-实测这条限制不产生损失：参考 pen 文件里 23 个 reusable 节点，**22 个是 frame，1 个是 ellipse**。ellipse 在我们的格式里本来就是 `div` 加 `border-radius:50%`。
-
-**为什么不用 `<template>`。**
-
-- `<template>` 的内容不渲染、不参与布局、没有盒子、不能测量、也不在文档树里。**"组件库正常显示"用它做不到。**
-- 它不是元素。它写不了 `data-type`，直接违反"每个元素两个必填属性"。
-- 它换不来任何东西。展开发生在导出与画布挂载时，由我们的代码做。`<template>` 的用途是"运行时用 JS 盖章"，我们不那么做。
-
-**展开发生在哪里。** 设计文件只存引用，**不含任何脚本**。展开有两处，共用同一个函数：
-
-```
-resolve(instance) = applyOverrides(deepClone(find(ref)), instance.overrides)
-```
-
-| 位置 | 做什么 |
-|---|---|
-| `export` 写交付物 | 把实例元素换成组件子树加覆盖 |
-| 画布挂载 | 同样展开。所以画布所见与交付物一致 |
-
-**为什么文件里不存展开的副本。** 那样双击文件就能看到完整效果，但代价是致命的：
-
-- **展开出来的元素会带来重复的 `data-id`。** 一个组件被实例化 3 次，它的后代 id 就出现 4 次。这违反"`data-id` 全文唯一"。两条出路都破坏统一规则：编派生 id（引入第二种命名法），或者不给 id（违反另一条规则）。
-- 组件不再是单一真相源。每次写入都要重展开，否则漂移。
-- 文件体积随实例数线性增长。参考 pen 文件有 239 个实例。
-
-选择的代价要写进文档：**双击文件时，实例位置是空的。** 要看完整效果用 `export`。
-
-**收益。**
-
-| 收益 | 说明 |
-|---|---|
-| 一条规则 | 组件和其他元素一样：`data-id` 加 `data-type`。没有额外的布尔标记 |
-| 组件能放在任何页里 | 它就是那个页的一部分，照常布局 |
-| 少一个标签 | `<template>` 从允许的标签里消失 |
-| 少一个导出选择器 | `--component <name>` 取消。曾计划用 `--id <组件id>` 导出某个节点的图，**未实现**：`export` 的粒度只有页（或 `--all` 全站），要读单个元素用 `show <data-id>` |
-
-**代价（必须写进文档）。**
-
-- 组件定义会**渲染**。组件库页在浏览器里就是它本来的样子。
-- 这与 pen 一致：pen 的组件库就是画布上的一个普通画板。
-- 所以 `export --all` 要跳过库页。规则：带 `data-library="true"` 的页不算交付物。要导出它就用 `--page library` 显式指定。
-
-**实例的规则（不变）。**
-
-- 理由：组件是单一真相源。没有副本要同步，没有冲突要合并。
-- 代价：直接双击页面文件时，实例位置是空的。要看完整效果用 `export`。
-- 覆盖是字段级并入。`{"card__title":{"font-size":"20px"}}` 只钉住字号，其余字段继续跟随组件。
-- 覆盖不能改结构。`data-id`、`data-type`、`children` 不是可覆盖字段。
-- `data-overrides` 是文件里唯一的 JSON。理由：不限制 id 字符集，覆盖可以到任意深度。
-- 实例元素自身可带 `style`、`data-name`、`data-hidden`、`data-locked`。这些落在组件根上。
-- 解绑（detach）命令把引用换成组件当前展开的子树。**展开副本的后代必须重新编号**，否则与组件定义里的 id 重复。新 id 加实例前缀，例：`home__card__title`。
-
-**pen 就是这么做的。** 证据见 §2.6：任意对象加 `reusable: true` 就是组件，实例是 `{type: "ref", ref: "<id>"}`。参考文件里的"组件库 v2"是一个普通顶层画板，23 个组件里 22 个是 frame。
-
-### 4.4 【新】op：唯一的变更单元
+### 4.3 【新】op：唯一的变更单元
 
 **这是原稿第 12 条的地基。** 回退需要粒度。粒度就是 op。
 
@@ -426,10 +344,8 @@ resolve(instance) = applyOverrides(deepClone(find(ref)), instance.overrides)
 - op 不需要 `data-type`。一个 id 就够了。
 - 每个 op 列表可逆。`applyOps` 返回逆 op。
 - 一个 op 等于一步撤销、一行变更日志。
-- 组件库里的元素也可用 `data-id` 定位。所以"改组件本体"与"改页面元素"是同一条路径。
-- 实例内部元素的唯一改法是覆盖路径。
 
-### 4.5 【新】诊断模型
+### 4.4 【新】诊断模型
 
 ```
 {
@@ -443,9 +359,9 @@ resolve(instance) = applyOverrides(deepClone(find(ref)), instance.overrides)
 }
 ```
 
-码前缀：`syntax/*`、`style/*`、`structure/*`、`a11y/*`、`geometry/*`、`component/*`、`asset/*`、`version/*`、`ops/*`。
+码前缀：`syntax/*`、`style/*`、`structure/*`、`a11y/*`、`geometry/*`、`asset/*`、`version/*`、`ops/*`。
 
-### 4.6 【新】日志：拆成两份（原稿第 12 条收紧）
+### 4.5 【新】日志：拆成两份（原稿第 12 条收紧）
 
 原稿把两件事混在一起。分开。
 
@@ -475,14 +391,13 @@ design <动词> [参数]
 | `set` | 改已有元素 | `<id> --style 'a:b;c:d' --text "…"` |
 | `remove` | 删除元素 | `<id>` |
 | `move` | 移动或换父 | `<id> --before X \| --after X \| --index i \| --into P` |
-| `rename` | 改 `data-id`，并级联更新引用 | `<old-id> <new-id>` |
+| `rename` | 改 `data-id` | `<old-id> <new-id>` |
 | `ls` | 列页与节点 | `[--pages] [--in <page\|id>] [--depth n] [--json]` |
 | `show` | 看单个元素 | `<id> [--json]` |
 | `tokens` | 令牌增删改查 | `ls \| set <组.名> <值> \| rm <组.名>`。名字也可以写成文件里的 `--组-名`，那时要在 `--` 之后：`tokens f.html set -- --color-accent '#2563eb'` |
-| `component` | 组件是一个类型。`mark` 就是把 `data-type` 从 `frame` 改成 `component` | `mark <id>` ／ `unmark <id>` ／ `use <id> --in <parent>` ／ `detach <instance-id>` |
 | `validate` | 校验 | `[--json] [--strict]` |
 | `format` | 归一化 | `[--check]` |
-| `export` | 从设计文件出交付物。范围可选 | `[--page <id>] [--all] [--include-library] [-o path] [--format html\|svg\|png\|jpeg\|webp] [--raster auto\|chrome] [--scale 1\|2\|3] [--size WxH] [--resolve-tokens] [--stdout] [--json]`。**这行是实现的全部**：`--id`、`--format pen`、`--raster canvas`、`--background`、`--padding`、`--inline-assets`、`--report` 都写在过这份设计稿里，都没有写出来 |
+| `export` | 从设计文件出交付物。范围可选 | `[--page <id>] [--all] [-o path] [--format html\|svg\|png\|jpeg\|webp] [--raster auto\|chrome] [--scale 1\|2\|3] [--size WxH] [--resolve-tokens] [--stdout] [--json]`。**这行是实现的全部**：`--id`、`--format pen`、`--raster canvas`、`--background`、`--padding`、`--inline-assets`、`--report` 都写在过这份设计稿里，都没有写出来 |
 | `import` | 把别的格式读成设计文件 | `pen <file> [-o out.html] [--report ledger.json]`。只有 `pen` 一个读取器；`--report` 把账本另写一份 |
 | `serve` | 开画布 | `[<file>] [--port 0] [--ttl 30]` |
 | `log` | 读日志 | `[--tail n] [--intent]` |
@@ -491,7 +406,7 @@ design <动词> [参数]
 - 退出码固定：0 正常 / 1 无效或被拒 / 2 不可读或参数错。
 - 命令用 `data-id` 定位元素，所以不需要 `--page`。只有 `new`、`ls --pages`、`export` 用页名。
 - **`data-id` 是地址，所以 `set` 不能改它。** 改名要用 `rename`。
-- `rename` 负责级联：改组件的 id 要更新所有指向它的 `data-ref`。改组件内某后代的 id 要更新所有 `data-overrides` 里对应的键。
+- `rename` 只改一个 id：文件里没有别的东西按 id 指向另一个元素。
 - `--id` 只对图片格式（`svg`、`png`、`jpeg`、`webp`）有效。HTML 导出只有页粒度。
 - **方向只有一个入口，一个出口。** 进来用 `import`（别的格式 → 设计文件）。出去用 `export`（设计文件 → 交付物或别的格式）。
 - `import pen` 走「pen 读取器 + html 写出器」。它产出**设计文件**，不是交付物。要交付物再 `export`。
@@ -560,7 +475,7 @@ REFUSED  会引入重复 id "n_cards"
 | 语法 | HTML 是否合法。元素是否闭合 |
 | 样式 | 属性是否在白名单。取值是否符合语法 |
 | 结构 | `data-id` 是否唯一。`data-type` 是否存在，是否与标签相符。文本元素是否有文本。图片是否有 `alt` |
-| 语义 | 实例的 `data-ref` 是否指向一个 `data-type="component"` 的元素。`data-overrides` 的键是否都是组件内的后代 id。令牌是否存在。几何是否装得下 |
+| 语义 | 令牌是否存在，引用是否解得开，几何是否装得下 |
 
 **白名单。** 约 40 个 CSS 属性。这就是原稿第 7 条的具体做法。
 
@@ -628,15 +543,15 @@ REFUSED  会引入重复 id "n_cards"
 | 无 | 整个设计的第一页 | 是 | 是 | `<页名>.<ext>` |
 | `--page home` | 该页 | 是 | 是 | `home.<ext>` |
 | `--page home --id n_hero` | 该页里 `n_hero` 的子树 | **否** | 是 | `home__n_hero.<ext>` ← **这一行未实现**，见下 |
-| `--all` | 每一页一个文件。跳过组件库页 | 是 | 是 | `<页名>.<ext>` |
+| `--all` | 每一页一个文件 | 是 | 是 | `<页名>.<ext>` |
 
 - **HTML 的粒度只有页。** 一次一页，或者 `--all` 一次全站。不给片段。
 - **理由。** HTML 导出是交付物。交付物是一页，或者一个站点，不是一棵子树。
 - **图片的粒度是页或 `data-id`。** 图片指 `svg`、`png`、`jpeg`、`webp`。
 - `--id` 与 `--format html` 同时给 → 报错，并提示改用 `show <id>`。
-- `--id` 必须指向文件里真实存在的元素。**实例内部的后代不是元素，没有 `data-id`，不能作为目标。** 要导出一个实例，就导出实例元素本身。
+- `--id` 必须指向文件里真实存在的元素，也就是一个带 `data-id` 的元素。
 - 互斥：`--all` 与 `--id`。同时给就报错。
-- 要一个组件的图，用 `--id <组件id>`。组件就是节点，所以走同一条路。**未实现**：下面三样「节点级图片导出要补的东西」也还没有补，所以 `--id` 至今没有实现；`--id` 与 `--format html` 同给的报错、`--all` 与 `--id` 的互斥都随之不存在。
+- 要一个子树自己的图，用 `--id <data-id>`。**未实现**：下面三样「节点级图片导出要补的东西」也还没有补，所以 `--id` 至今没有实现；`--id` 与 `--format html` 同给的报错、`--all` 与 `--id` 的互斥都随之不存在。
 
 **节点级图片导出要补三样东西。** 一棵子树离开父级后，会丢三样上下文：
 
@@ -653,7 +568,7 @@ REFUSED  会引入重复 id "n_cards"
 
 | 目标 | 做法 |
 |---|---|
-| 单页 | 抽出该页的 `<section>`，内容摊进 `<body>`，写入对应的 `<meta name="viewport">`。展开全部实例 |
+| 单页 | 抽出该页的 `<section>`，内容摊进 `<body>`，写入对应的 `<meta name="viewport">` |
 | 节点（仅图片） | 摊平可继承属性与令牌，补尺寸，再栅格化 |
 | 全站 | `export --all -o dist/`。每页一个文件，文件名用页名 |
 | `.pen` → HTML | 做全。必须输出账本 |
@@ -731,7 +646,7 @@ references/     生成物。schema 文档与样式文档
 test/           node --test
 ```
 
-**这份树按实际重写过。** 设计稿里点名的 `format.mjs`、`svg-out.mjs`、`components.mjs`、`readers/html.mjs`、`writers/html.mjs`、`writers/pen.mjs`、`geometry.mjs`、`lib/node/log.mjs`、`lib/node/browser.mjs` 从未存在；`export.mjs` 落成了 `export-html.mjs`，`format.mjs` 落成了 `table.mjs`。**没有被替代的只有两个：`writers/pen.mjs`（pen 写出器）与 `geometry.mjs`（几何检查）** —— 它们是这份设计里确实还没做的两件事，写在 §8 的验收与 `docs/format-v3.md` §6 的「未实现」里。
+**这份树按实际重写过。** 设计稿里点名的 `format.mjs`、`svg-out.mjs`、`readers/html.mjs`、`writers/html.mjs`、`writers/pen.mjs`、`geometry.mjs`、`lib/node/log.mjs`、`lib/node/browser.mjs` 从未存在；`export.mjs` 落成了 `export-html.mjs`，`format.mjs` 落成了 `table.mjs`。**没有被替代的只有两个：`writers/pen.mjs`（pen 写出器）与 `geometry.mjs`（几何检查）** —— 它们是这份设计里确实还没做的两件事，写在 §8 的验收与 `docs/format-v3.md` §6 的「未实现」里。
 
 **纯度边界（可执行的不变量）。** `lib/`（除 `lib/node/`）与 `canvas/` 不得出现 `node:` 导入、`require()`、`process.*`、`Buffer.*`。画布能取的静态资源必须在白名单里。`lib/node/` 永不提供给浏览器。
 
@@ -818,7 +733,7 @@ write(path, ops):
 4. 修改器：`add` 与 `set` 两个动词，加片段编译，加回执。
 5. 20 个片段的语料测试。
 
-**判据：** 一次写对率 ≥ 80%。静默丢弃 0。这两条过了再画布，再 `.pen` 导入，再组件，最后图片导出。`svg` 零依赖，可以第一步就带上。`png` 需要一个浏览器，排在最后。
+**判据：** 一次写对率 ≥ 80%。静默丢弃 0。这两条过了再画布，再 `.pen` 导入，最后图片导出。`svg` 零依赖，可以第一步就带上。`png` 需要一个浏览器，排在最后。
 
 ## 11. 附录：原稿 12 条的落位
 
@@ -829,11 +744,10 @@ write(path, ops):
 | 3 多实现 | §3.2、§2.6、§2.4 | 读取器与写出器两个接口。四个格式的能力表。转换 = 读取器 + 写出器。版本标记与迁移 |
 | 4 node CLI | §5.1 | 动词表。退出码。共有参数 |
 | 5 画布三区 | §5.7 | 视图状态不写文件。拒绝的编辑可视化 |
-| 6 组件机制 | §4.3、§4.1 | 组件是 `data-type="component"`，渲染同 frame，可放任何页。组件库就是一个页。实例只存引用。覆盖是字段级并入。解绑 |
 | 7 限定样式 | §5.4、§2.3 | 约 40 属性白名单。别名与简写处理。越界三种处理 |
 | 8 渲染器与浏览器 | §3.2、§5.5 | 一个服务按扩展名选读取器 |
 | 9 双向导出 | §5.8、§2.5、§1 | 粒度规则：HTML 只有页，图片可到 `data-id`。节点级导出要补三样上下文。输出格式含 SVG 与图片。两条栅格化路径与 `svg` 出路 |
-| 10 修改器 | §5.2、§5.3、§4.4 | 十步流程。回执四类。op 是变更单元 |
+| 10 修改器 | §5.2、§5.3、§4.3 | 十步流程。回执四类。op 是变更单元 |
 | 11 服务同步 | §5.5、§5.6、§6.2、§6.3 | 三项安全守卫。写入漏斗。两个写入者规则 |
-| 12 日志与回退 | §4.6、§4.4 | 拆成变更日志与意图日志。op 是可逆粒度 |
+| 12 日志与回退 | §4.5、§4.3 | 拆成变更日志与意图日志。op 是可逆粒度 |
 | 缺 | §4.2、§5.9、§8 | 设计令牌。查询面。验收指标 |

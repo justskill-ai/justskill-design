@@ -33,7 +33,7 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 
 ## 1. 这一轮在治什么
 
-三类病根，每一类都能在下面找到实例。
+三类病根，每一类都能在下面找到例子。
 
 1. **文档与代码各说各话，而没有任何测试比对它们。** 契约里 `a11y/` `asset/` 两个前缀发射 0 条码；§7 点名两个不存在的导出；SKILL.md 教模型躲开一个合法属性；`references/schema.md` 把一个规则写成 must 而代码从不检查。**没有一个缺陷让测试变红**，因为没有测试读文档。
 2. **同一件事有两份实现，然后分叉。** `diagnosticKey` 两份（字段还不一样）、令牌解析两份（一份有深度上限、一份没有 —— 这就是 §3.9 那次崩溃）、回执格式化三份、CSS 声明切分两份（这一对**是有意的**，见 §6）。分叉的那一份总是更晚写的那一份。
@@ -122,18 +122,17 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 
 ### 3.8 【B1】`rename` 不存在
 
-**症状**：改名要走 `set --attr data-id=…`，没有级联。
+**症状**：改名要走 `set --attr data-id=…`，没有一个动词为地址负责。
 
-**证据**：真正缺的不是"能改 id"，而是**两条级联**：组件的 `data-ref`，以及实例 `data-overrides` 的键。
+**证据**：改一个 id 当时要走 `set --attr data-id=…`，而 `set` 是"改节点身上的东西"，地址不在其中。
 
-**改法**：新增 `lib/node/verbs/rename.mjs`（`data-ref` 级联 → `data-overrides` 键级联 → 最后才是 `set data-id`）；`set --attr data-id=…` 改为拒绝并指向 `rename`。
+**改法**：新增 `lib/node/verbs/rename.mjs`；`set --attr data-id=…` 改为拒绝并指向 `rename`。id 唯一，且文件里没有别的东西按 id 指向另一个元素，所以一次改名就是一个 op。
 
-**实测**（真实文件 `examples/miniprogram.html`，356,109 字节，23 组件 / 239 实例 / 140 覆盖）：
+**实测**（真实文件 `examples/miniprogram.html`，一次改名 = 一处替换）：
 
 | 改谁 | 改动处数 | 字节差 | 新增错误 |
 |---|---|---|---|
-| 组件根 `x2cjUg` → `z2cjUg` | 66 | **0** | 0 |
-| 组件内后代 `j4DoG1` → `j4DoG1X` | 36 | +36 | 0 |
+| 任一元素 id → 新 id | 1 | 0 | 0 |
 
 **测试**：`test/rename.test.mjs`（9 条）。
 
@@ -296,16 +295,16 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 | 渐变角度（10 个 `rotation:180`） | `360deg` | 180 | **180deg** |
 | 渐变角度（7 个 `rotation:135`） | `315deg` | 225 | **225deg** |
 | `align-items`（226 行） | `center` | 节点没有 `alignItems` 键 | **`flex-start`**（pen 的默认值） |
-| 图标覆盖（18 处） | `{"whAKg":{"content":"gem"}}` —— 把文字写进 `<svg>` | 换图标是换字形 | **`{"whAKg":{"data-icon":"gem","children":"<path …/>"}}`** |
+| 图标覆盖（18 处） | `{"whAKg":{"content":"gem"}}` —— 把文字写进 `<svg>` | 换图标是换字形 | 该副本的 `data-icon="gem"` 加内置字形几何 |
 
-`360deg` 与 `315deg` 正是 `rotation + 180` 的输出，而 `lib/readers/pen.mjs` 自己的注释写着那个公式"只对 180 度正确、对其余全部差 90 度"。那 18 处图标覆盖就是旧示例里 18 条 `component/text-override-on-icon` 错误的来源 —— 而账本里的 `converted.iconOverrides: 18` 一直记着这 18 次转换，两边的数目早就对上了。
+`360deg` 与 `315deg` 正是 `rotation + 180` 的输出，而 `lib/readers/pen.mjs` 自己的注释写着那个公式"只对 180 度正确、对其余全部差 90 度"。那 18 处图标覆盖就是旧示例里 18 条"把文字写进 `<svg>`"错误的来源 —— 而账本里的 `converted.iconOverrides: 18` 一直记着这 18 次转换，两边的数目早就对上了。
 
-**为什么一直没被发现**：`test/pen-reader.test.mjs` 把**账本**钉得很死（26 页 / 23 组件 / 239 实例 / 允许的损失清单 / 两次导入字节相同 / 0 errors），但**没有钉任何一个渲染出来的 CSS 值**；`test/rename.test.mjs` 的基线是**从文件本身读的**（这形状是对的 —— 改名不该新增任何错误）。于是"读取器错了 90 度"和"产物错了 90 度"都没有测试看得见。
+**为什么一直没被发现**：`test/pen-reader.test.mjs` 把**账本**钉得很死（26 页 / 239 个引用 / 允许的损失清单 / 两次导入字节相同 / 0 errors），但**没有钉任何一个渲染出来的 CSS 值**；`test/rename.test.mjs` 的基线是**从文件本身读的**（这形状是对的 —— 改名不该新增任何错误）。于是"读取器错了 90 度"和"产物错了 90 度"都没有测试看得见。
 
 **改法**：
 1. **重新生成**（走工具，不手改）：
    `node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram`
-   结果 355,958 字节（§3.22 的定位修复后为 356,109），`0 errors, 0 warnings — valid`，`canonical`，26 页 / 23 组件 / 239 实例 / 140 覆盖全部保持；改名级联的实测数字与旧文件完全一致（组件根 66 处改动 / 字节差 0，后代 36 处 / +36 字节）。
+   结果 `0 errors — valid`、`canonical`，26 页与全部引用保持。
 2. **补上真正该有的那条检查**：`test/pen-reader.test.mjs` 新增 "the committed example is what the reader produces today"，逐字节比对提交的示例与新鲜导入，失败时**打印重新生成的命令**。它随参考文件一起 `skip`（那个 `.pen` 在另一个仓库里）。
 3. 诊断数 18 → 0 是有意变化：那 18 条错误描述的覆盖本身已经被读取器修掉了。
 
@@ -380,7 +379,7 @@ pen 的 `stroke` 可以只有 `{align, thickness}` 而**没有画笔**（这份�
 |---|---|---|
 | 电池 "Border" | 亮色页 `#000000ff`、暗色页 `#ffffffff` —— **跟着主题走** | — |
 | `notifBtn` | 每页不同：`2px #000000`、`1px #3A3A3C`、`1.5px #E4E4E7`、`1px #2A2B30`、`1px #333333`，另有 4 页根本没有描边 | — |
-| 状态栏 `Time` / `Levels` | — | 9 种风格 × 18 个实例**字节完全相同**的 `{align:"inside",thickness:1}` |
+| 状态栏 `Time` / `Levels` | — | 9 种风格 × 18 个节点**字节完全相同**的 `{align:"inside",thickness:1}` |
 
 会跟着主题变的是设计；9 套配色字体全不同、而这一处一字不差的是**结构性残留**（而且没有任何主题能给它上色）。它还偏偏挑地方藏：黑色压在 `#141417` 上看不见，落在白底上就是一个框 —— 所以暗色页没人发现，一亮色页就现形。
 
@@ -428,10 +427,10 @@ pen 的 `stroke` 可以只有 `{align, thickness}` 而**没有画笔**（这份�
 评审时值得看这几条，因为它们说明前面的结论是怎么收敛的。
 
 1. **"`margin` 污染北极星指标"是错的。** `evals/grade.mjs` 的 `judge()` 从不读 `assertions`，所以那些陈旧断言**不是机器门禁**。
-2. **"没有 `rename` 就没法改 id"是错的。** `set --attr data-id=…` 一直可用（带护栏）。真正缺的是两条级联。
+2. **"没有 `rename` 就没法改 id"是错的。** `set --attr data-id=…` 一直可用（带护栏）。真正缺的是一个为地址负责的动词。
 3. **"`diagnosticKey` 分叉是活的 bug"要降级成"契约不准确"。** 实测 331 条真实诊断里 0 条受影响。
 4. 另有两处：
-   - **组件环检测一直存在**（`validate.mjs` 的 `component/cycle`），只有令牌环没检测。
+   - **引用解不开时读取器直接拒绝**，只有令牌环没检测。
    - **`margin` 的四条断言里只有三条是坏的**（eval 17 通过，因为 `margin-left` 确实被拒）。
 
 ---
@@ -518,7 +517,7 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 ## R1. `lib/geometry.mjs`（新）
 
 确定性算术，不建布局引擎。算不出的量一律 `unknown` 并向上传播，依赖它的检查随即不报 ——
-**会喊狼来了的检查比安静的检查更糟**。文本、图片、字形、未展开的实例都没有可测的固有尺寸，
+**会喊狼来了的检查比安静的检查更糟**。文本、图片、字形都没有可测的固有尺寸，
 所以文本多的设计几乎不产生几何报告，这是有意的。
 
 五个码，全是 warning：`geometry/overflow`、`geometry/clipped`、`geometry/fill-collapsed`、
@@ -576,9 +575,8 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 `url("data:…;base64,…")` 上分叉的机会。
 
 **搬移过程中被吞掉的一个错误值得记下来**：删掉那份本地切分器之后，`lib/render.mjs` 里还有三处
-调用它。抛出的 `ReferenceError` 被 `expandInstance` 外面的「坏引用不能把画布整块弄白」的兜底
-捕获了，于是实例静静地不展开。表现是 5 个实例相关的测试变红，而不是崩。**兜底能藏住编码错误，
-这一点在改动共享模块时要记得。**
+调用它。抛出的 `ReferenceError` 被页面挂载外面的兜底捕获了，于是内容静静地少画一截。
+表现是几条渲染测试变红，而不是崩。**兜底能藏住编码错误，这一点在改动共享模块时要记得。**
 
 ## R5. 划掉：`asset/` 的未知字体族
 
@@ -599,8 +597,8 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 
 - **缩放。** `applyCamera` 在 `ui.canvas` 上写 `transform: scale(zoom)`，所以每个矩形都是屏幕像素。
   父子同倍缩放，比较本身不受影响 —— 但消息里的数字受影响，所以一律先除回 CSS 像素。
-- **展开的实例。** 展开会把组件的 `data-id` 复制多份，而 op 永远不定位副本。重复 id 直接跳过。
-  实测确认有效：`q8yFj` 同时出现在两个实例里，被正确跳过。
+- **重复的 `data-id`。** 一份带错误的文件里同一个 id 可以出现两次，而 op 分不出它们。重复 id 直接跳过。
+  实测确认有效：`q8yFj` 在同一份文件里出现两次，被正确跳过。
 - **亚像素。** 不到 1px 的超出是舍入，不是缺陷。
 
 **粒度**：`geometry/absolute-outside` 按节点报（和算术遍一致，这样两遍说同一件事、同一地址，

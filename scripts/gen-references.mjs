@@ -184,12 +184,9 @@ function schemaDoc() {
   lines.push("| `data-type` | Attribute | Rule |");
   lines.push("|---|---|---|");
   lines.push(`| \`page\` | \`data-canvas\` | \`"x,y"\`, the position on the canvas. |`);
-  lines.push("| `page` | `data-library` | `\"true\"` marks a component library page, which `export --all` skips. |");
   lines.push(`| \`shape\` | \`data-kind\` | One of: ${SHAPE_KINDS.map((k) => `\`${k}\``).join(", ")}. |`);
   lines.push("| `icon` | `data-icon` | The glyph name. |");
   lines.push(`| \`icon\` | \`data-icon-library\` | One of: ${ICON_LIBRARIES.map((l) => `\`${l}\``).join(", ")}. |`);
-  lines.push("| `instance` | `data-ref` | The `data-id` of a component. |");
-  lines.push("| `instance` | `data-overrides` | JSON. Field-level patches, keyed by a descendant's `data-id`. |");
   lines.push("| `image` | `data-credit` | Attribution. Never rendered. |");
   lines.push(`| \`icon\` | \`viewBox\` | The grid the geometry was drawn on, normally \`${ICON_VIEW_BOX}\`. Required as soon as the icon has geometry: without it the SVG has no coordinate system, so a browser clips the geometry instead of scaling it. |`);
   lines.push("| `icon` | `fill`, `stroke`, `stroke-width` | Presentation attributes on the `<svg>` element itself, which the base stroke rule reads. |");
@@ -236,23 +233,6 @@ function schemaDoc() {
   lines.push("Everything inside an `<svg>` is the opaque layer: kept byte for byte, never indexed, never");
   lines.push("validated as a design element. An id inside an `<svg>` is an error, because nothing can");
   lines.push("address it.");
-  lines.push("");
-  lines.push("## Components and instances");
-  lines.push("");
-  lines.push("A component is a `div` with `data-type=\"component\"`. It renders exactly like a frame. An");
-  lines.push("instance references it by id, and the file stores no copy:");
-  lines.push("");
-  lines.push("```html");
-  lines.push('<div data-id="card" data-type="component" style="display:flex;gap:4px;padding:16px">');
-  lines.push('  <p data-id="card__title" data-type="text" style="font-size:14px">Card</p>');
-  lines.push("</div>");
-  lines.push("");
-  lines.push('<div data-id="home__card" data-type="instance" data-ref="card"');
-  lines.push('     data-overrides=\'{"card__title":{"content":"Hi","style":"font-size:20px"}}\'></div>');
-  lines.push("```");
-  lines.push("");
-  lines.push("Overridable fields: `content`, `style`, and any `data-*` attribute. `data-id`, `data-type`");
-  lines.push("and the children are not overridable, because they are structure.");
   lines.push("");
   return lines.join("\n");
 }

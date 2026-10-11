@@ -166,19 +166,6 @@ test("buildIdIndex walks pages in document order, then their subtrees", () => {
   assert.equal(index.get("home__title").tag, "p");
 });
 
-test("buildIdIndex does not index the descendants of an instance", () => {
-  const document = doc([
-    el("section", [attr("data-id", "home"), attr("data-type", "page")], [
-      el("div", [attr("data-id", "home__inst"), attr("data-type", "instance"), attr("data-ref", "card")], [
-        frame("card__title"),
-      ]),
-      frame("home__tail"),
-    ]),
-  ]);
-  const index = buildIdIndex(document);
-  assert.deepStrictEqual([...index.keys()], ["home", "home__inst", "home__tail"]);
-});
-
 test("buildIdIndex keeps the first id when two nodes claim it", () => {
   const document = doc([
     el("section", [attr("data-id", "home"), attr("data-type", "page")], [frame("dup"), frame("dup")]),

@@ -5,8 +5,8 @@ description: >-
   fine-tune them on a local canvas. Use this skill whenever the user wants to
   design, mock up, wireframe, redesign or restyle a web page, app screen, or
   mobile screen — a landing page, dashboard, settings page, pricing page, empty
-  state, onboarding flow, component library, or any layout built from frames,
-  text, images and icons — or wants to change the spacing, colour, typography or
+  state, onboarding flow, or any layout built from frames, text, images and
+  icons — or wants to change the spacing, colour, typography or
   layout of an existing design, turn a design into deliverables, or bring in a
   `.pen` file. Also use it when the user asks for a visual editor for pages, a
   design file, design tokens, or wants to review or adjust a design someone else
@@ -174,8 +174,8 @@ always names what to write instead. The common ones:
 ## What the format is, and is not
 
 Supported: flexbox layout, absolute positioning, a fixed set of 45 CSS
-properties, images, inline SVG icons, design tokens, components and instances,
-text in one run per text element.
+properties, images, inline SVG icons, design tokens, and text in one run per text
+element.
 
 Not supported, and refused by name rather than ignored: grid, `position:fixed`,
 transforms, animation, responsive breakpoints, rich text inside one text
@@ -185,39 +185,6 @@ The full property list, with the accepted values for each, is in
 `references/styling.md`. The element contract is in `references/schema.md`.
 Read one of them before writing a big fragment; they are short, and they prevent
 most refusals.
-
-## Components
-
-A component is a `div` with `data-type="component"`, living in a page marked
-`data-library="true"`. An instance points at it:
-
-```html
-<div data-id="home__card" data-type="instance" data-ref="card"
-     data-overrides='{"card__title":{"content":"你好","style":"font-size:20px"}}'></div>
-```
-
-The file stores only the reference. The component's markup reaches the export
-and the canvas through the instance. Edit the component once and every instance
-follows; override one field and only that field is pinned.
-
-Four fields exist: `content` (the text), `style` (declarations), `data-*` (one
-attribute) and `children` (the node's markup). A glyph is geometry in this
-format, so swapping one icon is `data-icon` plus `children` together. `content`
-inside an `<svg>` draws nothing, and a `style` override cannot beat the
-component's own `width` — filling across the axis needs `width:100%`.
-
-**Editing a descendant id is editing the component.** In an imported pen file,
-`card__title` appears once, in the library, and 239 instances point at it. That
-is the point — one edit reaches every instance. When the user wants to change
-one instance instead, write `data-overrides` on that instance:
-
-```sh
-node design.mjs set design.html home__card --attr   'data-overrides={"card__title":{"style":"font-size:20px"}}'
-```
-
-The canvas can select and edit the component, but it cannot yet write an
-override for one instance. Tell the user that rather than letting them believe a
-drag changed only one card.
 
 ## The canvas
 
@@ -251,10 +218,9 @@ line while the canvas is open: both writers re-read the file first.
 
 1. **Run `validate` when you are unsure.** It is faster than guessing, and it
    tells you the exact offset and the exact fix.
-2. **Never edit `data-id` with `set`.** It is refused. Use
-   `node design.mjs rename design.html card product`, which rewrites every
-   `data-ref="card"` and every `data-overrides` key that names a descendant of
-   the renamed node. An id is an address, and other elements point at it.
+2. **Never edit `data-id` with `set`.** It is refused, because an id is an
+   address rather than a property. Use `node design.mjs rename design.html card
+   product`, which is the one verb that changes what an element is called.
 3. **Do not add a `<style>` block** for a one-off value. Only the two allowed
    blocks are read; a third is an error.
 4. **Do not write a one-sided `margin`.** Spacing is `gap` and `padding`.
@@ -300,7 +266,7 @@ node design.mjs import pen design.pen -o design.html
 One direction only: pen in, design file out. Every run prints a ledger:
 
 ```
-26 pages · 1515 elements · 23 components · 239 instances · 140 with overrides · lost: perCornerRadius×1
+26 pages · 2197 elements · 239 references inlined · 140 with overrides · lost: perCornerRadius×1
 ```
 
 `lost` names what this format has no spelling for. Read it and tell the user,
@@ -328,14 +294,24 @@ spelling for pen's version of them:
 
 The ledger also counts what it rewrote: `themedVariables` (a themeable variable
 takes the document's default theme, which is the entry with no `theme` of its
-own), `hardBreaks`, `pathAsGeometry`, `bakedRotation`, `topLevelComponent`. A
-variable that cannot be reduced to one value is left out of the token block and
-counted as `lost.unresolvedVariable` — never written as the string
-`[object Object]`, which is a value that validates and means nothing.
+own), `hardBreaks`, `pathAsGeometry`, `bakedRotation`. A variable that cannot be
+reduced to one value is left out of the token block and counted as
+`lost.unresolvedVariable` — never written as the string `[object Object]`, which
+is a value that validates and means nothing.
 
-One thing the reader adds rather than translates. pen lets a top-level artboard
-be reusable, and then the component has no page around it; components live in a
-page marked `data-library="true"` here, so the reader supplies one — `data-id`
-`library`, or `library-2` when the file spent that id — and names it in
-`ledger.notes`. It is a scaffold, not a screen: `export --all` skips it, and
-`--include-library` exports it as a gallery.
+**A reference is inlined, because this format has no reference.** pen stores a
+`ref` node and the master it points at; the reader copies the master's subtree in
+where the reference stood. The copy's root keeps the reference's own id and
+everything under it is renumbered as `<reference-id>__<its own id>`, which is why
+an imported file has 239 more subtrees in it than the `.pen` had nodes. Four
+things follow, and they are the ones to tell the user:
+
+- Editing a copy edits that copy alone. The master is a separate element now, so
+  a change meant for every card has to be made on each one — or on the `.pen`,
+  which is where the sharing lives.
+- `descendants` patches are applied during the import: the text, the size, the
+  swapped glyph are all in the file, and nothing applies them later.
+- A reference that names nothing is refused (`pen/unresolved-ref`), as is one
+  inside a loop (`pen/ref-cycle`) or nested more than 16 deep (`pen/ref-depth`).
+- Children on a reference node are not part of the master's subtree, so they are
+  counted in `lost.refChildren` and not written.

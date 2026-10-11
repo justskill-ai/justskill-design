@@ -215,7 +215,6 @@ export function pageRoots(pages, rowsOf) {
       type: "page",
       tag: "section",
       hidden: false,
-      isLibrary: Boolean(page.isLibrary),
       childCount: children.length,
       children,
     };

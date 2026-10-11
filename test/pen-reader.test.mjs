@@ -22,7 +22,6 @@ import {
   importPen, parsePen, stripJsonComments, createLedger, tokensFromVariables,
   idMapFor, styleFromNode, ledgerLine,
 } from "../lib/readers/pen.mjs";
-import { renderModel } from "../lib/render.mjs";
 import { exportAllPages } from "../lib/export-html.mjs";
 import { iconBody } from "../lib/icons.mjs";
 
@@ -322,8 +321,10 @@ test("the real reference file imports with a clean ledger", { skip: !hasReferenc
 
   // Shape.
   assert.equal(ledger.pages, 26, `expected 26 artboards, got ${ledger.pages}`);
-  assert.equal(ledger.components.found, 23, "23 reusable nodes");
-  assert.equal(ledger.components.instances, 239, "239 instances");
+  assert.equal(ledger.refs.found, 239, "239 references");
+  assert.equal(ledger.refs.inlined, 239, "and every one of them is inlined");
+  assert.equal(ledger.refs.overridesApplied, 140, "140 references carried field-level patches");
+  assert.equal(ledger.refs.overrideFieldsDropped, 0, "no patch field went unmapped");
 
   // Nothing unknown: every property pen wrote is either mapped or counted.
   assert.deepEqual(ledger.unmapped, {}, `unmapped properties: ${JSON.stringify(ledger.unmapped)}`);
@@ -390,95 +391,121 @@ test("artboard positions become data-canvas, and names survive", { skip: !hasRef
   const pages = pagesOf(doc);
   const byName = new Map(pages.map((p) => [getAttr(p, "data-name"), p]));
   assert.ok(byName.has("首页"), "a Chinese artboard name survives");
-  assert.ok(byName.has("组件库 v2"), "the component library artboard survives as a page");
+  assert.ok(byName.has("组件库 v2"), "the artboard that holds the masters survives as a page");
   const first = byName.get("首页");
   assert.equal(getAttr(first, "data-canvas"), "600,0", "the artboard's own x/y");
-  const library = byName.get("组件库 v2");
-  assert.equal(getAttr(library, "data-library"), "true", "the library artboard is marked");
+  const masters = byName.get("组件库 v2");
+  assert.equal(getAttr(masters, "data-library"), null, "no page is scaffolding: an artboard is a page");
 });
 
-test("component ids are stable, so a reference still resolves", { skip: !hasReference }, () => {
-  const { html } = importPen(reference());
+test("every reference is inlined, and no id is spent twice", { skip: !hasReference }, () => {
+  const { html, ledger } = importPen(reference());
   const doc = parse(html);
-  const components = new Set();
-  const instances = [];
+  const ids = [];
+  const types = new Set();
   const visit = (node) => {
     if (node.kind === "element") {
-      const type = getAttr(node, "data-type");
-      if (type === "component") components.add(getAttr(node, "data-id"));
-      if (type === "instance") instances.push(getAttr(node, "data-ref"));
+      const id = getAttr(node, "data-id");
+      if (id) ids.push(id);
+      types.add(getAttr(node, "data-type"));
     }
     for (const child of node.children ?? []) visit(child);
   };
   visit(doc);
-  assert.equal(components.size, 23);
-  assert.equal(instances.length, 239);
-  const dangling = instances.filter((ref) => !components.has(ref));
-  assert.deepEqual(dangling, [], `${dangling.length} instances point at nothing`);
+
+  assert.equal(ledger.refs.inlined, 239);
+  assert.ok(!types.has("instance") && !types.has("component"), "the format has neither type");
+  // The 1541 ids of the source, plus one subtree per reference: the copies are
+  // bytes in this file, not a reference a renderer resolves later.
+  assert.ok(ids.length > 2000, `only ${ids.length} ids: the copies are not in the file`);
+  const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+  assert.deepEqual([...new Set(duplicates)], [], "an inlined copy must not reuse the master's ids");
 });
 
-test("overrides survive, keyed by the descendant's own id", { skip: !hasReference }, () => {
-  const { html, ledger } = importPen(reference());
-  assert.ok(ledger.components.overridesApplied > 100, `only ${ledger.components.overridesApplied} instances carried overrides`);
-  const doc = parse(html);
-  let withOverrides = 0;
-  let totalKeys = 0;
-  const visit = (node) => {
-    if (node.kind === "element" && getAttr(node, "data-type") === "instance") {
-      const raw = getAttr(node, "data-overrides");
-      if (raw) {
-        withOverrides += 1;
-        const parsed = JSON.parse(raw);
-        totalKeys += Object.keys(parsed).length;
-      }
-    }
-    for (const child of node.children ?? []) visit(child);
-  };
-  visit(doc);
-  assert.equal(withOverrides, ledger.components.overridesApplied);
-  assert.ok(totalKeys > 0, "the overrides have keys");
+test("an override is baked into the copy it belongs to", () => {
+  // A reference may patch fields of the node it points at. The file that comes out
+  // stores the result, not the patch: there is no renderer left to apply one.
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      {
+        type: "frame", id: "lib", name: "Masters", width: 375, height: 100,
+        children: [{
+          type: "frame", id: "card", name: "Card", reusable: true, layout: "vertical", width: 320, gap: 4,
+          children: [
+            { type: "text", id: "title", name: "Title", content: "Card", width: 200, height: 24 },
+            { type: "icon", id: "ico", name: "Icon", icon: "sparkles", library: "lucide", width: 22, height: 22 },
+          ],
+        }],
+      },
+      {
+        type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{
+          type: "ref", id: "used", name: "Card", ref: "card",
+          descendants: { title: { content: "你好", fontSize: 20 }, ico: { icon: "gem", enabled: false } },
+        }],
+      },
+    ],
+  });
+  const { html, ledger } = importPen(pen);
+  assert.equal(ledger.refs.overridesApplied, 1);
+  assert.equal(ledger.refs.overrideFieldsDropped, 0);
+
+  assert.match(html, /<p data-id="used__title"[^>]*>你好<\/p>/, "the patched text is the copy's text");
+  assert.match(html, /data-id="used__title"[^>]*font-size:20px/, "and the patched declaration is in its style");
+  assert.match(html, /data-id="used__ico"[^>]*data-hidden="true"/, "a hidden node says so on the copy");
+  assert.match(html, /data-icon="gem"/, "the swapped glyph is the copy's glyph");
+  assert.ok(!/data-overrides/.test(html), "the file stores the result, not a patch to apply later");
+  assert.ok(!/data-ref/.test(html), "and no reference survives the import");
+
+  // The master is untouched by the patch: it is still the card it was.
+  assert.match(html, /<p data-id="title"[^>]*>Card<\/p>/);
 });
 
-test("an icon override carries the glyph's geometry, not its name as text", { skip: !hasReference }, () => {
+test("a field with no spelling here is counted, not dropped quietly", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      { type: "frame", id: "lib", name: "Masters", width: 375, height: 100,
+        children: [{ type: "frame", id: "card", name: "Card", reusable: true, width: 320, children: [{ type: "text", id: "t", name: "T", content: "x", width: 40, height: 20 }] }] },
+      { type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{ type: "ref", id: "used", name: "Card", ref: "card", descendants: { t: { rotation: 45 } } }] },
+    ],
+  });
+  const { ledger } = importPen(pen);
+  assert.equal(ledger.refs.overrideFieldsDropped, 1);
+  assert.equal(ledger.unmapped["override:rotation"], 1, JSON.stringify(ledger.unmapped));
+});
+
+test("a swapped glyph is drawn, not named", { skip: !hasReference }, () => {
   const { html, ledger } = importPen(reference());
-  const doc = parse(html);
-  const glyphs = new Map();
-  let overrides = 0;
-  const visit = (node) => {
-    if (node.kind === "element" && getAttr(node, "data-type") === "instance") {
-      const raw = getAttr(node, "data-overrides");
-      if (raw) {
-        for (const fields of Object.values(JSON.parse(raw))) {
-          if (!fields || typeof fields !== "object" || !("data-icon" in fields)) continue;
-          overrides += 1;
-          glyphs.set(fields["data-icon"], fields.children);
-        }
-      }
-    }
-    for (const child of node.children ?? []) visit(child);
-  };
-  visit(doc);
-  // The reference file swaps a glyph on 18 instances — 8 on 首页, 7 on 月嫂详情,
+  // The reference file swaps a glyph on 18 references — 8 on 首页, 7 on 月嫂详情,
   // 3 on 我的 — and the 18 use 16 different names.
-  assert.equal(overrides, 18, `only ${overrides} icon overrides carried geometry`);
   assert.equal(ledger.converted.iconOverrides, 18);
-  assert.ok(glyphs.has("gem") && glyphs.has("graduation-cap"));
-  for (const [name, body] of glyphs) {
-    assert.match(body, /^<(path|circle|rect|line|polyline|ellipse)/, `${name} has no geometry`);
-    assert.ok(!/^gem$|^\w[\w-]*$/.test(body), `${name} was written as a bare name, which draws nothing inside an <svg>`);
+
+  const glyphs = new Map();
+  for (const match of html.matchAll(/<svg[^>]*data-icon="([^"]+)"[^>]*>([\s\S]*?)<\/svg>/g)) {
+    glyphs.set(match[1], match[2]);
   }
+  assert.ok(glyphs.has("gem") && glyphs.has("graduation-cap"), "the swapped names are there");
+  for (const [name, body] of glyphs) {
+    assert.match(body.trim(), /^<(path|circle|rect|line|polyline|ellipse)/, `${name} has no geometry`);
+  }
+  // Text inside an `<svg>` that is not inside a `<text>` draws nothing, so a bare
+  // name is a blank box that validates.
+  assert.ok(!/>\s*(gem|graduation-cap)\s*</.test(html), "a glyph name must not be written as text");
 });
 
 test("the ledger reads as one line a person can act on", { skip: !hasReference }, () => {
   const { ledger } = importPen(reference());
   const line = ledgerLine(ledger);
   assert.match(line, /26 pages/);
-  assert.match(line, /23 components/);
-  assert.match(line, /239 instances/);
+  assert.match(line, /239 references inlined/);
+  assert.match(line, /140 with overrides/);
   assert.match(line, /lost: /, "the losses are named, not hidden");
 });
 
-test("no element lost its data-id, and every id is unique in the source", { skip: !hasReference }, () => {
+test("every element has an id, and no id is spent twice", { skip: !hasReference }, () => {
   const { html } = importPen(reference());
   const doc = parse(html);
   const ids = [];
@@ -490,7 +517,7 @@ test("no element lost its data-id, and every id is unique in the source", { skip
     for (const child of node.children ?? []) visit(child);
   };
   visit(doc);
-  assert.ok(ids.length > 1500, `only ${ids.length} ids`);
+  assert.ok(ids.length > 2000, `only ${ids.length} ids`);
   const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
   assert.deepEqual([...new Set(duplicates)], [], "the import produced duplicate ids");
 });
@@ -814,14 +841,15 @@ test("an imported ellipse carries its own radius, so a deliverable keeps it", ()
 
 test("a ref that fills the cross axis states a size, because stretch loses", () => {
   // `align-self: stretch` stretches a flex item only while its own cross size is
-  // `auto`. A component states its size, so the master's 320px beat the stretch:
-  // the divider in the reference file's review list came out 320 wide where pen
-  // draws the list's 311.
+  // `auto`. A master states its size, so the master's 320px would beat the
+  // stretch: the divider in the reference file's review list came out 320 wide
+  // where pen draws the list's 311. The reference's own size is merged over the
+  // copy, so the copy is as wide as the reference says.
   const pen = JSON.stringify({
     version: "2.19",
     children: [
       {
-        type: "frame", id: "lib", name: "组件库", width: 375, height: 100,
+        type: "frame", id: "lib", name: "Masters", width: 375, height: 100,
         children: [{ type: "frame", id: "divider", name: "Divider", reusable: true, width: 320, height: 1, fill: "#F0E1E4" }],
       },
       {
@@ -833,20 +861,21 @@ test("a ref that fills the cross axis states a size, because stretch loses", () 
   const { html } = importPen(pen);
   const at = html.indexOf('data-id="used"');
   const tag = html.slice(at, html.indexOf(">", at));
-  assert.match(tag, /data-type="instance"/);
+  assert.match(tag, /data-type="frame"/, "a reference is a frame in the file that comes out");
   assert.match(tag, /width:100%/, tag);
-  assert.ok(!/align-self/.test(tag), `stretch never beats the component's own width: ${tag}`);
+  assert.ok(!/width:320px/.test(tag), `the reference's size wins over the master's: ${tag}`);
+  assert.ok(!/align-self/.test(tag), `stretch never beats the master's own width: ${tag}`);
 });
 
-test("a swapped glyph survives to the mount, with its name and its geometry together", () => {
-  // The reader writes `data-icon` plus `children`, and the renderer replaces the
-  // children. Half of that pair is a file whose label disagrees with its own
-  // drawing, and neither half alone draws the new glyph.
+test("a swapped glyph is drawn in the copy, with its name and its geometry together", () => {
+  // The copy carries both halves: `data-icon` is the name and the paths are the
+  // drawing. A name without geometry is a blank box that validates, and geometry
+  // without the name is a label that disagrees with its own drawing.
   const pen = JSON.stringify({
     version: "2.19",
     children: [
       {
-        type: "frame", id: "lib", name: "组件库", width: 375, height: 100,
+        type: "frame", id: "lib", name: "Masters", width: 375, height: 100,
         children: [{
           type: "frame", id: "tile", name: "Tile", reusable: true, layout: "vertical", width: 64,
           children: [{ type: "icon", id: "ico", name: "Icon", icon: "sparkles", library: "lucide", width: 22, height: 22, fill: "#B8325E" }],
@@ -860,34 +889,29 @@ test("a swapped glyph survives to the mount, with its name and its geometry toge
   });
   const { html, ledger } = importPen(pen);
   assert.equal(ledger.converted.iconOverrides, 1);
-  const model = renderModel(parse(html));
-  const board = model.pages.find((p) => p.name === "Board");
+  const board = html.slice(html.indexOf('data-id="board"'));
   const firstPath = (name) => /d="([^"]+)"/.exec(iconBody(name))[1];
-  assert.match(board.markup, /data-icon="gem"/, "the name moved with the glyph");
-  assert.ok(board.markup.includes(`d="${firstPath("gem")}"`), "gem's own geometry is drawn");
-  assert.ok(!board.markup.includes(`d="${firstPath("sparkles")}"`), "sparkles is gone from the instance");
+  assert.match(board, /data-icon="gem"/, "the name moved with the glyph");
+  assert.ok(board.includes(`d="${firstPath("gem")}"`), "gem's own geometry is drawn");
+  assert.ok(!board.includes(`d="${firstPath("sparkles")}"`), "sparkles is gone from the copy");
 });
 
-// -- an artboard that is itself a component ------------------------------------
+// -- an artboard that is itself reusable ---------------------------------------
 
 /**
- * pen lets any node be reusable, a top-level artboard included. Then the file
- * holds a component with no page around it, and this format keeps components in
- * a page: that is what keeps them out of `export --all` and what the canvas
- * mounts. So the reader supplies the page.
+ * pen lets any node be reusable, a top-level artboard included.
  *
- * It used to write such an artboard as a page. The type was computed on one line
- * and a literal `"page"` was pushed on the next, so the component became a
- * screen, every `ref` to it dangled as `component/unknown-ref`, and the import
- * exited 0 on a document its own `validate` refuses.
+ * Nothing about that changes the artboard: it is a frame, it is at the top of the
+ * document, so it is a page. What changes is the reference to it — the reference
+ * is inlined where it stands, and the artboard stays where pen put it.
  */
-test("a top-level reusable artboard becomes a component, in a page the reader adds", () => {
+test("a reusable artboard is a page, and the reference to it is inlined", () => {
   const pen = JSON.stringify({
     version: "2.19",
     children: [
       {
         type: "frame", id: "card", name: "Card", reusable: true, width: 320, height: 80,
-        children: [{ type: "text", id: "card__title", name: "Title", content: "你好", width: 120, height: 24 }],
+        children: [{ type: "text", id: "card_title", name: "Title", content: "你好", width: 120, height: 24 }],
       },
       {
         type: "frame", id: "board", name: "Board", width: 375, height: 812,
@@ -898,63 +922,114 @@ test("a top-level reusable artboard becomes a component, in a page the reader ad
   const { html, ledger } = importPen(pen);
   const doc = parse(html);
 
-  const library = pagesOf(doc).find((page) => getAttr(page, "data-library") === "true");
-  assert.ok(library, "the component is collected in a library page");
-  const card = findById(doc, "card");
-  assert.equal(getAttr(card, "data-type"), "component", "the artboard is a component, not a screen");
-  assert.equal(getAttr(card, "data-canvas"), null, "a component has no place on the canvas");
-  const inside = [];
-  walk(library, (node) => { if (node.kind === "element") inside.push(getAttr(node, "data-id")); });
-  assert.ok(inside.includes("card"), "and it lives in that page, where the canvas mounts it");
-
-  assert.deepEqual(validateDesign(doc).filter((d) => d.severity === "error"), [], "the product validates");
-  assert.equal(ledger.converted.topLevelComponent, 1);
-  assert.equal(ledger.pages, 2, "the page the reader added is a page");
-  assert.ok(
-    ledger.notes.some((note) => note.includes('data-id="library"')),
-    `a page that is in the output and not in the input is named: ${JSON.stringify(ledger.notes)}`,
-  );
-
-  // The instance that the component exists for resolves, and its subtree is drawn.
-  const board = renderModel(doc).pages.find((page) => page.name === "Board");
-  assert.ok(board.markup.includes('data-id="card__title"'), `the instance expanded: ${board.markup}`);
-  assert.ok(board.markup.includes("你好"), "and the component's text came with it");
-
   assert.deepEqual(
-    exportAllPages(doc).map((file) => file.file),
-    ["board.html"],
-    "a component library is not a deliverable",
+    pagesOf(doc).map((page) => getAttr(page, "data-id")),
+    ["card", "board"],
+    "both artboards are pages: nothing in this format is scaffolding",
   );
+  assert.equal(getAttr(pagesOf(doc)[0], "data-library"), null);
+  assert.deepEqual(validateDesign(doc).filter((d) => d.severity === "error"), [], "the product validates");
+  assert.equal(ledger.pages, 2);
+
+  const board = html.slice(html.indexOf('data-id="board"'));
+  assert.match(board, /data-id="used"/, "the copy takes the reference's own id");
+  assert.match(board, /data-id="used__card_title"/, "and the master's subtree is renumbered under it");
+  assert.ok(board.includes("你好"), "the master's content came with the copy");
+  assert.equal(html.match(/你好/g).length, 2, "and the master still has its own");
 });
 
-test("one added page holds every top-level component, and its id steps aside", () => {
+test("two references to one master get different ids", () => {
   const pen = JSON.stringify({
     version: "2.19",
     children: [
-      { type: "frame", id: "home", name: "Home", width: 375, height: 812, children: [] },
-      { type: "frame", id: "chip", name: "Chip", reusable: true, width: 64, height: 24, children: [] },
-      { type: "frame", id: "library", name: "A page that spent the id", width: 375, height: 812, children: [] },
-      { type: "frame", id: "tile", name: "Tile", reusable: true, width: 80, height: 80, children: [] },
+      { type: "frame", id: "card", name: "Card", reusable: true, width: 320, height: 80,
+        children: [{ type: "text", id: "title", name: "Title", content: "x", width: 120, height: 24 }] },
+      { type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [
+          { type: "ref", id: "a", name: "A", ref: "card" },
+          { type: "ref", id: "b", name: "B", ref: "card" },
+        ] },
     ],
   });
-  const pages = pagesOf(parse(importPen(pen).html));
-  assert.deepEqual(
-    pages.map((page) => getAttr(page, "data-id")),
-    ["home", "library-2", "library"],
-    "the added page keeps the place of the artboard that needed it, and does not take an id the file spent",
-  );
-  assert.equal(getAttr(pages[1], "data-library"), "true");
-  const inside = [];
-  walk(pages[1], (node) => { if (node.kind === "element") inside.push(getAttr(node, "data-id")); });
-  assert.deepEqual(inside, ["library-2", "chip", "tile"], "both components are in the one page that was added");
+  const { html } = importPen(pen);
+  assert.match(html, /data-id="a__title"/);
+  assert.match(html, /data-id="b__title"/);
+  assert.equal(new Set([...html.matchAll(/data-id="([^"]+)"/g)].map((m) => m[1])).size, [...html.matchAll(/data-id="([^"]+)"/g)].length);
 });
 
-test("a file of nothing but components has a page, and nothing to export", () => {
+test("a file of nothing but a reusable artboard is one page, and one deliverable", () => {
   const pen = JSON.stringify({
     version: "2.19",
     children: [{ type: "frame", id: "card", name: "Card", reusable: true, width: 320, height: 80, children: [] }],
   });
   const doc = parse(importPen(pen).html);
-  assert.equal(pagesOf(doc).length, 1, "the component still needs its page");
-  assert.throws(() => exportAllPages(doc), (error) => error.code === "export/no-page");
+  assert.equal(pagesOf(doc).length, 1, "the artboard is a page");
+  assert.deepEqual(exportAllPages(doc).map((file) => file.file), ["card.html"], "and every page is exported");
 });
+
+// -- a reference that cannot be inlined ----------------------------------------
+
+test("a reference that names nothing is refused, not written as an empty box", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{ type: "frame", id: "board", name: "Board", width: 375, height: 812,
+      children: [{ type: "ref", id: "used", name: "Card", ref: "ghost" }] }],
+  });
+  assert.throws(() => importPen(pen), (error) => {
+    assert.equal(error.code, "pen/unresolved-ref");
+    assert.match(error.message, /ghost/);
+    return true;
+  });
+});
+
+test("a reference chain that comes back on itself is refused", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [{ type: "frame", id: "board", name: "Board", width: 375, height: 812, children: [
+      { type: "frame", id: "a", name: "A", reusable: true, width: 100, height: 100, children: [{ type: "ref", id: "a_use", ref: "b" }] },
+      { type: "frame", id: "b", name: "B", reusable: true, width: 100, height: 100, children: [{ type: "ref", id: "b_use", ref: "a" }] },
+      { type: "ref", id: "start", ref: "a" },
+    ] }],
+  });
+  assert.throws(() => importPen(pen), (error) => {
+    assert.equal(error.code, "pen/ref-cycle");
+    assert.match(error.message, /a -> b|b -> a/);
+    return true;
+  });
+});
+
+test("a reference nested inside a master is inlined too", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      { type: "frame", id: "inner", name: "Inner", reusable: true, width: 40, height: 20,
+        children: [{ type: "text", id: "inner_t", name: "T", content: "i", width: 40, height: 20 }] },
+      { type: "frame", id: "outer", name: "Outer", reusable: true, layout: "vertical", width: 100, gap: 2,
+        children: [{ type: "ref", id: "outer_inner", name: "Inner", ref: "inner" }] },
+      { type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{ type: "ref", id: "used", name: "Outer", ref: "outer" }] },
+    ],
+  });
+  const { html, ledger } = importPen(pen);
+  // Three: the outer master is an artboard, so its own page renders the reference
+  // inside it once, and the copy in `board` renders it again.
+  assert.equal(ledger.refs.inlined, 3);
+  assert.match(html, /data-id="used"/);
+  assert.match(html, /data-id="used__outer_inner"/, "the copy of the nested reference");
+  assert.match(html, /data-id="used__outer_inner__inner_t"/, "and the subtree under that copy");
+});
+
+test("a reference that carries children of its own names the loss", () => {
+  const pen = JSON.stringify({
+    version: "2.19",
+    children: [
+      { type: "frame", id: "card", name: "Card", reusable: true, width: 320, height: 80, children: [] },
+      { type: "frame", id: "board", name: "Board", width: 375, height: 812,
+        children: [{ type: "ref", id: "used", ref: "card", children: [{ type: "text", id: "extra", name: "X", content: "x", width: 20, height: 20 }] }] },
+    ],
+  });
+  const { ledger } = importPen(pen);
+  assert.equal(ledger.lost.refChildren, 1);
+  assert.ok(ledger.notes.some((note) => note.includes("children of its own")), JSON.stringify(ledger.notes));
+});
+

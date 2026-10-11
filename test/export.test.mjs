@@ -116,22 +116,6 @@ test("svg geometry, comments and a data URI survive as they are", () => {
   assert.match(html, /url\(&quot;data:image\/svg\+xml;base64,PHN2Zy8\+&quot;\)/);
 });
 
-test("instances are expanded in the deliverable", () => {
-  const doc = file(`
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px">
-      <div data-id="card" data-type="component" style="display:flex;padding:16px">
-        <p data-id="card__title" data-type="text" style="font-size:14px;color:#111827">Card</p>
-      </div>
-    </section>
-    <section data-id="home" data-type="page" data-canvas="0,0" style="width:390px;height:844px">
-      <div data-id="home__card" data-type="instance" data-ref="card" data-overrides='{"card__title":{"content":"你好"}}' style="width:200px"></div>
-    </section>`);
-  const { html } = exportPage(parse(doc), { page: "home" });
-  assert.match(html, />你好</, "the override is applied");
-  assert.match(html, /padding:16px/, "the component's own style is there");
-  assert.ok(!/data-ref/.test(html), "the reference is resolved, not shipped");
-});
-
 // -- page selection -----------------------------------------------------------
 
 test("the first page is exported when none is named", () => {
@@ -164,17 +148,14 @@ test("a file with no page is refused, not silently empty", () => {
   assert.throws(() => exportPage(parse(doc)), ExportError);
 });
 
-test("--all skips the library page and names each file after its page", () => {
+test("--all writes every page, named after its page", () => {
   const doc = file(`
     <section data-id="home" data-type="page" style="width:1px;height:1px"></section>
-    <section data-id="lib" data-type="page" data-library="true" style="width:1px;height:1px"></section>
+    <section data-id="kit" data-type="page" style="width:1px;height:1px"></section>
     <section data-id="detail" data-type="page" style="width:1px;height:1px"></section>`);
   const results = exportAllPages(parse(doc));
-  assert.deepEqual(results.map((r) => r.page.id), ["home", "detail"]);
-  assert.deepEqual(results.map((r) => r.file), ["home.html", "detail.html"]);
-
-  const withLibrary = exportAllPages(parse(doc), { includeLibrary: true });
-  assert.deepEqual(withLibrary.map((r) => r.page.id), ["home", "lib", "detail"]);
+  assert.deepEqual(results.map((r) => r.page.id), ["home", "kit", "detail"]);
+  assert.deepEqual(results.map((r) => r.file), ["home.html", "kit.html", "detail.html"]);
 });
 
 // -- declaration order is canonical in the deliverable too --------------------
