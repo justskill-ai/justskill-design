@@ -62,6 +62,25 @@ Two style blocks are allowed in `<head>`, and both are read: the token block
 - `references/styling.md` — the 45 allowed properties and their value grammars.
 - `references/schema.md` — the element contract, generated from the format table.
 
+## Examples
+
+Three files in `examples/`. Each validates, each is already in canonical form,
+and `test/purity.test.mjs` reads the directory and holds every `examples/*.html`
+to that — so a fourth file is checked the moment it lands.
+
+| File | Scale | What it answers |
+|---|---|---|
+| `examples/design.html` | 1 page, 22 elements | What the smallest file that is still a design looks like: a header, a hero, two stat cards, a list, three lucide glyphs, one token block. |
+| `examples/alarm.html` | 6 pages, 447 elements | What a hand-written app looks like: the alarm list, the editor with a wheel picker, the ringing screen, bedtime, timer, settings. Its colour is 14 tokens, so the theme is one op — `node design.mjs tokens examples/alarm.html set color.accent '#7c3aed'`. It was also authored the way the skill asks for: page by page through `add`, the spacing through `set`, with the canvas open, and no whole-file rewrite. |
+| `examples/miniprogram.html` | 26 pages, 2197 elements | What a `.pen` file becomes: a real 705 KB file with 26 artboards, 239 references inlined, 140 of them carrying overrides, and one named loss (`perCornerRadius`). Regenerate it with `node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram`; `test/pen-reader.test.mjs` fails when the committed copy goes stale. |
+
+Open one the way a person looks at a design. The canvas writes back to the same
+file, so a drag and a command are the same edit:
+
+```sh
+node design.mjs serve examples/alarm.html
+```
+
 ## Commands
 
 ```sh
