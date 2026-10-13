@@ -28,7 +28,7 @@ import { collectTokens, lintContrast } from "/lib/validate.mjs";
 import { lintGeometry, overhangOf, MAX_REPORTED_PER_CODE } from "/lib/geometry.mjs";
 import {
   newView, pageRoots, isOpen, toggleNode, openPath, visibleNodes, hasChildren, pathTo,
-  expandAll, collapseAll, rungAt,
+  expandAll, collapseAll, rungAt, selectedPage,
 } from "./tree.mjs";
 import {
   groupedFields, controlFor, valuesFor, hintFor, rangeFor, scrubFor, isNumericValue,
@@ -1025,7 +1025,24 @@ function renderChrome() {
   document.getElementById("redo").disabled = !state.canRedo || state.readOnly;
   // A file that does not parse has nothing to export, and the service would answer 409.
   // A disabled button says so before the click.
-  document.getElementById("export-page").disabled = state.readOnly;
+  //
+  // `Export` writes one page, so it needs a page to name. A selected element cannot name
+  // one — a canvas shows every page at once, each a separate shadow root, so an id is not
+  // unique — and the service's answer to a missing `page` is the first page, which is how
+  // a canvas showing page four came to write page one. `Export all` asks nothing of the
+  // selection.
+  const page = selectedPage(state.model?.pages, state.selection, state.selectionPage);
+  const exportButton = document.getElementById("export-page");
+  exportButton.disabled = state.readOnly || !page;
+  // A disabled button cannot be asked why, so its title carries the reason, and there
+  // are two: a file that does not parse has nothing to export at all, while an
+  // exportable file is only waiting for a page to be selected. "Select a page first" on
+  // a file that cannot be exported is the one answer that would be wrong.
+  exportButton.title = state.readOnly
+    ? "The file does not parse, so there is nothing to export."
+    : page
+      ? `Write ${page.name} as a standalone HTML file`
+      : "Select a page first — its row in the Layers panel, or its label on the canvas";
   document.getElementById("export-all").disabled = state.readOnly;
 
   renderProblems();
@@ -1938,6 +1955,14 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   if (label || event.altKey) {
     const pageBox = target.closest(".page-box");
     if (pageBox) {
+      // A press on the label is also a statement about which page this is. The label is
+      // the only part of a page a full-bleed child never covers — every page of
+      // `examples/alarm.html` is filled by a `width:100%;height:100%` root frame — so
+      // without this a page cannot be selected on the canvas at all, and `Export`, which
+      // writes the page that is selected, would be reachable only from the layer tree.
+      // The drag is unchanged: a press that moves still moves the page, and one that does
+      // not move still writes nothing.
+      if (label) select(pageBox.dataset.pageId, { pageId: pageBox.dataset.pageId });
       drag = pageDrag(pageBox, pageBox.dataset.pageId, event);
       capturePointer(ui.viewport, event.pointerId);
       event.preventDefault();
@@ -2275,11 +2300,22 @@ async function saveFixText() {
  * from here and one taken from the command line are the same bytes, which is the property
  * that makes "export" mean one thing.
  *
+ * Which page is not a default. The service answers a missing `page` with the first page,
+ * and a button that silently wrote page one while the canvas showed page four handed over
+ * a deliverable nobody asked for, under a name that said it was the right one. So the
+ * request names the page, `renderChrome` disables the button until a page is selected, and
+ * the check here covers the gap between the click and the render.
+ *
  * A refusal with diagnostics opens the drawer rather than flashing a toast: the file has a
  * problem the user has to see, and 7 seconds is not enough time to read a diagnostic.
  */
 async function exportPages(all) {
-  const { payload } = await api("export", { body: all ? { all: true } : {} });
+  const page = all ? null : selectedPage(state.model?.pages, state.selection, state.selectionPage);
+  if (!all && !page) {
+    toast("Select a page first — Export writes the selected page.", "refused");
+    return;
+  }
+  const { payload } = await api("export", { body: all ? { all: true } : { page: page.id } });
   if (payload?.ok) {
     const names = payload.files.map((entry) => entry.path.split("/").pop());
     toast(`Wrote ${names.join(", ")}`, "ok");

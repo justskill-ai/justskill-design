@@ -236,7 +236,7 @@ node scripts/gen-references.mjs --check  → 三份 references 全部 ok
 - **画布与命令行导出同一份字节**，有测试直接比：服务调用的是 `design.mjs export` 调的那两个函数。交付物是这个工具存在的理由，两扇门必须通向同一个房间。
 - 文件名一律 `<pageId>.export.html`。**理由是 v2 特有的**：这个格式的设计文件本身就是 `.html`，`home.html` 放在 `design.html` 旁边是歧义的（可能是 `home` 页的交付物，也可能是另一个设计），而"人会这么起名"正是歧义产生的方式。
 - 唯一被明确拒绝的目标是**设计文件本身**（`export/would-overwrite-design`）：页面 id 与文件名对上时导出会覆盖设计稿，而设计稿是意图的唯一副本。
-- 画布：`Export` / `Export all` 两个按钮，只读时禁用；拒绝时**有 diagnostics 就开问题抽屉**，不是裸 toast。
+- 画布：`Export` / `Export all` 两个按钮，只读时禁用。`Export` 只写**被选中的那一页**，所以选中元素时它是灰的 —— 画布同时显示所有页、每页各自一个 shadow root，元素 id 说明不了它在哪一页；而服务端把缺省的 `page` 当成第一页，那正是「看着第四页写出一页」的来源。选中页面有两个入口：图层面板的页面行，或页面标签上按一下。拒绝时**有 diagnostics 就开问题抽屉**，不是裸 toast。
 - **接通 `/api/save`**：这是服务端从存在起就有、而没有任何客户端调用的端点。文件不解析时抽屉里出现 `Fix text…`，把原文读进等宽的 `<textarea>`，`Save and reload` 带 `baseRevision` 提交；服务端答 `rebased` 时明确告诉用户"保存了，但你打字期间文件变过"。
 
 **一条澄清**：交接里担心的"递归 watcher 会误发 `changed`"其实由 basename 过滤覆盖（`server.mjs` 里 `event.filename === base`）。命名之所以仍然重要，是歧义与"覆盖设计稿"这两件事。

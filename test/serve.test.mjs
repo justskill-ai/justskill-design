@@ -730,6 +730,34 @@ test("export: --all writes every page", async () => {
   });
 });
 
+/**
+ * `page` is not decoration.
+ *
+ * The canvas sent a bare `{}` for `Export`, so the button wrote the first page whatever was
+ * selected: on the six-screen alarm example the deliverable was always
+ * `alarms.export.html`. The server had read `body.page` from the beginning and the refusal
+ * for an unknown id was tested, which is exactly why nothing caught it — the path with a
+ * real page id in it had no test at all.
+ */
+test("export: writes the page that was named, not the first one", async () => {
+  const twoPages = VALID.replace(
+    "</body>",
+    '  <section data-id="kit" data-type="page" data-canvas="420,0" style="width:390px;height:844px;overflow:hidden">\n' +
+      '    <p data-id="kit__title" data-type="text" style="font-size:32px;font-weight:700">工具</p>\n' +
+      "  </section>\n</body>",
+  );
+  const file = fixture(twoPages);
+  await withServer(file, async (server) => {
+    const { status, json: body } = await post(server, "/api/export", { page: "kit" });
+    assert.equal(status, 200);
+    assert.deepEqual(body.files.map((entry) => entry.page), ["kit"]);
+    assert.equal(path.basename(body.files[0].path), "kit.export.html");
+    const written = readFileSync(body.files[0].path, "utf8");
+    assert.match(written, /工具/);
+    assert.ok(!written.includes("你好"), "the deliverable is the page that was named");
+  });
+});
+
 test("export: the same bytes as the command line, for the same page", async () => {
   const file = fixture(VALID);
   await withServer(file, async (server) => {

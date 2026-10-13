@@ -3,7 +3,8 @@
  *
  * No DOM, and no imports at all. The canvas decides how a tree looks; this file
  * decides what the tree *is*: which row is inside which, which rows are visible
- * under the current expansion, and what a selection has to open to be seen.
+ * under the current expansion, what a selection has to open to be seen, and which
+ * page a selection names.
  *
  * That split is the point. Everything here runs under `node --test` — a browser
  * is not needed to know that collapsing a node hides its grandchildren, or that
@@ -194,6 +195,23 @@ export function visibleNodes(nodes, view) {
   };
   visit(nodes);
   return out;
+}
+
+/**
+ * The page a selection names, or null when it names none.
+ *
+ * A canvas shows every page at once, and a page is a separate shadow root, so an id
+ * is not unique in the document: a selected element says which element, never which
+ * page. Only the page itself can answer the question `Export` has to ask, and that is
+ * the same id in both fields — an element whose id equals its page's id *is* the page
+ * mount, so the equality is exact rather than a guess.
+ *
+ * The page also has to be in the model: after an undo that removed it, the selection
+ * outlives what it names, and a stale id is not exportable.
+ */
+export function selectedPage(pages, selection, selectionPage) {
+  if (!selection || selection !== selectionPage) return null;
+  return (pages ?? []).find((page) => page.id === selection) ?? null;
 }
 
 /**

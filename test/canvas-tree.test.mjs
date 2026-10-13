@@ -13,6 +13,9 @@
  *   3. Closing a node hides its whole subtree, not just its children.
  *   4. Selecting a nested element opens the path down to it and nothing else,
  *      and a missing id is answered with an empty path rather than a throw.
+ *   5. A selection names a page only when it *is* that page, and only while the
+ *      page is still in the document. `Export` writes the page a selection names,
+ *      so a rule that guessed would write the wrong one.
  */
 
 import test from "node:test";
@@ -20,7 +23,7 @@ import assert from "node:assert/strict";
 
 import {
   nest, walk, byId, pathTo, hasChildren, isOpen, toggleNode, openPath, visibleNodes,
-  pageRoots, newView, expandAll, collapseAll, rungAt,
+  pageRoots, newView, expandAll, collapseAll, rungAt, selectedPage,
 } from "../canvas/tree.mjs";
 
 /** A row, in the shape `pageTree()` produces. */
@@ -263,6 +266,26 @@ test("a page with elements is closed like everything else", () => {
 
   expandAll(view);
   assert.equal(visibleNodes(roots, view).length, 8, "the page, its rows, and their children");
+});
+
+/* ------------------------------------------------------------------ *
+ * Which page a selection names
+ * ------------------------------------------------------------------ */
+
+const PAGES = [{ id: "home", name: "Home" }, { id: "ring", name: "响铃" }];
+
+test("a selection names a page only when it is that page", () => {
+  assert.equal(selectedPage(PAGES, "ring", "ring")?.id, "ring");
+  assert.equal(selectedPage(PAGES, "home", "home")?.name, "Home");
+  assert.equal(selectedPage(PAGES, "home__title", "home"), null, "an element in a page is not the page");
+  assert.equal(selectedPage(PAGES, "ring", "home"), null, "an id from one page does not name another");
+  assert.equal(selectedPage(PAGES, "home__title", null), null, "the Problems drawer names an element and no page");
+  assert.equal(selectedPage(PAGES, null, null), null, "nothing selected names nothing");
+});
+
+test("a page that is no longer in the document names nothing", () => {
+  assert.equal(selectedPage(PAGES, "gone", "gone"), null, "an undo can remove the page a selection still names");
+  assert.equal(selectedPage(undefined, "home", "home"), null, "a file with no model has no pages to name");
 });
 
 /* ------------------------------------------------------------------ *
