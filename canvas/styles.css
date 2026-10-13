@@ -391,10 +391,32 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 
 .page-box.selected { outline: 2px solid var(--chrome-accent); outline-offset: 0; }
 
+/*
+ * A page's name is chrome, so it does not zoom with the drawing.
+ *
+ * The label sits inside the page box, and the page box is inside the element the
+ * camera scales — so the name used to be a 1.9px smudge at 10% and a headline at
+ * 400%, and a name is only a name when it can be read. `--chrome-unzoom` is the
+ * reciprocal of the zoom, written by `applyCamera`; scaling by it gives the pill
+ * its own size in screen pixels at every step of the ladder.
+ *
+ * The bottom edge is the anchor, because the lift has to be a screen distance
+ * too. Pinned by its top — the `top: -22px` this used to be — the pill's 3.5px
+ * of air scaled with everything else: 14px over the page it names at 400%, and
+ * under a pixel at 25%, where the label sits as good as flat on the design.
+ * `bottom: 100%` moves the anchor onto the page's top edge, and translating by
+ * the same reciprocal leaves the same 4px of air at every zoom. At 100% that is
+ * where the old offset landed, to within the half pixel the pill's own height
+ * rounds by.
+ *
+ * Undone by a transform, not by a second element or a per-zoom class: there is
+ * one label per page, in one place, and its hit box is the pill you can see — as
+ * draggable at 10% as at 100%.
+ */
 .page-label {
   position: absolute;
   left: 0;
-  top: -22px;
+  bottom: 100%;
   padding: 1px 7px;
   border-radius: 5px;
   background: #232830;
@@ -403,6 +425,11 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   white-space: nowrap;
   cursor: move;
   user-select: none;
+  --label-gap: 4px;
+  transform-origin: left bottom;
+  transform:
+    translateY(calc(var(--label-gap) * var(--chrome-unzoom, 1) * -1))
+    scale(var(--chrome-unzoom, 1));
 }
 
 .page-box.selected .page-label { color: var(--chrome-ink); background: #2f3a48; }

@@ -163,6 +163,11 @@ function toast(message, kind = "") {
 function applyCamera() {
   const { x, y, zoom } = state.camera;
   ui.canvas.style.transform = `translate(${x}px, ${y}px) scale(${zoom})`;
+  // The reciprocal of the zoom, so the chrome that lives *inside* the scaled
+  // element can put itself back at its own size: the page labels read it, and
+  // styles.css says why they have to. Written here rather than in a per-label
+  // loop because the camera is the only thing it depends on.
+  ui.canvas.style.setProperty("--chrome-unzoom", String(1 / zoom));
   ui.zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
 }
 
