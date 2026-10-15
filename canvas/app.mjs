@@ -74,6 +74,7 @@ async function api(path, options = {}) {
 
 const state = {
   file: "",
+  path: "",
   text: "",
   revision: "",
   readOnly: false,
@@ -463,6 +464,7 @@ async function loadDocument({ keepCamera = false } = {}) {
     return;
   }
   state.file = stateResponse.payload?.file ?? state.file;
+  state.path = stateResponse.payload?.path ?? state.path;
   state.readOnly = Boolean(stateResponse.payload?.readOnly);
   state.readOnlyReason = stateResponse.payload?.readOnlyReason ?? "";
   state.canUndo = Boolean(stateResponse.payload?.canUndo);
@@ -2221,6 +2223,54 @@ window.addEventListener("keydown", (event) => {
 
 window.addEventListener("keyup", (event) => {
   if (event.key === " ") ui.viewport.classList.remove("move-mode");
+});
+
+// -- copy for an agent -------------------------------------------------------
+
+/** `C:\a\b.html` → `file:///c%3A/a/b.html`, `/a/b.html` → `file:///a/b.html`. */
+function fileUriOf(absolute) {
+  const slashed = absolute.replace(/\\/g, "/");
+  const drive = /^([A-Za-z]):\//.exec(slashed);
+  const rest = drive ? `/${drive[1].toLowerCase()}%3A${slashed.slice(2)}` : slashed;
+  return `file://${rest.split("/").map((part, i) => (drive && i === 1 ? part : encodeURIComponent(part))).join("/")}`;
+}
+
+/**
+ * ⌘C on a selection copies a pointer to it, not the design: the reader is an
+ * agent chat box, and the agent reads the element from the file by its id.
+ *
+ * `text/plain` is what every chat box receives. `application/x-lexical-editor`
+ * is only read by Lexical editors — Cursor's chat input is one — which paste it
+ * as a file chip instead of the raw sentence. A custom type can only be written
+ * from the `copy` event; `navigator.clipboard.write` refuses it.
+ */
+document.addEventListener("copy", (event) => {
+  if (!state.selection || !state.path) return;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+  if (!(window.getSelection()?.isCollapsed ?? true)) return;
+
+  const id = state.selection;
+  const name = getAttr(findNode(id), "data-name") || id;
+  const pageId = state.selectionPage ?? pathNodesOf(id)[0]?.id;
+  const where = pageId && pageId !== id ? `. Page id: ${pageId}` : "";
+  const prompt = `Use skill-design tools. Current file ${fileUriOf(state.path)}${where}. Selected node ids: ${id}`;
+  const ext = state.file.split(".").pop()?.toLowerCase() ?? "";
+
+  event.clipboardData.setData("text/plain", prompt);
+  event.clipboardData.setData("application/x-lexical-editor", JSON.stringify({
+    nodes: [
+      {
+        detail: 0, format: 0, mode: "segmented", style: "",
+        text: prompt,
+        mentionName: `${state.file} (${name})`,
+        type: "mention", version: 1, typeaheadType: "file",
+        metadata: { iconClasses: ["file-icon", "name-file-icon", `${ext}-ext-file-icon`, "ext-file-icon", `${ext}-lang-file-icon`] },
+      },
+      { detail: 0, format: 0, mode: "normal", style: "", text: " ", type: "text", version: 1 },
+    ],
+  }));
+  event.preventDefault();
+  toast(`Copied ${name} for the agent`);
 });
 
 // -- top bar actions ---------------------------------------------------------
