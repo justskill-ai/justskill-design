@@ -173,7 +173,7 @@ design.html was not changed.
 ## Tests
 
 ```sh
-npm test                # node --test "test/*.test.mjs"
+npm test                # node --test
 npm run images:check    # needs the network: every catalogue URL still resolves
 ```
 
