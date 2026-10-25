@@ -1,16 +1,50 @@
-# justSkill
+# JustSkill Design
 
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Design web pages as a **validated HTML file with inline CSS**, then fine-tune
-them on a local canvas.
+## A design tool for web pages and app screens
+
+Driven by your coding agent — think Pen or Figma, except the design is one
+validated HTML file you can open, edit, and ship.
+
+> **Design, just a skill.**
+>
+> **No MCP server. No app to install. No account. No build step. No `npm install`.**
+>
+> A skill is a directory your agent reads, so the only setup is handing it over.
+>
+> `HTML-native` `Validated` `Agent-friendly`
+
+**Use it now.** Copy this into your agent:
+
+```text
+Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "justskill-design"` and follow the generated skill instructions now.
+Read its complete output, redirecting it to a temporary file first if necessary.
+Resolve relative paths from the supporting-files directory it provides.
+```
 
 ![The justSkill canvas: a six-screen alarm app on the canvas, with the layer tree
 on the left and the inspector on the right](docs/canvas-alarm.png)
 
-A skill, not a product: no MCP server, no app to install, no account, no build
-step, no `npm install`. Node 18 or newer, built-in modules only.
+## A skill, not a product
+
+A product asks you to install it, update it and sign into it. A skill is a
+directory an agent reads, and this one is the whole tool: the instructions, the
+CLI, and the format the CLI checks.
+
+| Not | What it means |
+|---|---|
+| No MCP server | No process to start, no client config to edit, no protocol between the model and the file. The model runs `node design.mjs`, the same command a person types, and every edit goes through the same write funnel. |
+| No app to install | No application to download, update or keep running. The skill is this repository, linked into your skills directory, and the canvas is a local page the CLI serves on demand and closes when you are done. |
+| No account | No sign-in, no plan, no cloud copy, no usage report. The design file is the only state, and it lives in your checkout. |
+| No build step | The source is what runs — no bundler, no transpiler, no compiled artifact that can fall behind its source. Edit the checkout and the installed skill follows. |
+| No `npm install` | No dependencies and no lockfile: nothing to install, audit or update. Node 18 or newer, built-in modules only. |
+
+Each absence removes a way to fail before the design exists — a process that did
+not start, a session that expired, a package that resolved to something else, a
+build older than its source. What is left is an HTML file you can open, diff and
+commit, and a command set that will not let it be wrong in silence.
 
 ```
 design.html  ──validate──▶  diagnostics       (what is wrong, and what to write instead)
@@ -241,15 +275,33 @@ has to contain, and `test/evals.test.mjs` checks it.
 
 ## Install
 
+The prompt above uses the skill for the current session. To have it in every
+session, either let the skills CLI install it for every agent it knows, or link
+the checkout in yourself.
+
+### With the skills CLI
+
+```sh
+npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justskill-design" -g -y
+```
+
+That copies the skill into `~/.agents/skills/justskill-design` and links it into
+the agent directories the CLI manages; `npx skills update` moves it forward.
+
+### With one symlink
+
 ```sh
 git clone https://github.com/justskill-ai/justskill-design.git ~/Developer/justskill-design
 node ~/Developer/justskill-design/scripts/install.mjs
 ```
 
-That links the repository into `~/.agents/skills/justskill-design` and
+The repository is the skill, so this install is one symlink into the skills
+directory your agent already reads: nothing is compiled and nothing keeps
+running. It links the checkout into `~/.agents/skills/justskill-design` and
 `~/.claude/skills/justskill-design`, so any agent that reads those directories
 (Claude Code included) picks it up. The link is a symlink: edit the checkout and
-the installed skill follows, with no build step to rerun.
+the installed skill follows. `--uninstall` removes both links, and `--dry-run`
+prints what it would do.
 
 ## Scope
 
