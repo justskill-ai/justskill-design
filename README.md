@@ -16,6 +16,10 @@ validated HTML file you can open, edit, and ship.
 >
 > `HTML-native` `Validated` `Agent-friendly`
 
+![justSkill in motion: your agent edits the design file from the CLI, then you drag an element on the canvas — both write the same file](docs/justskill-demo.gif)
+
+[Watch the full 24-second demo (MP4)](docs/justskill-demo.mp4)
+
 **Use it now.** Copy this into your agent:
 
 ```text
