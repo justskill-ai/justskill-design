@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// evals/grade.mjs — first-round pass-rate measuring tool for skill-design v2.
+// evals/grade.mjs — first-round pass-rate measuring tool for justSkill v2.
 //
 //   node evals/grade.mjs [options]
 //
@@ -253,8 +253,8 @@ function verbExists(verb) {
 let WORK = null;
 function workspace() {
   if (!WORK) {
-    mkdirSync(join(tmpdir(), "skill-design-evals"), { recursive: true });
-    WORK = mkdtempSync(join(tmpdir(), "skill-design-evals", "run-"));
+    mkdirSync(join(tmpdir(), "justskill-design-evals"), { recursive: true });
+    WORK = mkdtempSync(join(tmpdir(), "justskill-design-evals", "run-"));
   }
   return WORK;
 }
@@ -364,7 +364,7 @@ function main() {
   const haveSet = cliExists && verbExists("set");
 
   if (!QUIET) {
-    process.stdout.write(`skill-design eval grader\n`);
+    process.stdout.write(`justSkill eval grader\n`);
     process.stdout.write(`  cli        ${CLI}${cliExists ? "" : "  (missing)"}\n`);
     process.stdout.write(`  starter    ${STARTER}\n`);
     process.stdout.write(`  verbs      ${cliExists ? [...listed.verbs].sort().join(" ") || "(none listed)" : "n/a"}\n`);

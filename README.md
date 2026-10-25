@@ -1,4 +1,4 @@
-# skill-design
+# justSkill
 
 Design web pages as a **validated HTML file with inline CSS**, then fine-tune
 them on a local canvas.
@@ -233,12 +233,12 @@ has to contain, and `test/evals.test.mjs` checks it.
 ## Install
 
 ```sh
-git clone <this repo> ~/Developer/skill-design
+git clone <this repo> ~/Developer/justskill-design
 node scripts/install.mjs
 ```
 
-That links the repository into `~/.agents/skills/skill-design` and
-`~/.claude/skills/skill-design`.
+That links the repository into `~/.agents/skills/justskill-design` and
+`~/.claude/skills/justskill-design`.
 
 ## Scope
 

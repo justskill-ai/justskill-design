@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // evals/selftest/stub-cli.mjs
 //
-// A TEST DOUBLE for evals/grade.mjs. It is NOT the skill-design implementation
+// A TEST DOUBLE for evals/grade.mjs. It is NOT the justSkill implementation
 // and NOT a specification of the verb surface — do not read its flags as a
 // contract. Its only job is to let the grader be exercised before the real
 // design.mjs exists, so that the measuring tool itself is known to work.
@@ -19,12 +19,12 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const argv = process.argv.slice(2);
 const mode = (argv.find((a) => a.startsWith("--stub-mode=")) || "").split("=")[1] ||
-  process.env.SKILL_DESIGN_STUB_MODE || "full";
+  process.env.JUSTSKILL_STUB_MODE || "full";
 const verb = argv[0];
 
 const die = (msg, code = 2) => { process.stderr.write(`${msg}\n`); process.exit(code); };
 
-const HELP = `skill-design (test double)
+const HELP = `justSkill (test double)
 
 usage: design.mjs <verb> <file> [options]
 

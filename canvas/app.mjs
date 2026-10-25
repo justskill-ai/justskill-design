@@ -255,7 +255,7 @@ function fitAll() {
  * browser that refuses (private mode throws on write) gets the defaults every
  * time: mildly annoying, never broken.
  */
-const PANEL_KEY = "skill-design.canvas.panels";
+const PANEL_KEY = "justskill-design.canvas.panels";
 const PANEL_MIN = 160;
 const PANEL_GUTTER = 6; // must match the `--gutter-*` default in styles.css
 const PANEL_DEFAULT = { left: 240, right: 260 };
@@ -472,7 +472,7 @@ async function loadDocument({ keepCamera = false } = {}) {
   state.text = fileResponse.payload;
   state.revision = fileResponse.revision ?? stateResponse.payload?.revision ?? "";
 
-  document.title = `${state.file} — skill-design`;
+  document.title = `${state.file} — justSkill`;
 
   mountAll();
   if (!keepCamera) fitAll();
@@ -2253,7 +2253,7 @@ document.addEventListener("copy", (event) => {
   const name = getAttr(findNode(id), "data-name") || id;
   const pageId = state.selectionPage ?? pathNodesOf(id)[0]?.id;
   const where = pageId && pageId !== id ? `. Page id: ${pageId}` : "";
-  const prompt = `Use skill-design tools. Current file ${fileUriOf(state.path)}${where}. Selected node ids: ${id}`;
+  const prompt = `Use justSkill tools. Current file ${fileUriOf(state.path)}${where}. Selected node ids: ${id}`;
   const ext = state.file.split(".").pop()?.toLowerCase() ?? "";
 
   event.clipboardData.setData("text/plain", prompt);

@@ -35,7 +35,7 @@ import { startServer, MAX_BODY_BYTES } from "../lib/node/server.mjs";
 import { PACKAGE_ROOT, PLACEHOLDER_ROUTES, STATIC_ROUTES, buildRoutes } from "../lib/node/static.mjs";
 import { revisionOf } from "../lib/node/fs.mjs";
 
-const WORK = mkdtempSync(path.join(tmpdir(), "skill-design-serve-"));
+const WORK = mkdtempSync(path.join(tmpdir(), "justskill-design-serve-"));
 test.after(() => rmSync(WORK, { recursive: true, force: true }));
 
 /** A canonical design file: every attribute already in canonical order. */

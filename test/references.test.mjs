@@ -58,7 +58,7 @@ test("the frontmatter carries a name and a description", () => {
   const skill = readFileSync(join(ROOT, "SKILL.md"), "utf8");
   assert.match(skill, /^---\n/, "SKILL.md must start with frontmatter");
   const front = skill.slice(4, skill.indexOf("\n---", 4));
-  assert.match(front, /^name: skill-design$/m);
+  assert.match(front, /^name: justskill-design$/m);
   assert.match(front, /^description: >-$/m);
   const description = front.slice(front.indexOf("description:"));
   assert.ok(description.length > 300, "the description is the trigger, so it must say when to use this");

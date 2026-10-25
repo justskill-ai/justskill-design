@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * skill-design v2 — the single entry point.
+ * justSkill v2 — the single entry point.
  *
  *   node design.mjs <verb> [args]
  *
@@ -46,7 +46,7 @@ export const VERBS = {
   serve: () => import("./lib/node/verbs/serve.mjs"),
 };
 
-export const USAGE = `skill-design — design web pages as a validated HTML file
+export const USAGE = `justSkill — design web pages as a validated HTML file
 
 Usage: node design.mjs <verb> [args]
 

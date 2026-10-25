@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..");
-const NAME = "skill-design";
+const NAME = "justskill-design";
 const HOME = os.homedir();
 
 const argv = process.argv.slice(2);

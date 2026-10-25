@@ -21,7 +21,7 @@ import {
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const DESIGN = path.join(ROOT, "design.mjs");
-const WORK = mkdtempSync(path.join(tmpdir(), "skill-design-cli-"));
+const WORK = mkdtempSync(path.join(tmpdir(), "justskill-design-cli-"));
 
 test.after(() => {
   rmSync(WORK, { recursive: true, force: true });

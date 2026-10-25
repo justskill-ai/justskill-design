@@ -1,5 +1,5 @@
 ---
-name: skill-design
+name: justskill-design
 description: >-
   Design and edit web pages as a validated HTML file with inline CSS, then
   fine-tune them on a local canvas. Use this skill whenever the user wants to
@@ -17,7 +17,7 @@ compatibility: Node 18 or newer. No dependencies, no install step, no build.
 allowed-tools: Bash(node:*), Read, Write, Edit
 ---
 
-# skill-design
+# justSkill
 
 You write one HTML file with inline CSS. It is the design. This skill checks it,
 lets you edit it one change at a time, and gives the user a canvas to drag.

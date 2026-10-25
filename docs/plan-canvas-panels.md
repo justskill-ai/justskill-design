@@ -144,7 +144,7 @@
 - **拖动改宽（本期做）**：每栏内侧一条 6px 的 `.divider`（`role="separator"`，`aria-orientation="vertical"`）。`pointerdown` → `capturePointer`（复用 `:1093`）→ `pointermove` 里写 `--panel-left/--panel-right`（夹在 `160px … 50vw` 之间）→ `pointerup` 落盘。拖动过程中每一帧都要 `drawOverlay()`：viewport 宽度在变，选中框是屏幕坐标。双击分隔条回到默认宽度。宽度与可见性一起存进同一个 localStorage 键。
 - **`.drawer`**（`styles.css:307`）的 `left/right` 改用同一组变量，栏宽从此只有一处定义。
 - **相机补偿**：收起左栏后 `.viewport` 的左边缘左移 240px，而 `.canvas` 是 `inset: 0`、transform 原点跟着容器走——画面会整体左跳。做法：切换前记 `viewport.getBoundingClientRect().left`，切换后 `state.camera.x += (newLeft - oldLeft)`，再 `applyCamera(); drawOverlay()`。拖动改宽时**不做**这个补偿：拖动中内容跟着变宽是符合直觉的，跳回去才是 bug。
-- **持久化**：`localStorage["skill-design.canvas.panels"] = {"left":true,"right":true}`，只此一项。**树的展开状态不持久化**——id 会随编辑变化，恢复了也是一堆指向不存在节点的状态。读写都套 `try/catch`（隐私模式下 localStorage 会抛）。
+- **持久化**：`localStorage["justskill-design.canvas.panels"] = {"left":true,"right":true}`，只此一项。**树的展开状态不持久化**——id 会随编辑变化，恢复了也是一堆指向不存在节点的状态。读写都套 `try/catch`（隐私模式下 localStorage 会抛）。
 - **边界**：面板状态属于 chrome，绝不进设计文件，也绝不发给服务端；切换栏不产生任何 `commit`，文件字节不变（Phase 1 的验收就是这条）。
 
 ---
