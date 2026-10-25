@@ -5,18 +5,15 @@
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## A design tool for web pages and app screens
+## Let an AI agent design your screens
 
-Driven by your coding agent — think Pen or Figma, except the design is one
-validated HTML file you can open, edit, and ship.
+**You review and approve them on the canvas.**
 
 > **Design, just a skill.**
 >
 > **No MCP server. No app to install. No account. No build step. No `npm install`.**
 >
 > A skill is a directory your agent reads, so the only setup is handing it over.
->
-> `HTML-native` `Validated` `Agent-friendly`
 
 ![justSkill in motion: your agent edits the design file from the CLI, then you drag an element on the canvas — both write the same file](docs/justskill-demo.gif)
 

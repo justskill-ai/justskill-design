@@ -5,17 +5,15 @@
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 一个做网页和 App 界面的设计工具
+## 让 AI Agent 来为你设计界面
 
-由你的 coding agent 驱动——可以理解成 Pen 或 Figma，区别在于设计就是一个经过校验的 HTML 文件：打开就能看，改完就能交付。
+**你在画布上检查、审批。**
 
 > **Design, just a skill.**
 >
 > **没有 MCP server，没有要安装的 app，没有账号，没有构建步骤，没有 `npm install`。**
 >
 > skill 就是 agent 读取的一个目录，所以唯一的“安装”就是把它交给 agent。
->
-> `HTML-native` `Validated` `Agent-friendly`
 
 ![justSkill 动起来的样子：agent 通过 CLI 修改设计文件，你在画布上拖动元素——两者写的是同一个文件](docs/justskill-demo.gif)
 
