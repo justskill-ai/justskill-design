@@ -110,6 +110,21 @@ node design.mjs serve design.html
 `add` reads a fragment from `--html-file` or `--html -` (stdin). Prefer a file
 or stdin: a fragment inside shell single quotes breaks on the first apostrophe.
 
+### Images
+
+When a page has a place for a photograph — a hero, a card, a gallery, an avatar —
+and the user has not supplied an image, fill it from `references/images.md`:
+verified Unsplash URLs, grouped by what the photo shows. Choose by subject — a
+hero wants a wide landscape, an avatar a face — and write the URL as it appears
+there. `alt` says what a person would see; the credit goes in `data-credit`,
+which never renders.
+
+The user's own image always wins: a URL, a file, or an image inside the `.pen` is
+never replaced. If no catalogue photo fits, a solid colour or a gradient scrim is
+the honest placeholder — never a made-up URL, never a local path that does not
+exist. The catalogue is hotlinked, so a design renders its photos only with a
+connection.
+
 ### Tokens
 
 A design token is the one thing in the file that is not an element, so no other

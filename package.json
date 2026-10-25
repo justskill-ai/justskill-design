@@ -12,6 +12,7 @@
     "test": "node --test \"test/*.test.mjs\"",
     "references": "node scripts/gen-references.mjs",
     "references:check": "node scripts/gen-references.mjs --check",
+    "images:check": "node scripts/check-images.mjs",
     "install:skill": "node scripts/install.mjs"
   }
 }

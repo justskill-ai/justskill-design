@@ -77,6 +77,18 @@ The page owns its own size. The root fills it.
 `alt` is required. `alt=""` marks a decorative image, and that is different from
 omitting it.
 
+## A photo when the user gave none
+
+Take the `src` from `references/images.md`, and write its `alt` and credit with it:
+
+```html
+<img data-id="home__photo" data-type="image" src="https://images.unsplash.com/photo-1543988884-c01cfa7b41c2?w=1080&amp;q=80&amp;fm=jpg" alt="Turquoise water meeting a white sand beach" data-credit="Photo by Harry Holder on Unsplash" style="width:100%;height:220px;object-fit:cover;border-radius:12px">
+```
+
+`data-credit` names the photographer. It never renders, and the Licence does not
+require it: keeping it costs one attribute and makes the source of a photo findable
+later.
+
 ## A background image
 
 ```html

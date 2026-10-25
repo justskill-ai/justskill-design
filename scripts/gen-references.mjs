@@ -7,6 +7,10 @@
  * this one: the validator refuses a value the documentation says is fine, and
  * nobody notices for a month.
  *
+ * `references/images.md` is not generated: it is a catalogue of photos rather
+ * than a rendering of the table, and `scripts/check-images.mjs` checks the part
+ * that can go stale — whether the URLs still resolve.
+ *
  *   node scripts/gen-references.mjs            write the files
  *   node scripts/gen-references.mjs --check    exit 1 if a file is out of date
  *
@@ -319,6 +323,18 @@ function cookbookDoc() {
   lines.push("");
   lines.push("`alt` is required. `alt=\"\"` marks a decorative image, and that is different from");
   lines.push("omitting it.");
+  lines.push("");
+  lines.push("## A photo when the user gave none");
+  lines.push("");
+  lines.push("Take the `src` from `references/images.md`, and write its `alt` and credit with it:");
+  lines.push("");
+  lines.push("```html");
+  lines.push('<img data-id="home__photo" data-type="image" src="https://images.unsplash.com/photo-1543988884-c01cfa7b41c2?w=1080&amp;q=80&amp;fm=jpg" alt="Turquoise water meeting a white sand beach" data-credit="Photo by Harry Holder on Unsplash" style="width:100%;height:220px;object-fit:cover;border-radius:12px">');
+  lines.push("```");
+  lines.push("");
+  lines.push("`data-credit` names the photographer. It never renders, and the Licence does not");
+  lines.push("require it: keeping it costs one attribute and makes the source of a photo findable");
+  lines.push("later.");
   lines.push("");
   lines.push("## A background image");
   lines.push("");

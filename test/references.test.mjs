@@ -5,6 +5,10 @@
  * A second copy of the rules drifts. The failure mode is quiet and expensive:
  * the documentation says a value is fine, the validator refuses it, and the
  * model believes the documentation. This test fails when the two disagree.
+ *
+ * `references/images.md` is the one exception: it is data (a catalogue of photos),
+ * not a rendering of the table, so it is written by hand and held to its own
+ * contract in `test/images.test.mjs`.
  */
 
 import { test } from "node:test";

@@ -61,6 +61,8 @@ Two style blocks are allowed in `<head>`, and both are read: the token block
   form, the diagnostic codes, the module boundaries.
 - `references/styling.md` — the 45 allowed properties and their value grammars.
 - `references/schema.md` — the element contract, generated from the format table.
+- `references/images.md` — the verified Unsplash photos a page may use when the
+  user has not supplied one, with what each photo shows and who took it.
 
 ## Examples
 
@@ -162,7 +164,8 @@ design.html was not changed.
 ## Tests
 
 ```sh
-npm test          # node --test "test/*.test.mjs"
+npm test                # node --test "test/*.test.mjs"
+npm run images:check    # needs the network: every catalogue URL still resolves
 ```
 
 What the suite pins, in order of what breaks first if it fails:
@@ -175,6 +178,7 @@ What the suite pins, in order of what breaks first if it fails:
 | `normalize` | Normalization is idempotent and never touches a canonical file |
 | `ops`, `fragment` | Ops are invertible; a fragment is compiled, checked and refused with a named reason |
 | `cli` | Exit codes 0/1/2 are stable across success and refusal paths |
+| `images` | Every catalogue row is a unique, copyable URL with what the photo shows and who took it |
 
 ## Measured today
 
@@ -187,7 +191,7 @@ What the suite pins, in order of what breaks first if it fails:
 | `.pen` import | 0 errors, empty `unmapped` | **0 errors, `unmapped` empty** |
 | `.pen` import ledger | every loss named | 1 loss in 1541 source nodes (`perCornerRadius`) |
 | pen's own export | the same picture | text line boxes and the arrow's four corners within 0.1px, `viewBox` and font identical |
-| Tests | — | 682 pass, 0 fail |
+| Tests | — | 684 pass, 0 fail |
 
 The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
 source nodes. It imports to 2197 elements in about 100 ms: 239 references are
@@ -250,3 +254,7 @@ animation, no responsive breakpoints, no rich text. The reasons are in
 `test/fixtures/real/open-design-components.html` is a copy of a fixture from
 [OpenDesign](https://github.com/nexu-io/open-design) (Apache-2.0), kept as a
 real-world parse case.
+
+The photographs in `references/images.md` and `examples/miniprogram.pen` come
+from [Unsplash](https://unsplash.com) and are used under the
+[Unsplash License](https://unsplash.com/license).
