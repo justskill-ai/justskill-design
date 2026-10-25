@@ -1,7 +1,13 @@
 # justSkill
 
+[![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Design web pages as a **validated HTML file with inline CSS**, then fine-tune
 them on a local canvas.
+
+![The justSkill canvas: a six-screen alarm app on the canvas, with the layer tree
+on the left and the inspector on the right](docs/canvas-alarm.png)
 
 A skill, not a product: no MCP server, no app to install, no account, no build
 step, no `npm install`. Node 18 or newer, built-in modules only.
@@ -69,6 +75,9 @@ Two style blocks are allowed in `<head>`, and both are read: the token block
 Three files in `examples/`. Each validates, each is already in canonical form,
 and `test/purity.test.mjs` reads the directory and holds every `examples/*.html`
 to that — so a fourth file is checked the moment it lands.
+
+![The same canvas with a 26-page mini program imported from a .pen file, laid
+out as artboards](docs/canvas-miniprogram.png)
 
 | File | Scale | What it answers |
 |---|---|---|
@@ -233,12 +242,14 @@ has to contain, and `test/evals.test.mjs` checks it.
 ## Install
 
 ```sh
-git clone <this repo> ~/Developer/justskill-design
-node scripts/install.mjs
+git clone https://github.com/justskill-ai/justskill-design.git ~/Developer/justskill-design
+node ~/Developer/justskill-design/scripts/install.mjs
 ```
 
 That links the repository into `~/.agents/skills/justskill-design` and
-`~/.claude/skills/justskill-design`.
+`~/.claude/skills/justskill-design`, so any agent that reads those directories
+(Claude Code included) picks it up. The link is a symlink: edit the checkout and
+the installed skill follows, with no build step to rerun.
 
 ## Scope
 
@@ -258,3 +269,8 @@ real-world parse case.
 The photographs in `references/images.md` and `examples/miniprogram.pen` come
 from [Unsplash](https://unsplash.com) and are used under the
 [Unsplash License](https://unsplash.com/license).
+
+## License
+
+MIT — see [LICENSE](LICENSE). The OpenDesign fixture and the Unsplash
+photographs are third-party material under their own licenses, credited above.
