@@ -15,7 +15,7 @@
 >
 > A skill is a directory your agent reads, so the only setup is handing it over.
 
-![justSkill in motion: your agent edits the design file from the CLI, then you drag an element on the canvas — both write the same file](docs/justskill-demo.gif)
+![justSkill in motion: a prompt is copied into the agent, the agent designs the screens, then you open the canvas and review them](docs/justskill-demo.gif)
 
 [Watch the full 24-second demo (MP4)](docs/justskill-demo.mp4)
 

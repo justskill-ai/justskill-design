@@ -15,7 +15,7 @@
 >
 > skill 就是 agent 读取的一个目录，所以唯一的“安装”就是把它交给 agent。
 
-![justSkill 动起来的样子：agent 通过 CLI 修改设计文件，你在画布上拖动元素——两者写的是同一个文件](docs/justskill-demo.gif)
+![justSkill 动起来的样子：把一段提示词复制给 agent，agent 设计页面，然后你打开画布检查确认](docs/justskill-demo.gif)
 
 [看完整的 24 秒演示（MP4）](docs/justskill-demo.mp4)
 
