@@ -1,5 +1,7 @@
 # JustSkill Design
 
+[English](README.md) · [简体中文](README.zh-CN.md)
+
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
