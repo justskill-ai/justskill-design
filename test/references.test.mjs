@@ -6,9 +6,13 @@
  * the documentation says a value is fine, the validator refuses it, and the
  * model believes the documentation. This test fails when the two disagree.
  *
- * `references/images.md` is the one exception: it is data (a catalogue of photos),
- * not a rendering of the table, so it is written by hand and held to its own
- * contract in `test/images.test.mjs`.
+ * Two reference files are exceptions to "generated, never hand-written".
+ * `references/images.md` is data (a catalogue of photos), not a rendering of the
+ * table, so it is written by hand and held to its own contract in
+ * `test/images.test.mjs`. `references/product-flow.md` is a hand-written
+ * playbook that expands the route table in `SKILL.md`, and
+ * `test/product-flow.test.mjs` keeps the two stage lists equal. The generator
+ * still writes only `styling.md`, `schema.md` and `cookbook.md`.
  */
 
 import { test } from "node:test";

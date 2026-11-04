@@ -5,9 +5,9 @@
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Let an AI agent design your screens
+## Let an AI agent take your product from idea to code
 
-**You review and approve them on the canvas.**
+**You confirm the features in chat and approve the screens on the canvas.**
 
 > **Design, just a skill.**
 >
@@ -29,6 +29,57 @@ Resolve relative paths from the supporting-files directory it provides.
 
 ![The justSkill canvas: a six-screen alarm app on the canvas, with the layer tree
 on the left and the inspector on the right](docs/canvas-alarm.png)
+
+## From an idea to running code
+
+Give the agent a product idea and it takes over the design process: it asks
+about the product, breaks the first version down, designs the screens, you
+approve them on the canvas, and it implements the approved design in your stack.
+You confirm the features and approve the screens; the agent makes the design
+decisions.
+
+| # | Stage | What the agent does | What you do |
+|---|---|---|---|
+| 1 | Idea | Restates the product in one sentence and asks only the questions that change the screens. | Answer, and correct the restatement if it is wrong. |
+| 2 | Feature breakdown | Sketches the smallest first version: the core loop, 1–5 screens with a job each, the empty, loading and error states, the data, and what is explicitly out of scope. | Read it, and name what is missing or out of scope. |
+| 3 | Feature confirmation | Asks one clear confirmation question. You can add or remove features; after that it does not ask again. | Confirm, add, or remove. |
+| 4 | Design takeover | Says it will design the screens, proposes the page list and one visual direction, then creates the design file and its tokens — or opens the existing file when the product already has one. | Push back on the page list or the direction, or let it proceed. |
+| 5 | Design first | States the order once: design → approval → code. | — |
+| 6 | Canvas | Opens the local canvas, then builds the pages one by one, so the design appears gradually in the open canvas. | Keep the canvas open and watch the screens arrive. |
+| 7 | UI adjustment | Reads the node you point at from the file and applies one op at a time: `set`, `move`, `add`, `remove`, or `tokens`. | Select an element on the canvas, press ⌘C (Ctrl+C on Windows/Linux), paste the copied pointer into the agent chat, and say what to change. You can also drag on the canvas. |
+| 8 | Page sign-off | Validates, walks the checklist — screens, states, copy, images, tokens — and asks for explicit approval. | Approve, or send it back. |
+| 9 | Code | Implements the approved design in your stack, screen by screen; the validated design file is the spec. | Review the code. |
+
+The route is soft guidance, not a required gate:
+
+- The agent starts without asking permission, and every stage can be skipped.
+- "Just do it" or "write the code now" wins; the agent does not re-argue.
+- It asks about the product and decides the design.
+- It asks at most two or three questions at once, and never repeats a confirmation it already has.
+- The breakdown scales to the risk: a small screen gets a short list.
+
+Two entry points start the route: a new product idea, and a request to add or
+change a product feature — even when you do not say "design". A concrete edit
+inside an existing design, such as a card, a colour, or a row, skips the route.
+
+The skill does not build or compile your app. The agent writes that code in your
+repository, with the validated design file as the spec.
+
+**Stage 7 is the loop you will use most.** Select the element on the canvas,
+press ⌘C (Ctrl+C on Windows/Linux), paste the copied pointer into the agent
+chat, and say what to change. The pointer names the node; the agent reads that
+node from the file and applies the change as one op — `set`, `move`, `add`,
+`remove`, or `tokens` — one at a time, so every step prints a receipt. Dragging
+on the canvas is the same edit.
+
+A prompt that starts the route:
+
+```text
+I want to build an invoicing tool for freelancers: create invoices, chase payment, and watch the receivables come in. Break the features down first, then design the screens.
+```
+
+The stage-by-stage playbook — what the agent says and asks at each stage — is
+in `references/product-flow.md`.
 
 ## A skill, not a product
 
@@ -106,6 +157,8 @@ Two style blocks are allowed in `<head>`, and both are read: the token block
 - `references/schema.md` — the element contract, generated from the format table.
 - `references/images.md` — the verified Unsplash photos a page may use when the
   user has not supplied one, with what each photo shows and who took it.
+- `references/product-flow.md` — the stage-by-stage playbook the agent follows
+  from idea to code.
 
 ## Examples
 
@@ -237,7 +290,7 @@ What the suite pins, in order of what breaks first if it fails:
 | `.pen` import | 0 errors, empty `unmapped` | **0 errors, `unmapped` empty** |
 | `.pen` import ledger | every loss named | 1 loss in 1541 source nodes (`perCornerRadius`) |
 | pen's own export | the same picture | text line boxes and the arrow's four corners within 0.1px, `viewBox` and font identical |
-| Tests | — | 684 pass, 0 fail |
+| Tests | — | 695 pass, 0 fail |
 
 The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
 source nodes. It imports to 2197 elements in about 100 ms: 239 references are

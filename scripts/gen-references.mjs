@@ -7,9 +7,11 @@
  * this one: the validator refuses a value the documentation says is fine, and
  * nobody notices for a month.
  *
- * `references/images.md` is not generated: it is a catalogue of photos rather
- * than a rendering of the table, and `scripts/check-images.mjs` checks the part
- * that can go stale — whether the URLs still resolve.
+ * Two reference files are not generated. `references/images.md` is a catalogue
+ * of photos rather than a rendering of the table, and `scripts/check-images.mjs`
+ * checks the part that can go stale — whether the URLs still resolve.
+ * `references/product-flow.md` is a hand-written playbook that expands the route
+ * table in `SKILL.md`; `test/product-flow.test.mjs` keeps the two in step.
  *
  *   node scripts/gen-references.mjs            write the files
  *   node scripts/gen-references.mjs --check    exit 1 if a file is out of date

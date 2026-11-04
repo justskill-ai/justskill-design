@@ -1495,6 +1495,12 @@ function renderInspector() {
     empty.className = "empty";
     empty.textContent = "Click an element on the canvas, or a row in the layer tree.";
     ui.inspector.appendChild(empty);
+    // The copy handshake is the way a change gets back to the agent, and an
+    // empty inspector is exactly where a user has not heard of it yet.
+    const copyHint = document.createElement("p");
+    copyHint.className = "empty";
+    copyHint.textContent = "Select an element and press ⌘C (Ctrl+C on Windows/Linux) to copy a pointer to it for the agent.";
+    ui.inspector.appendChild(copyHint);
     return;
   }
   const node = findNode(id);
@@ -1508,6 +1514,10 @@ function renderInspector() {
   }
 
   ui.selectionName.textContent = `${getAttr(node, "data-name") || id}`;
+  const copyHint = document.createElement("p");
+  copyHint.className = "empty";
+  copyHint.textContent = "Press ⌘C (Ctrl+C on Windows/Linux) to copy a pointer to this element for the agent.";
+  ui.inspector.appendChild(copyHint);
   ui.inspector.appendChild(identityBlock(id, node));
 
   const styleMap = styleMapOf(node);

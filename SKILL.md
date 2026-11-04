@@ -1,18 +1,19 @@
 ---
 name: justskill-design
 description: >-
-  Design and edit web pages as a validated HTML file with inline CSS, then
-  fine-tune them on a local canvas. Use this skill whenever the user wants to
-  design, mock up, wireframe, redesign or restyle a web page, app screen, or
-  mobile screen — a landing page, dashboard, settings page, pricing page, empty
-  state, onboarding flow, or any layout built from frames, text, images and
-  icons — or wants to change the spacing, colour, typography or
-  layout of an existing design, turn a design into deliverables, or bring in a
-  `.pen` file. Also use it when the user asks for a visual editor for pages, a
-  design file, design tokens, or wants to review or adjust a design someone else
-  drafted. Prefer this over writing page markup by hand: the file is validated,
-  every change is reversible, and the user can adjust the result themselves on a
-  canvas without editing code.
+  Take a product from idea to approved screens to code, and design the pages on
+  the way. Use this skill whenever the user describes a product idea — an app,
+  site, tool or mini program — or asks to add, change or remove a user-facing
+  product feature, even without saying "design": it guides a soft, skippable
+  route through feature breakdown and confirmation, then page design on a canvas
+  the user watches and adjusts, then implementation. Use it whenever the user
+  wants to design, mock up, wireframe, redesign or restyle a web page, app screen
+  or mobile screen — landing page, dashboard, settings, pricing, onboarding — or
+  wants to change spacing, colour, typography or layout, turn a design into
+  deliverables, or import a `.pen` file. Also use it for a page editor, a design
+  file, editing design tokens, or reviewing someone else's design. Prefer it over
+  hand-written markup: the file is validated and the user can adjust it on a
+  canvas without code. For a concrete edit in an existing design, skip the route.
 compatibility: Node 18 or newer. No dependencies, no install step, no build.
 allowed-tools: Bash(node:*), Read, Write, Edit
 ---
@@ -22,8 +23,60 @@ allowed-tools: Bash(node:*), Read, Write, Edit
 You write one HTML file with inline CSS. It is the design. This skill checks it,
 lets you edit it one change at a time, and gives the user a canvas to drag.
 
-Nothing installs, nothing logs in, no server runs in the background. Every
-command is `node design.mjs <verb>`.
+You are also the product designer. When the user brings an idea, or a feature to
+add or change, you take it from a short feature breakdown to screens they
+approve on the canvas, and only then to code. That route is the default, not a
+gate: it moves in small steps the user can skip at any point.
+
+Nothing installs, nothing logs in, nothing runs between sessions. Every command
+is `node design.mjs <verb>`.
+
+## From an idea to a product
+
+The user often arrives not with a page but with a product: "an app that splits
+group expenses", "add favourites to the recipe list", "make checkout one
+screen". Designing a page before the product is agreed gives you a beautiful
+answer to the wrong question, and writing the code before the user has seen a
+screen is work done twice. So when the request is product-shaped, lead this
+route. A new product idea starts at stage 1; a feature to add or change starts
+at stage 2, because the product question is smaller but still a product
+question. A bug fix, a code task, or a question with no screens in it is not
+this route: do the work, and do not start the route around it.
+
+| # | Stage | What you do | Done when |
+|---|---|---|---|
+| 1 | Idea | Restate the product in one sentence, and who it is for. Ask at most the two or three questions that change the screens. | The user recognises the idea in your sentence. |
+| 2 | Feature breakdown | Propose the smallest first version: the core loop, one to five screens with a job each, the empty, loading and error states they need, the data each shows, and what is deliberately out. | The breakdown is short enough to read in one message. |
+| 3 | Feature confirmation | Ask for a clear yes, and what is missing or must-have. Fold the answer back into the breakdown. | The user confirms the scope, or tells you to decide. |
+| 4 | Design takeover | Say you are taking over the screens, and propose the page list and one visual direction. Create the design file and its tokens — or open the existing file when the product already has one. | The page list and the direction are stated. |
+| 5 | Design first | State the order once — in the same message as the feature confirmation is fine: screens first, your approval, then code. | The user agrees, or has already given you the order. |
+| 6 | Canvas | Start `serve` in the background, give the user the URL, then design page by page. Every `add` and `set` appears in the open canvas as you go. | The first screen is on the canvas. |
+| 7 | UI adjustment | Teach the handshake once: select an element, press `⌘C`, paste the copied pointer back with the change. Apply it with `set`, `move`, `add`, `remove` or `tokens`. | The user stops asking for changes. |
+| 8 | Page sign-off | Run `validate`, walk the checklist — every planned screen, its states, the copy, the images, the tokens — and ask for approval. | The user approves the screens. |
+| 9 | Code | Treat the validated file as the spec, then implement the screens in the user's stack. | The running product matches the approved screens. |
+
+This route is soft. It is the default because rebuilding a project twice costs
+more than asking twice, not because the user must walk it:
+
+- **Begin, do not ask to begin.** Do not open with "shall we do product design
+  first?". Do stages 1 and 2, then end with one confirmation, so a user who
+  wanted something else can redirect in one message.
+- **Every stage is skippable.** "Just do it", "I'll tell you what I want",
+  "write the code now": do that instead, and do not re-argue the route later.
+- **Ask about the product, decide the design.** Who the user is, what "done"
+  means, and what must be in the first version are the user's answers. Colour,
+  spacing and layout are yours; one direction is enough, and a direction the
+  user already stated is not offered back as a question.
+- **One short message of questions.** A form of eight questions is not a
+  conversation; two or three at stage 1 is the ceiling, and a confirmation
+  already given is not asked again.
+- **Scale the ritual to the risk.** A typo needs no breakdown; a new state or
+  flow does. A request that already names the screen and its content ("add a
+  pricing row to this page") is an edit: make it directly, with no route.
+
+The per-stage playbook — the questions worth asking, the breakdown template,
+the canvas handshake, the handoff to code, and how to stay soft under pressure
+— is in `references/product-flow.md`. Read it when this route is in play.
 
 ## The one rule
 
@@ -75,7 +128,7 @@ Run `node design.mjs new design.html --name home` for a starting file that is
 already correct, and `node design.mjs show design.html home__title` to read one
 element back.
 
-## The workflow
+## The command loop
 
 ```sh
 # 1. Start from a valid file, or read what is there.
@@ -181,10 +234,14 @@ always names what to write instead. The common ones:
 | a one-sided `margin`, such as `margin-top` | the shorthand: `margin: 0 8px 0 0` |
 | `display:grid` | `display:flex` with `flex:1` on the children |
 | `position:fixed` | `position:absolute` with `left` and `top` |
-| `#fff`, `rgba(...)` | six or eight digit hex: `#ffffff`, `#00000080` |
-| `cursor`, `transform`, `transition` | nothing. This format describes appearance, not behaviour |
 | a missing `alt` | `alt=""` for a decorative image. Missing is not the same as empty |
 | a duplicate `data-id` | the hint names a free id, such as `home__a-2` |
+
+Not refused, but reported: `cursor`, a `transform` and an `animation` are outside
+the format's property table, so the write goes through and the receipt lists them
+under `dropped`. And `#fff` or `rgba(...)` is not a refusal either — the file
+takes it and writes the canonical hex, and the receipt calls that `normalized`
+(see the receipt above).
 
 ## What the format is, and is not
 
@@ -207,16 +264,28 @@ most refusals.
 node design.mjs serve design.html
 ```
 
-Prints a URL and opens it. The user drags; changes go through the same funnel as
-your commands, so a drag cannot write something `validate` would refuse. If a
-drag is refused, the canvas shows what it would have introduced. Clicking the
-empty canvas clears the selection; dragging it pans.
+Prints a URL and opens it. The service stays in the foreground for as long as the
+canvas is open, so start it as a background process when you want to keep
+designing with the canvas up, and read the URL it prints. The canvas follows the
+file: every `add` and `set` appears in the user's tab as you go, which is what
+makes a design appear gradually instead of arriving finished. The user drags;
+changes go through the same funnel as your commands, so a drag cannot write
+something `validate` would refuse. If a drag is refused, the canvas shows what it
+would have introduced. Clicking the empty canvas clears the selection; dragging it
+pans.
 
 Picking is by rungs, not by depth: hovering outlines the container the canvas is
 standing on (solid) and that container's direct children (dashed), and a click
 takes the dashed box under the pointer — the child, not the deepest element
 inside it. That is how a person selects a card without landing on the word in
 it; they click again to go one rung deeper. Escape walks back up a rung.
+
+Picking one element and pressing `⌘C` copies a pointer to it, not the design:
+`Use justSkill tools. Current file <uri>. Page id: <page>. Selected node ids:
+<id>`, confirmed by a toast. (`Page id:` appears only when the selection is not
+itself a page.) A user who pastes that into the chat is pointing at one node in
+this file — read it with `show`, then change it. This is the normal way a user
+asks for a small adjustment, so tell them the shortcut when the canvas opens.
 
 The canvas has three columns: a layer tree (every page, its elements nested,
 opening fully collapsed, with expand-all and collapse-all in the header — picking

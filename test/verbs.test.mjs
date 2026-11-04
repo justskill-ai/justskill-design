@@ -331,6 +331,126 @@ test("add's human refusal and its JSON refusal agree about the code", () => {
   assert.match(human.stdout, /was not changed\./);
 });
 
+// -- add: with no --in, the fragment compiler decides the parent --------------
+
+/**
+ * `add` used to pre-fill `--in` with the first page, which made the CLI refuse
+ * the one command the compiler documents — "without it, a `page` snippet lands
+ * in `<body>`" (fragment.mjs F6) — and the refusal's own hint then told the
+ * caller to send the page without `in`. The default lives in `compileFragment`
+ * now, so the CLI and the compiler answer the same question the same way.
+ */
+const PAGE_FRAGMENT = [
+  '<section data-id="second" data-type="page" data-name="Second" data-canvas="490,0"',
+  ' style="width:390px;height:844px"><div data-id="second__root" data-type="frame"',
+  ' style="display:flex;flex-direction:column;width:100%;height:100%"></div></section>',
+].join("");
+
+test("a page fragment with no --in is appended to the body", () => {
+  const { dir, file } = workspace();
+  const fragment = join(dir, "page.html");
+  try {
+    writeFileSync(fragment, PAGE_FRAGMENT);
+    const r = run(["add", file, "--html-file", fragment]);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+
+    const doc = parse(readFileSync(file, "utf8"));
+    assert.deepEqual(
+      pagesOf(doc).map((page) => getAttr(page, "data-id")),
+      ["home", "second"],
+    );
+    assert.equal(
+      findById(doc, "second").parent,
+      doc.body,
+      "the page sits at body level, not inside the first page",
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a page fragment inside a page is refused, and its hint is actionable", () => {
+  // The hint says "Send the page without in, or name body." That instruction has
+  // to work, or the refusal is a dead end for the model reading it.
+  const { dir, file } = workspace();
+  const fragment = join(dir, "page.html");
+  try {
+    writeFileSync(fragment, PAGE_FRAGMENT);
+    const refused = run(["add", file, "--html-file", fragment, "--in", "home"]);
+    assert.equal(refused.code, 1);
+    assert.match(refused.stdout, /structure\/page-misplaced/);
+    assert.match(refused.stdout, /without in/);
+
+    const accepted = run(["add", file, "--html-file", fragment]);
+    assert.equal(accepted.code, 0, accepted.stdout + accepted.stderr);
+
+    // The other half of the same hint: `--in body` must also work, because that
+    // is the spelling a caller reaches for when it has read the refusal.
+    const third = join(dir, "third.html");
+    writeFileSync(third, PAGE_FRAGMENT.replaceAll("second", "third"));
+    const named = run(["add", file, "--html-file", third, "--in", "body"]);
+    assert.equal(named.code, 0, named.stdout + named.stderr);
+    const doc = parse(readFileSync(file, "utf8"));
+    assert.deepEqual(
+      pagesOf(doc).map((page) => getAttr(page, "data-id")),
+      ["home", "second", "third"],
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an element fragment with no --in lands in the last page, not the first", () => {
+  const { dir, file } = workspace();
+  const pageFragment = join(dir, "page.html");
+  const note = join(dir, "note.html");
+  try {
+    writeFileSync(pageFragment, PAGE_FRAGMENT);
+    assert.equal(run(["add", file, "--html-file", pageFragment]).code, 0);
+    writeFileSync(note, '<p data-id="second__note" data-type="text" style="font-size:12px;color:#111827">note</p>');
+    const r = run(["add", file, "--html-file", note]);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+
+    const doc = parse(readFileSync(file, "utf8"));
+    assert.equal(getAttr(findById(doc, "second__note").parent, "data-id"), "second");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("an element fragment with no page to land in is refused, not written into the body", () => {
+  // The body fallback is right for a page and wrong for anything else: the node
+  // would validate, but `ls` walks pages and `export` writes pages, so the
+  // element would be invisible in every reader except the file. This is the
+  // guard the old `add` had and moving its parent default into the compiler
+  // dropped.
+  const { dir } = workspace();
+  const file = join(dir, "bare.html");
+  const note = join(dir, "note.html");
+  try {
+    writeFileSync(file, [
+      "<!doctype html>",
+      '<html lang="en"><head><meta charset="utf-8"><title>Bare</title>',
+      '<meta name="design-schema" content="3.0">',
+      "<style>:root{ --color-ink:#111827 }</style>",
+      '<style>section[data-type="page"]{ margin:0 0 24px }</style>',
+      "</head><body>",
+      '<div data-id="stray" data-type="frame" style="display:flex;padding:8px"></div>',
+      "</body></html>",
+      "",
+    ].join("\n"));
+    writeFileSync(note, '<p data-id="n_note" data-type="text" style="font-size:12px;color:#111827">note</p>');
+    const before = readFileSync(file, "utf8");
+    const r = run(["add", file, "--html-file", note]);
+    assert.equal(r.code, 1, "an element with no page to hold it must be refused");
+    assert.match(r.stdout, /structure\/no-page/);
+    assert.match(r.stdout, /Add a page, or name a parent with in/);
+    assert.equal(readFileSync(file, "utf8"), before, "a refusal writes nothing");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // -- import pen: the verb's flags had no test at all --------------------------
 
 /**

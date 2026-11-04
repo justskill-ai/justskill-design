@@ -29,8 +29,14 @@ const ROOT = join(HERE, "..");
 
 const read = (name) => readFileSync(join(ROOT, name), "utf8");
 
-/** Every document that is written by hand. `references/` is generated. */
-const HAND_WRITTEN = ["SKILL.md", "README.md", "docs/format-v3.md"];
+/**
+ * The hand-written documents this file compares to the format table.
+ *
+ * `references/` is generated apart from the photo catalogue and the product-flow
+ * playbook; those two have their own guards, and the generated three are compared
+ * in `test/references.test.mjs`.
+ */
+const HAND_WRITTEN = ["SKILL.md", "README.md", "docs/format-v3.md", "references/product-flow.md"];
 
 test("no hand-written document says margin itself is refused", () => {
   for (const name of HAND_WRITTEN) {

@@ -1,9 +1,10 @@
 /**
- * `references/images.md` is the one hand-written reference: a catalogue of
- * verified Unsplash URLs plus what each photo shows.
+ * `references/images.md` is a hand-written reference: a catalogue of verified
+ * Unsplash URLs plus what each photo shows.
  *
  * It is data rather than a copy of the format table, so the generator cannot
- * derive it (see `test/references.test.mjs` for the generated documents). The
+ * derive it (see `test/references.test.mjs` for the generated documents and the
+ * other hand-written reference, `references/product-flow.md`). The
  * invariants this test pins are the ones that make the catalogue usable by a
  * model: every row is a URL it can copy whole, every URL has the shape that was
  * verified, and every row says what the photo shows and who took it. Availability
