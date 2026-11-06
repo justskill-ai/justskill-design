@@ -1043,7 +1043,7 @@ function elementForId(id) {
  *   the selection   solid, the saturated blue, with the four resize handles
  *   the level       solid, the same two pixels, lighter, no handles — what the
  *                   pointer is standing on
- *   its children    dashed, one pixel — one click each, and one level down
+ *   its children    dashed, one pixel — what a double-click steps into
  *   the one under the pointer   dashed, two pixels and brighter, so "what will I
  *                               get" is not a guess between two boxes that overlap
  *
@@ -1439,12 +1439,49 @@ function hoverPicture() {
   };
 }
 
-/** The element a press would select: the child under the pointer, or the level. */
-function pressTarget(hoveredId, pageId = null) {
+/**
+ * The element a gesture would select.
+ *
+ * A plain press takes the **level** — the box the pointer is standing on, the
+ * same one the solid hover box draws — so clicking anywhere inside a card picks
+ * the card and the drag that may follow moves the card. Stepping into the card
+ * is a deliberate second gesture: `drill` takes the child under the pointer.
+ */
+/**
+ * Is this press the second of a double-click?
+ *
+ * The `dblclick` event cannot answer this: the press captures the pointer on the
+ * viewport so a drag keeps receiving moves, and the spec sends `click` and
+ * `dblclick` to the capture target — measured: the event arrives at the viewport
+ * with no page in its composed path, so the element under the pointer is not in
+ * it any more. Two presses close together in time and place are what a
+ * double-click is, and here both are still measurable.
+ *
+ * The record is kept across presses rather than reset, so a third quick click
+ * steps in again — each extra click goes one rung deeper, which is what the
+ * gesture means everywhere else.
+ */
+const DRILL_INTERVAL_MS = 400;
+const DRILL_SLOP_PX = 4;
+let lastPress = null;
+
+function isRepeatPress(event, id) {
+  const now = performance.now();
+  const repeat = lastPress !== null
+    && lastPress.id === id
+    && now - lastPress.time <= DRILL_INTERVAL_MS
+    && Math.abs(event.clientX - lastPress.x) <= DRILL_SLOP_PX
+    && Math.abs(event.clientY - lastPress.y) <= DRILL_SLOP_PX;
+  lastPress = { id, x: event.clientX, y: event.clientY, time: now };
+  return repeat;
+}
+
+function pressTarget(hoveredId, pageId = null, { drill = false } = {}) {
   const path = pathNodesOf(hoveredId, pageId);
   if (path.length === 0) return null;
   const rung = rungAt(path.map((node) => node.id), state.levelDepth);
-  return { pageId: path[0].id, node: path[rung.depth + (rung.insideChild ? 1 : 0)] };
+  const index = drill && rung.insideChild ? rung.depth + 1 : rung.depth;
+  return { pageId: path[0].id, node: path[index] };
 }
 
 function setHovering(id, pageId = null) {
@@ -2073,12 +2110,30 @@ function reveal(id) {
  * through the service's funnel: revalidate, refuse on a new error, write
  * atomically. The canvas has no privileged path.
  */
-async function commit(ops) {
+/**
+ * Write ops, re-render, then put the optimistic preview back.
+ *
+ * `onSettled` is what a drag uses to undo the styles it painted on the live
+ * element while it followed the pointer. It runs at every exit — after the
+ * re-render on success, after the re-render on a refusal, and immediately when
+ * the write never happened (read-only, busy) — because the preview has to stay
+ * on screen until the re-rendered element replaces it. Clearing it earlier is
+ * the flash: the card jumps back to where it was dragged from and jumps to the
+ * drop point again when the round trip lands.
+ */
+async function commit(ops, { onSettled } = {}) {
+  const settle = () => {
+    try { onSettled?.(); } catch { /* cleanup must not mask the op result */ }
+  };
   if (state.readOnly) {
     toast("The file is read only. Fix the problem it reports first.", "refused");
+    settle();
     return;
   }
-  if (state.busy) return;
+  if (state.busy) {
+    settle();
+    return;
+  }
   state.busy = true;
   const originalText = state.text;
   try {
@@ -2106,6 +2161,7 @@ async function commit(ops) {
     toast(`The service did not accept that: ${error.message}`, "refused");
   } finally {
     state.busy = false;
+    settle();
   }
 }
 
@@ -2202,11 +2258,12 @@ ui.viewport.addEventListener("pointerdown", (event) => {
 
   const hit = targetFromEvent(event);
   if (hit) {
-    // A press takes the box the pointer is offering — the level's child it is
-    // inside, or the level itself — not the deepest element under the cursor.
-    // That is the whole point of the rungs: clicking a card must not land on the
-    // word inside it.
-    const target = pressTarget(hit.id, hit.pageId)
+    // A press takes the level the pointer is offering — the box the solid hover
+    // outline is already drawing — not the deepest element under the cursor and
+    // not one of its children. That is what makes a click a safe gesture: it
+    // selects the card, and a drag that follows moves the card, not the word
+    // under the cursor. Stepping inside is a double-click (`drill`).
+    const target = pressTarget(hit.id, hit.pageId, { drill: isRepeatPress(event, hit.id) })
       ?? { pageId: hit.pageId, node: treeNodeFor(hit.id) ?? { id: hit.id } };
     select(target.node.id, { expand: true, pageId: target.pageId });
     // A page is placed by `data-canvas`, and that is the only spelling for it.
@@ -2364,7 +2421,16 @@ ui.viewport.addEventListener("pointerup", (event) => {
   if (current.kind === "page" && current.moved) {
     const { x, y } = current.moved;
     const node = state.model.pages.find((p) => p.id === current.id);
-    if (node) commit([{ op: "set", target: current.id, prop: "data-canvas", value: `${x},${y}` }]);
+    if (node) {
+      const preview = current.element;
+      commit([{ op: "set", target: current.id, prop: "data-canvas", value: `${x},${y}` }], {
+        onSettled: () => {
+          if (!preview) return;
+          preview.style.left = `${current.originX}px`;
+          preview.style.top = `${current.originY}px`;
+        },
+      });
+    }
     return;
   }
 
@@ -2374,7 +2440,9 @@ ui.viewport.addEventListener("pointerup", (event) => {
     const [movedX, movedY] = current.element ? parentDelta(current.element, rawX, rawY) : [rawX, rawY];
     const dx = Math.round(movedX);
     const dy = Math.round(movedY);
-    if (current.element) current.element.style.translate = "";
+    // The preview transform is left on the element on purpose: it is what the
+    // re-render replaces. `onSettled` clears it whatever the write did.
+    const preview = current.element;
     const node = findNode(current.id);
     if (!node) return;
     const map = styleMapOf(node);
@@ -2387,15 +2455,24 @@ ui.viewport.addEventListener("pointerup", (event) => {
       { op: "set", target: current.id, prop: "style:position", value: "absolute" },
       { op: "set", target: current.id, prop: "style:left", value: `${Math.round(left)}px` },
       { op: "set", target: current.id, prop: "style:top", value: `${Math.round(top)}px` },
-    ]);
+    ], {
+      onSettled: () => { if (preview) preview.style.translate = ""; },
+    });
     return;
   }
 
   if (current.kind === "resize" && current.pending) {
+    const preview = current.element;
     commit([
       { op: "set", target: current.id, prop: "style:width", value: `${current.pending.width}px` },
       { op: "set", target: current.id, prop: "style:height", value: `${current.pending.height}px` },
-    ]);
+    ], {
+      onSettled: () => {
+        if (!preview) return;
+        preview.style.width = `${current.startWidth}px`;
+        preview.style.height = `${current.startHeight}px`;
+      },
+    });
   }
 });
 

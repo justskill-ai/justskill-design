@@ -210,8 +210,9 @@ header and picking an element on the canvas opening the path down to it — the
 design in the middle, and the selected element's own properties on the right,
 grouped into sections and edited with the control its grammar asks for.
 Hovering shows the container the pointer is standing on, solid, and that
-container's direct children, dashed — a click takes the dashed box under the
-pointer, and Escape walks back up one rung. Every page carries its name in a pill
+container's direct children, dashed — a click selects the container, a
+double-click steps into the dashed box under the pointer, and Escape walks back
+up one rung. Every page carries its name in a pill
 above its top-left corner, and that name is chrome rather than part of the
 drawing: it keeps its own size and its own few pixels of air at every zoom, so it
 reads the same at 10% as at 100%. Either side folds away with the

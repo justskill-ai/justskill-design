@@ -278,10 +278,11 @@ would have introduced. Clicking the empty canvas clears the selection; dragging 
 pans.
 
 Picking is by rungs, not by depth: hovering outlines the container the canvas is
-standing on (solid) and that container's direct children (dashed), and a click
-takes the dashed box under the pointer — the child, not the deepest element
-inside it. That is how a person selects a card without landing on the word in
-it; they click again to go one rung deeper. Escape walks back up a rung.
+standing on (solid) and that container's direct children (dashed). A click
+selects that container — never the deepest element under the pointer — so a
+person selects a card without landing on the word in it, and a drag that follows
+moves the card. A double-click steps into the dashed box under the pointer, one
+rung deeper. Escape walks back up a rung.
 
 Picking one element and pressing `⌘C` copies a pointer to it, not the design:
 `Use justSkill tools. Current file <uri>. Page id: <page>. Selected node ids:

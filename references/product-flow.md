@@ -234,9 +234,9 @@ This is the loop the canvas exists for, and it has one teachable handshake. Say
 it once, when the canvas opens:
 
 > Select an element on the canvas. Hover outlines the container (solid) and its
-> direct children (dashed); click takes the dashed box under the pointer, and
-> clicking again goes one rung deeper. Escape goes back up. A row in the layer
-> tree selects the same thing. With something selected, press ⌘C (Ctrl+C on
+> direct children (dashed); a click selects the container, and a double-click
+> steps into the dashed box under the pointer, one rung deeper. Escape goes back
+> up. A row in the layer tree selects the same thing. With something selected, press ⌘C (Ctrl+C on
 > Windows and Linux) — that copies a pointer to the element, not a screenshot.
 > Paste it here and tell me what to change.
 
