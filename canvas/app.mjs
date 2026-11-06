@@ -135,6 +135,8 @@ const ui = {
   dividerRight: document.getElementById("divider-right"),
   toggleLeft: document.getElementById("toggle-left"),
   toggleRight: document.getElementById("toggle-right"),
+  edgeLeft: document.getElementById("edge-left"),
+  edgeRight: document.getElementById("edge-right"),
   inspector: document.getElementById("inspector"),
   selectionName: document.getElementById("selection-name"),
   fileName: document.getElementById("file-name"),
@@ -169,6 +171,11 @@ function applyCamera() {
   // styles.css says why they have to. Written here rather than in a per-label
   // loop because the camera is the only thing it depends on.
   ui.canvas.style.setProperty("--chrome-unzoom", String(1 / zoom));
+  // The field's dots are part of the canvas, not of the screen: one variable
+  // scales their pitch with the camera, and one attribute takes them away when a
+  // one-pixel dot would be a third of a pixel and read as noise.
+  ui.viewport.style.setProperty("--camera-zoom", String(zoom));
+  ui.viewport.dataset.zoom = zoom < 0.3 ? "far" : "";
   ui.zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
 }
 
@@ -366,6 +373,11 @@ function applyPanels() {
     root.setProperty(`--panel-${side}`, open ? `${width}px` : "0px");
     root.setProperty(`--gutter-${side}`, open ? `${PANEL_GUTTER}px` : "0px");
   }
+  // The bar leaves a 36px slot for a folded panel's tab (28px + the 8px gap the
+  // pills already use), so the tab and the pills share the top row instead of
+  // stacking. One variable per side; 0 when the panel is open and there is no tab.
+  root.setProperty("--edge-left", panels.left.open ? "0px" : "36px");
+  root.setProperty("--edge-right", panels.right.open ? "0px" : "36px");
   ui.panelLeft.hidden = !panels.left.open;
   ui.panelRight.hidden = !panels.right.open;
   ui.dividerLeft.hidden = !panels.left.open;
@@ -378,10 +390,19 @@ function applyPanels() {
     divider.setAttribute("aria-valuemin", String(PANEL_MIN));
     divider.setAttribute("aria-valuemax", String(Math.max(PANEL_MIN, Math.round(window.innerWidth / 2))));
   }
-  for (const [side, button] of [["left", ui.toggleLeft], ["right", ui.toggleRight]]) {
-    button.setAttribute("aria-pressed", String(panels[side].open));
-    button.classList.toggle("off", !panels[side].open);
-    button.title = `${panels[side].open ? "Hide" : "Show"} the ${side === "left" ? "layers panel" : "inspector"} (${side === "left" ? "⌘\\" : "⇧⌘\\"})`;
+  // One panel, two homes for its control: the header when the panel is open,
+  // the edge tab when it is closed. Exactly one of them is visible, and both
+  // say what the same click will do.
+  for (const [side, toggle, edge] of [
+    ["left", ui.toggleLeft, ui.edgeLeft],
+    ["right", ui.toggleRight, ui.edgeRight],
+  ]) {
+    const name = side === "left" ? "layers panel" : "inspector";
+    const key = side === "left" ? "⌘\\" : "⇧⌘\\";
+    toggle.setAttribute("aria-pressed", String(panels[side].open));
+    toggle.title = `Hide the ${name} (${key})`;
+    edge.hidden = panels[side].open;
+    edge.title = `Show the ${name} (${key})`;
   }
 }
 
@@ -393,6 +414,19 @@ function setPanelWidth(side, width, { remember = true } = {}) {
 function togglePanel(side) {
   withPanelGeometry(() => { panels[side].open = !panels[side].open; });
   savePanels();
+}
+
+/**
+ * Put focus on whichever control is still on screen.
+ *
+ * Closing a panel hides the header the button lives in, so the click would land
+ * focus on nothing and the next Tab would start from the top of the document.
+ */
+function focusPanelControl(side) {
+  const target = panels[side].open
+    ? (side === "left" ? ui.toggleLeft : ui.toggleRight)
+    : (side === "left" ? ui.edgeLeft : ui.edgeRight);
+  target.focus();
 }
 
 /**
@@ -451,8 +485,15 @@ function wirePanels() {
   applyPanels();
   initDivider("left", ui.dividerLeft);
   initDivider("right", ui.dividerRight);
-  ui.toggleLeft.addEventListener("click", () => togglePanel("left"));
-  ui.toggleRight.addEventListener("click", () => togglePanel("right"));
+  const flip = (side) => {
+    togglePanel(side);
+    focusPanelControl(side);
+  };
+  ui.toggleLeft.addEventListener("click", () => flip("left"));
+  ui.toggleRight.addEventListener("click", () => flip("right"));
+  for (const [side, edge] of [["left", ui.edgeLeft], ["right", ui.edgeRight]]) {
+    edge.addEventListener("click", () => flip(side));
+  }
 }
 
 // -- load and mount ----------------------------------------------------------
@@ -1658,7 +1699,11 @@ function sectionBlock(id, section, styleMap) {
   body.className = "section-body";
   for (const row of section.rows) {
     const line = document.createElement("div");
-    line.className = "field-grid";
+    // A row holds one property or a pair. A lone property gets the whole row:
+    // half a row is 105px in this panel, and a four-value `padding` does not fit
+    // in it — the value was there, the field just cut it off. A pair still
+    // shares the row, because the two numbers are read against each other.
+    line.className = row.length === 1 ? "field-grid single" : "field-grid";
     for (const property of row) line.appendChild(buildField(id, property, styleMap.get(property)));
     body.appendChild(line);
   }
@@ -1792,10 +1837,10 @@ function textControl(id, property, value, { type = "text", scrub = false, min, m
   input.value = value;
   input.disabled = state.readOnly;
   const hint = hintFor(property);
-  if (hint) {
-    input.placeholder = hint;
-    input.title = hint;
-  }
+  if (hint) input.placeholder = hint;
+  // The full value on hover: a field can be narrower than its value, and the
+  // value it holds is the one thing this control must not hide.
+  input.title = value;
   if (min !== undefined) input.min = String(min);
   if (max !== undefined) input.max = String(max);
 
@@ -2022,7 +2067,7 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   // The panel toggles sit on the canvas but they are not the canvas. Without
   // this the click falls through to "nothing was hit", which clears the
   // selection — folding a panel away would also throw away what was selected.
-  if (target?.closest?.(".viewport-toggle")) return;
+  if (target?.closest?.(".edge-toggle")) return;
   const handle = target?.classList?.contains("handle") ? target : null;
 
   if (handle && state.selection) {

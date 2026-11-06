@@ -8,14 +8,32 @@
  */
 
 :root {
-  --chrome-bg: #14161a;
-  --chrome-panel: #1b1e24;
-  --chrome-line: #2a2f38;
-  --chrome-ink: #e6e9ef;
-  --chrome-dim: #9aa3b2;
-  --chrome-accent: #4c8dff;
-  --chrome-danger: #ff6b6b;
-  --chrome-warn: #f0b429;
+  /*
+   * Paper. The chrome sits on the same warm field as the pages, so the page
+   * cards read as paper on a table instead of white shapes on a dark stage.
+   * Every value here is a measured one: the field is a shade darker than the
+   * panels so a panel edge is visible without a border doing all the work, and
+   * `--chrome-dim` clears 4.5:1 on `--chrome-panel` (11px labels included).
+   */
+  --chrome-bg: #f1efec;
+  --chrome-field: #f1efec;
+  --chrome-dot: #d9d5cc;
+  --chrome-panel: #fbfaf8;
+  --chrome-pill: #fcfbf9;
+  --chrome-input: #ffffff;
+  --chrome-track: #f1eee8;
+  --chrome-hover: #f1eee8;
+  --chrome-selected: #efece5;
+  --chrome-line: rgba(20, 19, 15, 0.10);
+  --chrome-ink: #14130f;
+  --chrome-dim: #6f6a63;
+  --chrome-accent: #2f5fd0;
+  --chrome-danger: #b4453f;
+  --chrome-warn: #9a6b12;
+  --chrome-shadow-panel: 0 1px 2px rgba(20, 19, 15, 0.05), 0 16px 36px -18px rgba(20, 19, 15, 0.18);
+  --chrome-shadow-pill: 0 1px 2px rgba(20, 19, 15, 0.05), 0 10px 24px -12px rgba(20, 19, 15, 0.16);
+  --chrome-shadow-page: 0 1px 2px rgba(20, 19, 15, 0.06), 0 24px 52px -22px rgba(20, 19, 15, 0.28);
+  --chrome-shadow-drawer: 0 -1px 2px rgba(20, 19, 15, 0.04), 0 -18px 40px -24px rgba(20, 19, 15, 0.20);
 
   /*
    * The three columns, in one place.
@@ -33,7 +51,7 @@
   --gutter-left: 6px;
   --gutter-right: 6px;
 
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -41,37 +59,64 @@
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--chrome-bg);
+  background: var(--chrome-field);
   color: var(--chrome-ink);
   font: 13px/1.5 -apple-system, "SF Pro Text", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   overflow: hidden;
 }
 
-body { display: flex; flex-direction: column; }
+body { display: block; }
 
 /* -- top bar ---------------------------------------------------------------- */
 
+/*
+ * The chrome floats over the field instead of taking a band off the top.
+ *
+ * `left`/`right` are the panel tracks plus their gutters, so the two pills stay
+ * over the canvas when a panel is folded away: a bar pinned to the window would
+ * hang over the layers panel at 1600px and over nothing at 900px.
+ */
 .bar {
+  position: fixed;
+  top: 12px;
+  left: calc(var(--panel-left) + var(--gutter-left) + 12px + var(--edge-left, 0px));
+  right: calc(var(--panel-right) + var(--gutter-right) + 12px + var(--edge-right, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 44px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--chrome-line);
-  background: var(--chrome-panel);
-  flex: none;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: none;
+  z-index: 30;
+  pointer-events: none;
 }
 
-.bar-left, .bar-right { display: flex; align-items: center; gap: 8px; }
+.bar > * { pointer-events: auto; }
 
-.brand { font-weight: 600; letter-spacing: 0.02em; }
+.bar-left, .bar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 6px;
+  background: var(--chrome-pill);
+  border: 1px solid var(--chrome-line);
+  border-radius: 999px;
+  box-shadow: var(--chrome-shadow-pill);
+}
+
+.bar button { height: 26px; padding: 0 9px; border-radius: 999px; }
+
+.brand { font-weight: 600; letter-spacing: 0.02em; padding-left: 6px; }
 .file { color: var(--chrome-dim); }
 
 .pill {
   padding: 1px 7px;
   border: 1px solid var(--chrome-line);
   border-radius: 999px;
+  background: var(--chrome-track);
   color: var(--chrome-dim);
   font-size: 11px;
 }
@@ -82,15 +127,15 @@ body { display: flex; flex-direction: column; }
 
 button {
   font: inherit;
-  color: var(--chrome-ink);
-  background: #23272f;
-  border: 1px solid var(--chrome-line);
-  border-radius: 6px;
-  padding: 4px 9px;
+  color: var(--chrome-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 3px 9px;
   cursor: pointer;
 }
 
-button:hover { background: #2b3038; }
+button:hover { background: var(--chrome-hover); color: var(--chrome-ink); }
 button:disabled { opacity: 0.4; cursor: default; }
 
 button.active { border-color: var(--chrome-accent); color: var(--chrome-accent); }
@@ -101,19 +146,19 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   padding: 0 4px;
   margin-left: 4px;
   border-radius: 8px;
-  background: #333a45;
+  background: var(--chrome-track);
   font-size: 11px;
   text-align: center;
 }
 
-.count.has-errors { background: var(--chrome-danger); color: #1a1c20; }
+.count.has-errors { background: var(--chrome-danger); color: #ffffff; }
 
 .sep { width: 1px; height: 18px; background: var(--chrome-line); }
 
 /* -- layout ----------------------------------------------------------------- */
 
 #stage {
-  flex: 1;
+  height: 100vh;
   display: grid;
   grid-template-columns:
     var(--panel-left) var(--gutter-left)
@@ -137,6 +182,13 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 #divider-right { grid-column: 4; }
 #panel-right { grid-column: 5; }
 
+/*
+ * Both panels are cards on the field.
+ *
+ * A 12px margin leaves the field visible around each one, so the paper language
+ * reaches the chrome without either panel taking canvas away: the columns still
+ * size the grid, and the card is what the margin draws inside them.
+ */
 .panel {
   background: var(--chrome-panel);
   display: flex;
@@ -145,8 +197,19 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   overflow: hidden;
 }
 
-.panel.left { border-right: 1px solid var(--chrome-line); }
-.panel.right { border-left: 1px solid var(--chrome-line); }
+.panel.left {
+  margin: 12px;
+  border: 1px solid var(--chrome-line);
+  border-radius: 14px;
+  box-shadow: var(--chrome-shadow-panel);
+}
+
+.panel.right {
+  margin: 12px;
+  border: 1px solid var(--chrome-line);
+  border-radius: 14px;
+  box-shadow: var(--chrome-shadow-panel);
+}
 
 /*
  * A `hidden` panel is taken off screen by the one `[hidden]` rule at the foot of
@@ -179,7 +242,15 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
  * `text-transform: uppercase` turns any label into a shout that does not fit
  * beside "LAYERS". The tooltip and the accessible name carry the meaning.
  */
-.head-actions { display: flex; gap: 2px; }
+.head-actions { display: flex; align-items: center; gap: 2px; }
+
+/* The fold control and the panel's name share the window edge. */
+.head-title { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.head-title .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The name in the right header is the only child that may shrink; the toggle
+   beside it must keep its 20px. */
+#selection-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .head-button {
   display: flex;
@@ -194,7 +265,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   color: var(--chrome-dim);
 }
 
-.head-button:hover { color: var(--chrome-ink); background: #232830; }
+.head-button:hover { color: var(--chrome-ink); background: var(--chrome-hover); }
 .head-button svg { display: block; }
 
 .panel-scroll { flex: 1; min-height: 0; overflow: auto; }
@@ -215,39 +286,51 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   position: relative;
   width: 100%;
   cursor: col-resize;
-  background: linear-gradient(var(--chrome-line), var(--chrome-line)) center / 1px 100% no-repeat;
+  background: transparent;
   touch-action: none;
 }
 
-.divider:hover, .divider.dragging { background: var(--chrome-accent) center / 2px 100% no-repeat; }
+.divider:hover, .divider.dragging { background: var(--chrome-line) center / 2px 100% no-repeat; }
 
-.divider:focus-visible { outline: 1px solid var(--chrome-accent); outline-offset: -1px; }
+.divider:focus-visible { outline: 1px solid var(--chrome-ink); outline-offset: -1px; }
 
 /* -- panel toggles ---------------------------------------------------------- */
 
-.viewport-toggle {
+/*
+ * The tab a folded-away panel leaves behind.
+ *
+ * It exists only while its panel is closed (`hidden` is toggled with the panel),
+ * so the canvas never carries a control that duplicates one in a header.
+ */
+/*
+ * The tabs sit on the bar's row, not under it: a folded panel's control is
+ * chrome, and chrome lives at the top. `--edge-left`/`--edge-right` (written by
+ * `applyPanels`) hold the space open so the pills never sit on top of a tab.
+ */
+.edge-toggle {
   position: absolute;
-  top: 8px;
+  top: 16px;
   z-index: 6;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border-radius: 6px;
-  background: #23272fdd;
+  border-radius: 8px;
+  background: var(--chrome-pill);
+  border: 1px solid var(--chrome-line);
+  box-shadow: var(--chrome-shadow-pill);
   color: var(--chrome-dim);
 }
 
-.viewport-toggle.left { left: 8px; }
-.viewport-toggle.right { right: 8px; }
+.edge-toggle.left { left: 12px; }
+.edge-toggle.right { right: 12px; }
 
-.viewport-toggle:hover { color: var(--chrome-ink); }
-.viewport-toggle[aria-pressed="true"] { color: var(--chrome-ink); }
-.viewport-toggle.off { color: var(--chrome-dim); opacity: 0.75; }
+.edge-toggle:hover { color: var(--chrome-ink); background: var(--chrome-panel); }
 
-.viewport-toggle svg { display: block; }
+
+.edge-toggle svg { display: block; }
 
 /* -- the layer tree --------------------------------------------------------- */
 
@@ -277,15 +360,17 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   overflow: hidden;
 }
 
-.tree-row:hover { background: #232830; }
+.tree-row { border-radius: 6px; margin: 1px 6px; padding-left: 4px; }
+
+.tree-row:hover { background: var(--chrome-hover); }
 
 .tree-item[aria-selected="true"] > .tree-row {
-  background: #2b3444;
-  box-shadow: inset 2px 0 0 var(--chrome-accent);
+  background: var(--chrome-selected);
+  box-shadow: inset 2px 0 0 var(--chrome-ink);
 }
 
 .tree-item:focus-visible { outline: none; }
-.tree-item:focus-visible > .tree-row { outline: 1px solid var(--chrome-accent); outline-offset: -1px; }
+.tree-item:focus-visible > .tree-row { outline: 1px solid var(--chrome-ink); outline-offset: -1px; }
 
 /*
  * The chevron is drawn, not typed. A glyph would inherit whatever the system
@@ -318,7 +403,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 .tree-item[aria-expanded="true"] > .tree-row > .chevron::before { transform: rotate(90deg); }
 
 .chevron.leaf::before { display: none; }
-.chevron:hover { color: var(--chrome-ink); background: #303743; }
+.chevron:hover { color: var(--chrome-ink); background: var(--chrome-hover); }
 
 .tree-label { overflow: hidden; text-overflow: ellipsis; }
 
@@ -344,15 +429,25 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 
 /* -- viewport --------------------------------------------------------------- */
 
+/*
+ * The field: warm paper with one dot every 26px.
+ *
+ * The dot pitch is multiplied by `--camera-zoom` (written by `applyCamera`), so
+ * the grid pans and zooms with the pages instead of sitting still under them.
+ * Below 30% a one-pixel dot is a third of a pixel on screen and the field turns
+ * into noise, so `data-zoom="far"` takes the dots away and leaves the colour.
+ */
 .viewport {
   position: relative;
   overflow: hidden;
-  background:
-    linear-gradient(#191c21, #191c21),
-    repeating-conic-gradient(#1d2128 0% 25%, #191c21 0% 50%) 0 0 / 24px 24px;
+  background-color: var(--chrome-field);
+  background-image: radial-gradient(circle, var(--chrome-dot) 1px, transparent 1.7px);
+  background-size: calc(26px * var(--camera-zoom, 1)) calc(26px * var(--camera-zoom, 1));
   cursor: default;
   min-width: 0;
 }
+
+.viewport[data-zoom="far"] { background-image: none; }
 
 /*
  * While the canvas is being dragged, nothing on it is text to select.
@@ -384,12 +479,13 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 
 .page-box {
   position: absolute;
-  border-radius: 10px;
+  border-radius: 14px;
   background: #ffffff;
-  box-shadow: 0 1px 0 #00000055, 0 12px 28px #00000055;
+  border: 1px solid var(--chrome-line);
+  box-shadow: var(--chrome-shadow-page);
 }
 
-.page-box.selected { outline: 2px solid var(--chrome-accent); outline-offset: 0; }
+.page-box.selected { outline: 2px solid var(--chrome-ink); outline-offset: 2px; }
 
 /*
  * A page's name is chrome, so it does not zoom with the drawing.
@@ -418,10 +514,11 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   left: 0;
   bottom: 100%;
   padding: 1px 7px;
-  border-radius: 5px;
-  background: #232830;
-  color: var(--chrome-dim);
-  font-size: 11px;
+  border-radius: 999px;
+  background: var(--chrome-ink);
+  color: #fbfaf8;
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: move;
   user-select: none;
@@ -432,7 +529,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
     scale(var(--chrome-unzoom, 1));
 }
 
-.page-box.selected .page-label { color: var(--chrome-ink); background: #2f3a48; }
+.page-box.selected .page-label { color: #ffffff; background: #2a2823; }
 
 .page-box.dragging { opacity: 0.85; }
 
@@ -462,19 +559,28 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
  *   than the children it was framing, which is backwards: the container is the
  *   frame of the decision, not a cursor.
  */
+/*
+ * The selection is ink, with a white halo underneath it.
+ *
+ * The field is light, the pages are white and many designs put a photograph
+ * under the box — a dark line alone disappears on a dark image, a light line
+ * alone disappears on paper. The halo is one pixel of white so the ring reads on
+ * any of the three.
+ */
 .outline {
   position: absolute;
-  outline: 2px solid var(--chrome-accent);
-  outline-offset: 0;
+  outline: 2px solid var(--chrome-ink);
+  outline-offset: 1px;
   background: none;
   pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.95);
 }
 
 /*
  * The level the pointer is standing on: the same weight as the selection, a
  * lighter blue, and no handles.
  */
-.outline.level { outline-color: #8fb4ff; }
+.outline.level { outline-color: rgba(20, 19, 15, 0.55); box-shadow: none; }
 
 /*
  * Its direct children: one click each, one rung down.
@@ -492,7 +598,8 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 .outline.child {
   outline-style: dashed;
   outline-width: 1px;
-  outline-color: #8fb4ff;
+  outline-color: rgba(20, 19, 15, 0.45);
+  box-shadow: none;
 }
 
 /*
@@ -504,17 +611,17 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
  */
 .outline.child.under {
   outline-width: 2px;
-  outline-color: #cfe0ff;
+  outline-color: rgba(20, 19, 15, 0.75);
 }
 
 .handle {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  margin: -4px 0 0 -4px;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
   background: #ffffff;
-  border: 1px solid var(--chrome-accent);
-  border-radius: 2px;
+  border: 1.5px solid var(--chrome-ink);
+  border-radius: 50%;
   pointer-events: auto;
 }
 
@@ -535,8 +642,9 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 .field input[type="text"], .field input[type="number"], .field select, .field textarea {
   width: 100%;
   font: inherit;
+  font-variant-numeric: tabular-nums;
   color: var(--chrome-ink);
-  background: #14171c;
+  background: var(--chrome-input);
   border: 1px solid var(--chrome-line);
   border-radius: 5px;
   padding: 4px 6px;
@@ -546,7 +654,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   width: 100%;
   height: 26px;
   padding: 0;
-  background: #14171c;
+  background: var(--chrome-input);
   border: 1px solid var(--chrome-line);
   border-radius: 5px;
 }
@@ -564,6 +672,16 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   gap: 0 6px;
   min-width: 0;
 }
+
+/*
+ * A row with one property, not a pair.
+ *
+ * The two-column grid is for width/height, left/top and the other pairs that are
+ * read together. A property without a partner took half of that grid and left
+ * the other half empty, which is how `padding:26px 26px 20px 26px` came to be
+ * cut off at "20p" in a panel with room for it. One property, one full row.
+ */
+.field-grid.single { grid-template-columns: 1fr; }
 
 /* -- inspector sections ----------------------------------------------------- */
 
@@ -615,7 +733,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   display: flex;
   gap: 2px;
   padding: 2px;
-  background: #14171c;
+  background: var(--chrome-track);
   border: 1px solid var(--chrome-line);
   border-radius: 6px;
 }
@@ -634,8 +752,12 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   white-space: nowrap;
 }
 
-.seg-option:hover { background: #232830; }
-.seg-option.active { background: var(--chrome-accent); color: #0d1117; }
+.seg-option:hover { background: var(--chrome-hover); }
+.seg-option.active {
+  background: var(--chrome-input);
+  color: var(--chrome-ink);
+  box-shadow: 0 1px 2px rgba(20, 19, 15, 0.10);
+}
 
 .scrub { cursor: ew-resize; }
 
@@ -665,6 +787,7 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
   flex-direction: column;
   background: var(--chrome-panel);
   border-top: 1px solid var(--chrome-line);
+  box-shadow: var(--chrome-shadow-drawer);
   z-index: 20;
 }
 
@@ -691,7 +814,7 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
   height: 32vh;
   resize: vertical;
   font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: var(--chrome-bg);
+  background: var(--chrome-input);
   color: var(--chrome-ink);
   border: 1px solid var(--chrome-line);
   border-radius: 6px;
@@ -708,7 +831,7 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
   align-items: baseline;
 }
 
-.issue:hover { background: #232830; }
+.issue:hover { background: var(--chrome-hover); }
 .issue .sev { flex: none; font-size: 10px; text-transform: uppercase; border-radius: 4px; padding: 0 5px; border: 1px solid; }
 .issue .sev.error { color: var(--chrome-danger); border-color: var(--chrome-danger); }
 .issue .sev.warning { color: var(--chrome-warn); border-color: var(--chrome-warn); }
@@ -725,10 +848,11 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
   transform: translateX(-50%);
   max-width: 70vw;
   padding: 8px 14px;
-  border-radius: 8px;
-  background: #23272f;
-  border: 1px solid var(--chrome-line);
-  box-shadow: 0 10px 24px #00000077;
+  border-radius: 999px;
+  background: var(--chrome-ink);
+  border: 1px solid var(--chrome-ink);
+  color: #fbfaf8;
+  box-shadow: var(--chrome-shadow-pill);
   z-index: 40;
 }
 
