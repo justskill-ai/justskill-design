@@ -1466,12 +1466,12 @@ function pageIdOfTreeRow(item) {
 /**
  * Nothing in the canvas is text to select while the canvas is being dragged.
  *
- * Cancelling the press suppresses the mouse events a selection would start from,
- * and `.panning` turns off selection for the chrome — but `user-select` does not
- * cross a shadow boundary, and the design's own text lives on the other side of
- * one. So the gesture gets a third guard, on the event the selection itself
- * fires. Scoped to a drag in progress: outside one, selecting a string in a page
- * still works the way it did.
+ * Two guards, because this event cannot do the whole job: `selectstart` does not
+ * reach the viewport from inside a page's shadow root, so a listener here only
+ * covers the chrome. The design's own text is covered by `.moving` — the page
+ * hosts resolve their `user-select: auto` against the viewport's `none` — and by
+ * cancelling the press itself in the drag branches. Scoped to a drag in progress:
+ * outside one, selecting a string in a page still works the way it did.
  */
 ui.viewport.addEventListener("selectstart", (event) => {
   if (drag || ui.viewport.classList.contains("panning")) event.preventDefault();
@@ -2119,6 +2119,18 @@ let drag = null;
  * the id, and an uncaught throw here would abort the rest of the handler and
  * leave the interaction half-applied. So it is attempted, never trusted.
  */
+/**
+ * Turn text selection off for the whole duration of a geometry drag.
+ *
+ * One class on the viewport, set at press and cleared on release, covering every
+ * drag kind. `user-select: none` here also reaches the pages: the shadow host
+ * resolves `auto` against it, so the design's own text stops being selectable
+ * while an element is being moved — but only while it is being moved.
+ */
+function setDragging(on) {
+  ui.viewport.classList.toggle("moving", on);
+}
+
 function capturePointer(element, pointerId) {
   try {
     element.setPointerCapture(pointerId);
@@ -2138,6 +2150,7 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   if (handle && state.selection) {
     const element = elementForId(state.selection);
     if (element) {
+      setDragging(true);
       // The element's own size, not its painted bounding rect: a rotated box's
       // bounding rect is the AABB, and resizing from that starts too big.
       const start = element.getBoundingClientRect();
@@ -2161,6 +2174,7 @@ ui.viewport.addEventListener("pointerdown", (event) => {
       // not move still writes nothing.
       if (label) select(pageBox.dataset.pageId, { pageId: pageBox.dataset.pageId });
       drag = pageDrag(pageBox, pageBox.dataset.pageId, event);
+      setDragging(true);
       capturePointer(ui.viewport, event.pointerId);
       event.preventDefault();
       return;
@@ -2204,7 +2218,16 @@ ui.viewport.addEventListener("pointerdown", (event) => {
     drag = hit.kind === "page"
       ? pageDrag(hit.element, hit.id, event)
       : { kind: "maybe-move", id: target.node.id, startX: event.clientX, startY: event.clientY, moved: false, element: moving };
+    setDragging(true);
     capturePointer(ui.viewport, event.pointerId);
+    // A press on the design is not a press on text. Without this the browser
+    // starts its own selection gesture on the text run under the pointer and
+    // keeps extending it while the element follows the pointer — a blue smear
+    // across every string the drag passes, which is exactly what `panning`
+    // already guarded for the background. `selectstart` cannot do this job here:
+    // the text lives inside a page's shadow root and that event does not reach
+    // the viewport from there.
+    event.preventDefault();
   } else {
     select(null);
   }
@@ -2293,11 +2316,41 @@ ui.viewport.addEventListener("pointermove", (event) => {
   }
 });
 
+/**
+ * A cancelled gesture puts the design back and drops the drag state.
+ *
+ * `pointercancel` arrives when the browser takes the pointer over — a touch
+ * scroll, a system gesture, a window losing the pointer. Without a handler the
+ * drag stayed set: `.moving` kept the design's text unselectable until the next
+ * successful drag ended, and the preview transform stayed on the element. There
+ * is no commit here, because a cancelled gesture is one the user did not finish.
+ */
+ui.viewport.addEventListener("pointercancel", () => {
+  if (!drag) return;
+  const current = drag;
+  drag = null;
+  ui.viewport.classList.remove("panning");
+  setDragging(false);
+  if (current.element) {
+    if (current.kind === "maybe-move") current.element.style.translate = "";
+    if (current.kind === "page") {
+      current.element.style.left = `${current.originX}px`;
+      current.element.style.top = `${current.originY}px`;
+    }
+    if (current.kind === "resize") {
+      current.element.style.width = `${current.startWidth}px`;
+      current.element.style.height = `${current.startHeight}px`;
+    }
+  }
+  drawOverlay();
+});
+
 ui.viewport.addEventListener("pointerup", (event) => {
   if (!drag) return;
   const current = drag;
   drag = null;
   ui.viewport.classList.remove("panning");
+  setDragging(false);
 
   // A press on the empty canvas that did not pan is a click on nothing, and
   // clicking nothing clears the selection — the same thing `Escape` does. The

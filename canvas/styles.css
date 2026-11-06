@@ -509,6 +509,16 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
  * a pan from leaving a blue smear over every string in the file.
  */
 .viewport.panning { cursor: grabbing; user-select: none; }
+
+/*
+ * A geometry drag is not a text gesture.
+ *
+ * `user-select: none` on the viewport reaches the chrome, and the page hosts
+ * resolve their own `auto` against it, so the design's text stops being
+ * selectable while an element is being dragged. It is scoped to the drag: with
+ * the class off, selecting a string inside a page works as before.
+ */
+.viewport.moving, .viewport.moving .page-host { user-select: none; }
 .viewport.move-mode { cursor: move; }
 
 .canvas {
