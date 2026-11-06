@@ -97,6 +97,7 @@ body { display: block; }
 
 .bar-left, .bar-right {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 4px;
   height: 36px;
@@ -105,7 +106,30 @@ body { display: block; }
   border: 1px solid var(--chrome-line);
   border-radius: 999px;
   box-shadow: var(--chrome-shadow-pill);
+  white-space: nowrap;
 }
+
+/*
+ * The bar has five widths, and `applyBarFit()` in app.mjs picks the widest one
+ * that fits the canvas. Waiting for a media query would be wrong here: the room
+ * the bar has is the window minus both panels, so opening a panel can squeeze it
+ * at 1600px while a closed pair is roomy at 900px.
+ *
+ * The order of what goes is the order of what is least missed: the file name and
+ * revision are identity, not action; `Export` duplicates `Export all`; the
+ * Problems label keeps its count; and at the narrowest step only the actions
+ * themselves survive.
+ */
+.bar:is([data-fit="tight"], [data-fit="narrow"], [data-fit="mini"], [data-fit="micro"]) :is(.file, #revision) { display: none; }
+
+.bar:is([data-fit="narrow"], [data-fit="mini"], [data-fit="micro"]) :is(.export-sep, #export-page) { display: none; }
+
+.bar:is([data-fit="mini"], [data-fit="micro"]) :is(#undo, #redo, .sep, #fit) { display: none; }
+
+/* The last step gives up the export action, not the diagnostics: at this width a
+   panel has to be closed to get the file out, while a warning count is the one
+   thing a canvas this cramped must still show. */
+.bar[data-fit="micro"] #export-all { display: none; }
 
 .bar button { height: 26px; padding: 0 9px; border-radius: 999px; }
 
@@ -136,6 +160,29 @@ button {
 }
 
 button:hover { background: var(--chrome-hover); color: var(--chrome-ink); }
+
+/*
+ * One focus ring, everywhere.
+ *
+ * The ring is ink, two pixels, and it sits outside the control with a two-pixel
+ * gap — the same weight as the selection ring, so "this is the thing the
+ * keyboard is on" reads the same as "this is the thing you picked". It is only
+ * drawn for `:focus-visible`, so a mouse click on a button leaves no ring
+ * behind, while a text field still shows it (a field is always "keyboard
+ * input", which is what the pseudo-class means).
+ *
+ * Contexts that cannot afford an outside ring tighten the offset below: a row
+ * inside a scrolling tree, a segment inside its track, a row inside the
+ * problems list. They keep the two pixels; only the gap changes.
+ */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--chrome-ink);
+  outline-offset: 2px;
+}
 button:disabled { opacity: 0.4; cursor: default; }
 
 button.active { border-color: var(--chrome-accent); color: var(--chrome-accent); }
@@ -266,6 +313,9 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 }
 
 .head-button:hover { color: var(--chrome-ink); background: var(--chrome-hover); }
+.head-button:focus-visible,
+.edge-toggle:focus-visible,
+.bar button:focus-visible { outline-offset: 1px; }
 .head-button svg { display: block; }
 
 .panel-scroll { flex: 1; min-height: 0; overflow: auto; }
@@ -292,7 +342,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 
 .divider:hover, .divider.dragging { background: var(--chrome-line) center / 2px 100% no-repeat; }
 
-.divider:focus-visible { outline: 1px solid var(--chrome-ink); outline-offset: -1px; }
+.divider:focus-visible { outline: 2px solid var(--chrome-ink); outline-offset: -2px; }
 
 /* -- panel toggles ---------------------------------------------------------- */
 
@@ -370,7 +420,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 }
 
 .tree-item:focus-visible { outline: none; }
-.tree-item:focus-visible > .tree-row { outline: 1px solid var(--chrome-ink); outline-offset: -1px; }
+.tree-item:focus-visible > .tree-row { outline: 2px solid var(--chrome-ink); outline-offset: -2px; }
 
 /*
  * The chevron is drawn, not typed. A glyph would inherit whatever the system
@@ -430,19 +480,21 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 /* -- viewport --------------------------------------------------------------- */
 
 /*
- * The field: warm paper with one dot every 26px.
+ * The field: warm paper with one dot, repeated.
  *
- * The dot pitch is multiplied by `--camera-zoom` (written by `applyCamera`), so
- * the grid pans and zooms with the pages instead of sitting still under them.
- * Below 30% a one-pixel dot is a third of a pixel on screen and the field turns
- * into noise, so `data-zoom="far"` takes the dots away and leaves the colour.
+ * The pitch and the offset are written by `applyCamera` in screen pixels: the
+ * pitch is clamped to 14–44px so the grid stays a texture at every zoom instead
+ * of becoming noise at 10% or an empty page at 400%, and the offset follows the
+ * camera so panning moves the paper. `background-size` here is only the first
+ * paint, before the first camera write. Below 30% the dots are taken away and
+ * the field keeps its colour.
  */
 .viewport {
   position: relative;
   overflow: hidden;
   background-color: var(--chrome-field);
   background-image: radial-gradient(circle, var(--chrome-dot) 1px, transparent 1.7px);
-  background-size: calc(26px * var(--camera-zoom, 1)) calc(26px * var(--camera-zoom, 1));
+  background-size: 26px 26px;
   cursor: default;
   min-width: 0;
 }
@@ -614,6 +666,9 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   outline-color: rgba(20, 19, 15, 0.75);
 }
 
+/* A box too small to have usable corners: the ring stays, the handles go. */
+.outline.small .handle { display: none; }
+
 .handle {
   position: absolute;
   width: 9px;
@@ -657,6 +712,23 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
   background: var(--chrome-input);
   border: 1px solid var(--chrome-line);
   border-radius: 5px;
+}
+
+/*
+ * These sit after the base field rules on purpose: `border` above is a shorthand,
+ * and a `border-color` written before it loses to it however specific the
+ * selector is. The ring still shows without this, but the field should also
+ * change its edge — a screenshot of two rings at 11% is not enough to tell which
+ * one has the keyboard.
+ */
+.field input:hover:not(:disabled), .field select:hover:not(:disabled), .field textarea:hover:not(:disabled) {
+  border-color: rgba(20, 19, 15, 0.22);
+}
+
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible,
+.drawer-fix textarea:focus-visible {
+  outline-offset: 1px;
+  border-color: var(--chrome-ink);
 }
 
 /*
@@ -704,6 +776,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 }
 
 .section-head:hover { color: var(--chrome-ink); background: none; }
+.section-head:focus-visible { outline-offset: -2px; }
 
 /* A triangle that turns: the fold is visible before it is used. */
 .section-head::before {
@@ -753,6 +826,7 @@ button.active { border-color: var(--chrome-accent); color: var(--chrome-accent);
 }
 
 .seg-option:hover { background: var(--chrome-hover); }
+.seg-option:focus-visible { outline-offset: -2px; }
 .seg-option.active {
   background: var(--chrome-input);
   color: var(--chrome-ink);
@@ -777,17 +851,28 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
 
 /* -- problems drawer -------------------------------------------------------- */
 
+/*
+ * The problems sheet.
+ *
+ * A card on the same field as the panels, 12px in from the canvas edges: closing
+ * a panel widens it instead of leaving it over a track that is no longer there.
+ * Inside it is the same paper language — an eyebrow with a count, monospaced
+ * codes, a severity chip, and the hint under the message rather than beside it,
+ * because a hint is a sentence and a sentence reads down, not across.
+ */
 .drawer {
   position: absolute;
-  left: calc(var(--panel-left) + var(--gutter-left));
-  right: calc(var(--panel-right) + var(--gutter-right));
-  bottom: 0;
+  left: calc(var(--panel-left) + var(--gutter-left) + 12px);
+  right: calc(var(--panel-right) + var(--gutter-right) + 12px);
+  bottom: 12px;
   max-height: 42%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--chrome-panel);
-  border-top: 1px solid var(--chrome-line);
-  box-shadow: var(--chrome-shadow-drawer);
+  border: 1px solid var(--chrome-line);
+  border-radius: 14px;
+  box-shadow: var(--chrome-shadow-panel);
   z-index: 20;
 }
 
@@ -795,17 +880,36 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  gap: 12px;
+  flex: none;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--chrome-line);
 }
 
-.drawer-body { overflow: auto; padding: 6px 0; }
+.drawer-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 
-.drawer-actions { display: flex; gap: 6px; }
+.drawer-summary {
+  font-size: 11px;
+  color: var(--chrome-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 
-.drawer-fix { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; }
+.drawer-actions { display: flex; align-items: center; gap: 4px; }
+.drawer-actions button { height: 26px; padding: 0 10px; border-radius: 999px; }
+.drawer-close { background: var(--chrome-track); }
 
-.drawer-hint { margin: 0; color: var(--chrome-dim); }
+.drawer-body { overflow: auto; padding: 4px 6px 6px; min-height: 0; }
+
+.drawer-fix {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--chrome-line);
+}
+
+.drawer-hint { margin: 0; font-size: 11px; color: var(--chrome-dim); }
 
 /* The whole file, monospaced, because that is what it is. `wrap="off"` on the element
    keeps a long line from folding, which would make an offset impossible to find. */
@@ -824,20 +928,49 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
 }
 
 .issue {
-  display: flex;
-  gap: 8px;
-  padding: 5px 10px;
-  cursor: pointer;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border-bottom: 1px solid var(--chrome-line);
 }
 
-.issue:hover { background: var(--chrome-hover); }
-.issue .sev { flex: none; font-size: 10px; text-transform: uppercase; border-radius: 4px; padding: 0 5px; border: 1px solid; }
-.issue .sev.error { color: var(--chrome-danger); border-color: var(--chrome-danger); }
-.issue .sev.warning { color: var(--chrome-warn); border-color: var(--chrome-warn); }
-.issue .code { font-family: ui-monospace, monospace; font-size: 11px; color: var(--chrome-dim); flex: none; }
-.issue .msg { flex: 1; }
-.issue .hint { color: var(--chrome-dim); }
+.issue:last-child { border-bottom: 0; }
+.issue[tabindex] { cursor: pointer; }
+.issue[tabindex]:hover { background: var(--chrome-hover); }
+.issue:focus-visible { outline-offset: -2px; }
+
+.issue .sev {
+  justify-self: start;
+  padding: 2px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.issue .sev.error { color: var(--chrome-danger); }
+.issue .sev.warning { color: var(--chrome-warn); }
+
+.issue-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.issue .code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10.5px;
+  color: var(--chrome-dim);
+}
+.issue .msg {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--chrome-ink);
+  overflow-wrap: anywhere;
+}
+.issue .hint { margin: 0; font-size: 11px; line-height: 1.5; color: var(--chrome-dim); }
+
+/* The empty state is a row-shaped sentence, not a row of a table. */
+.issue.empty { display: block; padding: 18px 14px; color: var(--chrome-dim); border-bottom: 0; }
 
 /* -- toast ------------------------------------------------------------------ */
 

@@ -140,10 +140,14 @@ const ui = {
   inspector: document.getElementById("inspector"),
   selectionName: document.getElementById("selection-name"),
   fileName: document.getElementById("file-name"),
+  bar: document.querySelector(".bar"),
+  barLeft: document.querySelector(".bar-left"),
+  barRight: document.querySelector(".bar-right"),
   revision: document.getElementById("revision"),
   readonly: document.getElementById("readonly"),
   zoomLabel: document.getElementById("zoom-label"),
   problemCount: document.getElementById("problem-count"),
+  problemSummary: document.getElementById("problem-summary"),
   problems: document.getElementById("problems"),
   fixPane: document.getElementById("fix-pane"),
   fixHint: document.getElementById("fix-hint"),
@@ -171,10 +175,16 @@ function applyCamera() {
   // styles.css says why they have to. Written here rather than in a per-label
   // loop because the camera is the only thing it depends on.
   ui.canvas.style.setProperty("--chrome-unzoom", String(1 / zoom));
-  // The field's dots are part of the canvas, not of the screen: one variable
-  // scales their pitch with the camera, and one attribute takes them away when a
-  // one-pixel dot would be a third of a pixel and read as noise.
-  ui.viewport.style.setProperty("--camera-zoom", String(zoom));
+  // The field's dots, in screen pixels: the pitch follows the camera between
+  // 14px and 44px, and the position follows the camera offset, so panning moves
+  // the paper under the pages instead of sliding them over a fixed texture.
+  // Below 30% a 26px dot grid would be 7.8px apart and read as noise, so the
+  // pitch stops shrinking and the dots go away entirely.
+  const pitch = Math.min(44, Math.max(14, 26 * zoom));
+  ui.viewport.style.backgroundSize = `${pitch}px ${pitch}px`;
+  const offsetX = ((x % pitch) + pitch) % pitch;
+  const offsetY = ((y % pitch) + pitch) % pitch;
+  ui.viewport.style.backgroundPosition = `${offsetX}px ${offsetY}px`;
   ui.viewport.dataset.zoom = zoom < 0.3 ? "far" : "";
   ui.zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
 }
@@ -223,10 +233,17 @@ function fitAll() {
     maxX = Math.max(maxX, position.x + width);
     maxY = Math.max(maxY, position.y + height);
   }
+  // The top of the viewport is chrome now: the bar floats over it and a page
+  // label sits above the page it names. Fitting the drawing into the whole
+  // viewport put the labels under the pills, so the usable area starts below
+  // them — 48px of bar plus one 8px gap.
   const pad = 60;
+  const topPad = pad + 56;
+  const usableW = rect.width - pad * 2;
+  const usableH = rect.height - topPad - pad;
   const zoom = Math.min(
     1.5,
-    Math.max(0.1, Math.min((rect.width - pad * 2) / (maxX - minX || 1), (rect.height - pad * 2) / (maxY - minY || 1))),
+    Math.max(0.1, Math.min(usableW / (maxX - minX || 1), usableH / (maxY - minY || 1))),
   );
   /*
    * The middle of every page, put in the middle of the viewport.
@@ -241,7 +258,7 @@ function fitAll() {
   state.camera = {
     zoom,
     x: rect.width / 2 - ((minX + maxX) / 2) * zoom,
-    y: rect.height / 2 - ((minY + maxY) / 2) * zoom,
+    y: topPad + usableH / 2 - ((minY + maxY) / 2) * zoom,
   };
   applyCamera();
   drawOverlay();
@@ -393,6 +410,7 @@ function applyPanels() {
   // One panel, two homes for its control: the header when the panel is open,
   // the edge tab when it is closed. Exactly one of them is visible, and both
   // say what the same click will do.
+  applyBarFit();
   for (const [side, toggle, edge] of [
     ["left", ui.toggleLeft, ui.edgeLeft],
     ["right", ui.toggleRight, ui.edgeRight],
@@ -404,6 +422,27 @@ function applyPanels() {
     edge.hidden = panels[side].open;
     edge.title = `Show the ${name} (${key})`;
   }
+}
+
+/**
+ * The widest bar that fits the room left between the panels.
+ *
+ * `styles.css` defines what each step hides. Measured rather than guessed: the
+ * groups are `flex: none`, so their widths are the content widths, and the only
+ * unknowns are the labels a step already hid. Five reads on a panel change is a
+ * fair price for "it never overflows at any window size".
+ */
+const BAR_FIT_STEPS = ["full", "tight", "narrow", "mini", "micro"];
+function applyBarFit() {
+  const rightTrack = panels.right.open ? panels.right.width + PANEL_GUTTER : 0;
+  const room = window.innerWidth - leftTrackWidth() - rightTrack - 24; // the bar's two 12px insets
+  for (const fit of BAR_FIT_STEPS) {
+    ui.bar.dataset.fit = fit;
+    const needed = ui.barLeft.getBoundingClientRect().width + ui.barRight.getBoundingClientRect().width + 12;
+    if (needed <= room) return;
+  }
+  // Nothing fits: the narrowest step stays, and `.bar` is allowed to clip rather
+  // than to overlap the tabs. A window this narrow cannot draw a canvas anyway.
 }
 
 function setPanelWidth(side, width, { remember = true } = {}) {
@@ -1119,6 +1158,11 @@ function boxOver(element, rect, className, { handles = false, id = null } = {}) 
   }
   node.style.width = `${width}px`;
   node.style.height = `${height}px`;
+  // At 10% a phone page is 39px wide and a card inside it is 32×15: four 9px
+  // handles on that box cover the thing they are supposed to be grabbing, and a
+  // corner drag at that size cannot be aimed anyway. The ring stays; the handles
+  // wait until the box is big enough to have corners.
+  if (width < 32 || height < 24) node.classList.add("small");
   if (!handles) return node;
   for (const [hx, hy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
     const handle = document.createElement("div");
@@ -1540,6 +1584,14 @@ function renderProblemCount() {
   const errors = state.diagnostics.filter((d) => d.severity === "error").length;
   ui.problemCount.textContent = String(state.diagnostics.length);
   ui.problemCount.classList.toggle("has-errors", errors > 0);
+  // The drawer's own subtitle: the same count, said in words. The button keeps
+  // the number because a button is a shape you glance at; the sheet has room for
+  // "2 errors · 1 warning".
+  const warnings = state.diagnostics.length - errors;
+  const parts = [];
+  if (errors > 0) parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
+  if (warnings > 0) parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
+  ui.problemSummary.textContent = parts.join(" · ");
 }
 
 function renderProblems() {
@@ -1547,8 +1599,8 @@ function renderProblems() {
   ui.problemList.textContent = "";
   if (state.diagnostics.length === 0) {
     const row = document.createElement("div");
-    row.className = "issue";
-    row.innerHTML = '<span class="msg muted">No problems.</span>';
+    row.className = "issue empty";
+    row.textContent = "No problems. Every check passed on this file.";
     ui.problemList.appendChild(row);
     return;
   }
@@ -1558,23 +1610,36 @@ function renderProblems() {
     const sev = document.createElement("span");
     sev.className = `sev ${diagnostic.severity}`;
     sev.textContent = diagnostic.severity;
+    const body = document.createElement("div");
+    body.className = "issue-body";
     const code = document.createElement("span");
     code.className = "code";
     code.textContent = diagnostic.code;
-    const message = document.createElement("span");
+    const message = document.createElement("p");
     message.className = "msg";
     message.textContent = diagnostic.message;
+    body.appendChild(code);
+    body.appendChild(message);
     if (diagnostic.hint) {
-      const hint = document.createElement("div");
+      const hint = document.createElement("p");
       hint.className = "hint";
       hint.textContent = diagnostic.hint;
-      message.appendChild(hint);
+      body.appendChild(hint);
     }
     row.appendChild(sev);
-    row.appendChild(code);
-    row.appendChild(message);
+    row.appendChild(body);
     if (diagnostic.target) {
+      // A row that jumps to the element is a control, so the keyboard gets it
+      // too: focusable, announced as a button, and Enter/Space do what a click
+      // does. The ring it gets is the same one every other control has.
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
       row.addEventListener("click", () => select(diagnostic.target, { reveal: true, expand: true }));
+      row.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        row.click();
+      });
     }
     ui.problemList.appendChild(row);
   }
@@ -2302,7 +2367,13 @@ window.addEventListener("keydown", (event) => {
     // same key reports `|`, and a shortcut that stops working when you press the
     // modifier it is documented with is a shortcut nobody can use.
     event.preventDefault();
-    togglePanel(event.shiftKey ? "right" : "left");
+    const side = event.shiftKey ? "right" : "left";
+    const before = document.activeElement;
+    togglePanel(side);
+    // The panel that just closed took the focused control with it. Focus goes to
+    // the control that replaced it — the edge tab — so the next Tab continues
+    // from the panel, not from the top of the document.
+    if (before && before !== document.body && !before.getClientRects().length) focusPanelControl(side);
     return;
   }
   if (event.key === " ") {
