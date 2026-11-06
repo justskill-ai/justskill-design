@@ -236,21 +236,24 @@ always names what to write instead. The common ones:
 | `position:fixed` | `position:absolute` with `left` and `top` |
 | a missing `alt` | `alt=""` for a decorative image. Missing is not the same as empty |
 | a duplicate `data-id` | the hint names a free id, such as `home__a-2` |
+| `transform: translateX(-50%)` | `transform: rotate(<deg>)` only; centre with `left` |
 
-Not refused, but reported: `cursor`, a `transform` and an `animation` are outside
-the format's property table, so the write goes through and the receipt lists them
-under `dropped`. And `#fff` or `rgba(...)` is not a refusal either — the file
+Not refused, but reported: `cursor` and `animation` are outside the format's
+property table, so the write goes through and the receipt lists them under
+`dropped`. A `transform` is in the table, but only as `rotate(<deg>)` — a
+`translate()` or `scale()` is a refusal, not a drop. And `#fff` or `rgba(...)` is not a refusal either — the file
 takes it and writes the canonical hex, and the receipt calls that `normalized`
 (see the receipt above).
 
 ## What the format is, and is not
 
-Supported: flexbox layout, absolute positioning, a fixed set of 45 CSS
+Supported: flexbox layout, absolute positioning, a fixed set of 47 CSS
 properties, images, inline SVG icons, design tokens, and text in one run per text
 element.
 
 Not supported, and refused by name rather than ignored: grid, `position:fixed`,
-transforms, animation, responsive breakpoints, rich text inside one text
+transform functions other than `rotate()`, rotation about a point other than the
+element's centre, animation, responsive breakpoints, rich text inside one text
 element, and any property outside the table.
 
 The full property list, with the accepted values for each, is in
@@ -370,8 +373,11 @@ spelling for pen's version of them:
   It is not a `border` on the `<svg>` — that is a ring around a box, not a
   drawing.
 - **A rotation is baked into the outline** for a `path` node (the ledger counts
-  `bakedRotation`), because the format has no `transform`. Any other rotated node
-  is drawn upright and named in `lost.rotation`.
+  `bakedRotation`): a path is an opaque drawing with no box to turn, and pen turns
+  an element about its top-left corner while this format turns it about its
+  centre. Any other rotated node is drawn upright and named in `lost.rotation`,
+  because reproducing pen's origin would need a `transform-origin` the format does
+  not have.
 - **A line break the author placed survives** as `white-space: pre-line`. Written
   as a literal newline it is a space, and the line then wraps wherever the font
   puts it.

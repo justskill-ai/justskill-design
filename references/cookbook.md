@@ -50,6 +50,18 @@ The page owns its own size. The root fills it.
 </div>
 ```
 
+## A tilted card
+
+```html
+<div data-id="home__card" data-type="frame" style="transform:rotate(-1.5deg);display:flex;flex-direction:column;gap:8px;padding:16px;background-color:#ffffff;border-radius:16px;box-shadow:0 1px 2px #0000000a, 0 16px 34px -12px #00000014"></div>
+```
+
+`rotate()` turns the element about its own centre and changes no layout: its
+neighbours stay put, and the canvas drags and resizes it along its turned
+axes. `translate()` and `scale()` are refused — they are `left`/`top` and
+`width`/`height` written a second time. A page cannot be rotated; tilt the
+cards on it.
+
 ## Text sizes
 
 | Role | Style |
@@ -101,7 +113,30 @@ later.
 <div data-id="home__scrim" data-type="frame" style="height:120px;background-image:linear-gradient(180deg,#ffffff00,#00000099)"></div>
 ```
 
-Only linear gradients. A radial or a mesh gradient is refused, with the reason named.
+A linear gradient's opaque stops are read by the contrast checker. A radial
+gradient is accepted as a value, but the checker cannot see through it, so text
+over a radial gradient is judged against the surface below it.
+
+## A dot grid
+
+```html
+<div data-id="home__dots" data-type="frame" style="width:100%;height:100%;background-image:radial-gradient(circle, #e3e3e3 1px, #00000000 1.5px);background-size:26px 26px"></div>
+```
+
+`background-size` takes a pair, so a repeatable texture is a value, not an
+asset: the gradient draws one dot, and the size tiles it. The image repeats by
+default, so no `background-repeat` is needed or available.
+
+## Glass behind a floating bar
+
+```html
+<div data-id="home__bar" data-type="frame" style="position:absolute;left:16px;top:16px;padding:8px 12px;background-color:#ffffffb8;border:1px solid #ffffffcc;border-radius:999px;backdrop-filter:blur(20px) saturate(1.4)"></div>
+```
+
+`blur()` and `saturate()` only, in that order. The surface colour stays
+translucent: the filter blurs what is behind the element, it does not supply a
+background of its own. A renderer that ignores the filter still draws the
+translucent fill, which is why the fill is written too.
 
 ## The most common refusals
 

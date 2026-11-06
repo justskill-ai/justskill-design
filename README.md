@@ -153,7 +153,7 @@ Two style blocks are allowed in `<head>`, and both are read: the token block
 
 - `docs/format-v3.md` — the frozen contract: the element model, the canonical
   form, the diagnostic codes, the module boundaries.
-- `references/styling.md` — the 45 allowed properties and their value grammars.
+- `references/styling.md` — the 47 allowed properties and their value grammars.
 - `references/schema.md` — the element contract, generated from the format table.
 - `references/images.md` — the verified Unsplash photos a page may use when the
   user has not supplied one, with what each photo shows and who took it.
@@ -323,7 +323,7 @@ the tag, a duplicate id, a `font` shorthand, a `<svg>` written by hand.
 
 **10 are refused by name. The other 10 compile, and 9 of those report what they
 rewrote or dropped** — `#fff` becoming `#ffffff`, a four-value `padding`
-collapsing, a `cursor` or a `transform` landing in `dropped`. One is already
+collapsing, a `cursor` or a `z-index` landing in `dropped`. One is already
 clean. A crash, a silent drop, or a refusal that names nothing fails the metric.
 It does not claim that 100% of designs are accepted; it claims that no first
 response is a dead end. `evals/evals.json` states per snippet what that response
@@ -363,7 +363,7 @@ prints what it would do.
 
 Not a general HTML and CSS tool. It supports a closed set: flexbox layout,
 absolute positioning, a fixed property whitelist, images, inline SVG glyphs, and
-one run of text per text element. No grid, no `position:fixed`, no transforms, no
+one run of text per text element. No grid, no `position:fixed`, no transforms beyond a rotation, no
 animation, no responsive breakpoints, no rich text. The reasons are in
 `docs/plan.md`, and the value grammar for every allowed property is in
 `references/styling.md`.

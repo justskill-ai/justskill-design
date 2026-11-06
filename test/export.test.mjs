@@ -250,6 +250,22 @@ test("a page's canvas placement never reaches the deliverable", () => {
   assert.match(html, />你好</, "the content is still there");
 });
 
+test("a page's rotation never reaches the deliverable either", () => {
+  // The validator refuses a rotation on a page (`style/transform-on-page`), but
+  // `export` does not validate the file it is handed. A deliverable is the page's
+  // own box, so a transform on it would ship an artboard turned inside a viewport
+  // that does not turn with it — the same class of mistake as shipping the
+  // canvas's placement.
+  const turned = file(`  <section data-id="home" data-type="page" data-name="首页" style="transform:rotate(2deg);width:390px;background-color:var(--color-bg)">
+    <p data-id="home__title" data-type="text" style="font-size:32px;transform:rotate(-1deg)">你好</p>
+  </section>`);
+  const { html } = exportPage(parse(turned));
+  const section = /<section[^>]*>/.exec(html)[0];
+  assert.ok(!/transform/.test(section), section);
+  assert.match(section, /width:390px/, "the page's own layout is kept");
+  assert.match(html, /transform:rotate\(-1deg\)/, "a rotation on the content is the design, and travels");
+});
+
 test("a page with no placement of its own is exported byte for byte", () => {
   const { html } = exportPage(parse(ONE_PAGE));
   assert.match(html, /<section style="width:390px;height:844px">/);

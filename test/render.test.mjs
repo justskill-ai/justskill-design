@@ -350,6 +350,11 @@ test("style helpers round trip a declaration list", () => {
   assert.equal(styleStringOf(styleMapOf({ attrs: [{ name: "style", value: text }] })), text);
 });
 
+test("the style attribute follows the table's order, new paint property included", () => {
+  const map = styleMapOf({ attrs: [{ name: "style", value: "background-size:26px 26px;backdrop-filter:blur(20px);color:#111111;opacity:0.8" }] });
+  assert.equal(styleStringOf(map), "opacity:0.8;backdrop-filter:blur(20px);color:#111111;background-size:26px 26px");
+});
+
 test("renderNodeHtml keeps the tag, the data attributes and the style", () => {
   const doc = file(`<section data-id="home" data-type="page" style="width:1px;height:1px"><h1 data-id="home__h" data-type="text" data-name="大标题" style="font-size:40px;font-weight:700">标题</h1></section>`);
   const node = renderModel(doc).pages[0].node;

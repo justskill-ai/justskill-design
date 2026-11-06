@@ -591,6 +591,11 @@ function measuredGeometryDiagnostics() {
   const worstByParent = new Map();
   for (const [element, id] of mounted) {
     if (counts.get(id) > 1) continue;
+    // A turned box has no axis-aligned answer: its painted rect is the bounding
+    // box, not the box. Saying anything about it would be a guess dressed as a
+    // measurement, so this pass says nothing — the same abstention
+    // `lib/geometry.mjs` makes for the arithmetic one.
+    if (rotationOfElement(element) !== 0) continue;
     // Which box this element is measured against. A positioned element is the one
     // case where the parent is the wrong answer; for everything else it is right,
     // and it is also the element the finding has to name.
@@ -998,25 +1003,88 @@ function drawOverlay() {
   }
 }
 
+/**
+ * The angle, in degrees, that an element and its ancestors are turned by.
+ *
+ * The format writes a rotation as `transform: rotate(<deg>)` and nothing else, so
+ * the inline style is the whole truth: no computed matrix to parse, no camera
+ * scale to divide out, no transition to race. The chain stops at the page,
+ * because a page cannot be rotated (`style/transform-on-page`).
+ */
+const INLINE_ROTATE = /rotate\(\s*(-?\d+(?:\.\d+)?)\s*deg\s*\)/;
+
+function ownRotationOf(element) {
+  const raw = element?.style?.transform;
+  if (!raw) return 0;
+  const match = INLINE_ROTATE.exec(raw);
+  return match ? Number(match[1]) : 0;
+}
+
+function rotationOfElement(element) {
+  let total = 0;
+  for (let node = element; node; node = node.parentElement) {
+    total += ownRotationOf(node);
+    if (node.getAttribute?.("data-type") === "page") break;
+  }
+  return total;
+}
+
+/** Turn a vector by `-degrees`, which is how a screen delta becomes a local one. */
+function unturn(dx, dy, degrees) {
+  if (!degrees) return [dx, dy];
+  const radians = (degrees * Math.PI) / 180;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+  return [dx * cos + dy * sin, -dx * sin + dy * cos];
+}
+
+/**
+ * A screen-space delta, expressed in the axes of the element's parent.
+ *
+ * `left` and `top` live in the parent's coordinate system, so a drag inside a
+ * rotated card has to be unturned before it is written. The element's own
+ * rotation is not part of this: turning a card does not change which way its
+ * parent's axes point.
+ */
+function parentDelta(element, dx, dy) {
+  return unturn(dx, dy, rotationOfElement(element) - ownRotationOf(element));
+}
+
 function boxOver(element, rect, className, { handles = false, id = null } = {}) {
   const box = element.getBoundingClientRect();
+  const angle = rotationOfElement(element);
   const node = document.createElement("div");
   node.className = className;
   // Which element this box is around. Nothing reads it but a test and a
   // console; a box that cannot say what it is a box around is a box nobody can
   // debug.
   if (id) node.dataset.id = id;
-  node.style.left = `${box.left - rect.left}px`;
-  node.style.top = `${box.top - rect.top}px`;
-  node.style.width = `${box.width}px`;
-  node.style.height = `${box.height}px`;
+  let width = box.width;
+  let height = box.height;
+  if (angle === 0) {
+    node.style.left = `${box.left - rect.left}px`;
+    node.style.top = `${box.top - rect.top}px`;
+  } else {
+    // A turned box has an axis-aligned bounding rect, which is bigger than the
+    // box. Its centre is the same point either way, so the outline is drawn at
+    // the element's real size around that centre and turned with it — otherwise
+    // every tilted card would wear a box with four corners of air in it.
+    const zoom = state.camera.zoom || 1;
+    width = element.offsetWidth * zoom;
+    height = element.offsetHeight * zoom;
+    node.style.left = `${box.left - rect.left + box.width / 2 - width / 2}px`;
+    node.style.top = `${box.top - rect.top + box.height / 2 - height / 2}px`;
+    node.style.transform = `rotate(${angle}deg)`;
+  }
+  node.style.width = `${width}px`;
+  node.style.height = `${height}px`;
   if (!handles) return node;
   for (const [hx, hy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
     const handle = document.createElement("div");
     handle.className = "handle";
     handle.dataset.handle = `${hx}${hy}`;
-    handle.style.left = `${hx ? box.width : 0}px`;
-    handle.style.top = `${hy ? box.height : 0}px`;
+    handle.style.left = `${hx ? width : 0}px`;
+    handle.style.top = `${hy ? height : 0}px`;
     node.appendChild(handle);
   }
   return node;
@@ -1960,8 +2028,10 @@ ui.viewport.addEventListener("pointerdown", (event) => {
   if (handle && state.selection) {
     const element = elementForId(state.selection);
     if (element) {
+      // The element's own size, not its painted bounding rect: a rotated box's
+      // bounding rect is the AABB, and resizing from that starts too big.
       const start = element.getBoundingClientRect();
-      drag = { kind: "resize", corner: handle.dataset.handle, id: state.selection, startX: event.clientX, startY: event.clientY, startWidth: start.width, startHeight: start.height, startLeft: start.left, startTop: start.top, element };
+      drag = { kind: "resize", corner: handle.dataset.handle, id: state.selection, startX: event.clientX, startY: event.clientY, startWidth: element.offsetWidth, startHeight: element.offsetHeight, startLeft: start.left, startTop: start.top, element };
       capturePointer(ui.viewport, event.pointerId);
       event.preventDefault();
       return;
@@ -2084,7 +2154,8 @@ ui.viewport.addEventListener("pointermove", (event) => {
     const dy = event.clientY - drag.startY;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) drag.moved = true;
     if (drag.moved && drag.element) {
-      drag.element.style.translate = `${dx / state.camera.zoom}px ${dy / state.camera.zoom}px`;
+      const [lx, ly] = parentDelta(drag.element, dx / state.camera.zoom, dy / state.camera.zoom);
+      drag.element.style.translate = `${lx}px ${ly}px`;
       drawOverlay();
     }
     return;
@@ -2092,8 +2163,13 @@ ui.viewport.addEventListener("pointermove", (event) => {
 
   if (drag.kind === "resize") {
     const zoom = state.camera.zoom || 1;
-    const dx = (event.clientX - drag.startX) / zoom;
-    const dy = (event.clientY - drag.startY) / zoom;
+    // A corner handle turns with its box, so the pointer delta has to be turned
+    // back before it means "wider" or "taller" along this element's own axes.
+    const [dx, dy] = unturn(
+      (event.clientX - drag.startX) / zoom,
+      (event.clientY - drag.startY) / zoom,
+      rotationOfElement(drag.element),
+    );
     const [hx, hy] = drag.corner.split("").map(Number);
     const width = Math.max(1, Math.round(drag.startWidth + (hx ? dx : 0)));
     const height = Math.max(1, Math.round(drag.startHeight + (hy ? dy : 0)));
@@ -2130,8 +2206,11 @@ ui.viewport.addEventListener("pointerup", (event) => {
   }
 
   if (current.kind === "maybe-move" && current.moved) {
-    const dx = Math.round((event.clientX - current.startX) / (state.camera.zoom || 1));
-    const dy = Math.round((event.clientY - current.startY) / (state.camera.zoom || 1));
+    const rawX = (event.clientX - current.startX) / (state.camera.zoom || 1);
+    const rawY = (event.clientY - current.startY) / (state.camera.zoom || 1);
+    const [movedX, movedY] = current.element ? parentDelta(current.element, rawX, rawY) : [rawX, rawY];
+    const dx = Math.round(movedX);
+    const dy = Math.round(movedY);
     if (current.element) current.element.style.translate = "";
     const node = findNode(current.id);
     if (!node) return;

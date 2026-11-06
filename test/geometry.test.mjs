@@ -143,6 +143,46 @@ test("a positioned box that fits reports nothing", () => {
   assert.deepEqual(quiet, []);
 });
 
+test("a static ancestor with a transform is the containing block, not the page", () => {
+  // `transform: rotate(0deg)` is still a transform: the element becomes a
+  // containing block for its absolutely positioned children even though it is
+  // static. The box is 100px wide and the child sits at 90px, so it leaves that
+  // box and fits the page — the finding is the one the browser would draw.
+  const found = findings(`<div data-id="home__box" data-type="frame" style="width:100px;height:100px;transform:rotate(0deg)">
+    <div data-id="home__dot" data-type="shape" data-kind="rect" style="position:absolute;left:90px;top:0;width:20px;height:20px"></div>
+  </div>`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].code, "geometry/absolute-outside");
+  assert.equal(found[0].target, "home__dot");
+});
+
+test("a static ancestor with a backdrop filter is the containing block too", () => {
+  const found = findings(`<div data-id="home__box" data-type="frame" style="width:100px;height:100px;backdrop-filter:blur(20px)">
+    <div data-id="home__dot" data-type="shape" data-kind="rect" style="position:absolute;left:90px;top:0;width:20px;height:20px"></div>
+  </div>`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].code, "geometry/absolute-outside");
+});
+
+test("a turned subtree is left out of the placed-box check, because its box is no longer its rectangle", () => {
+  // The overhang and the turn are the same defect to look at and opposite
+  // answers to compute: the painted corners are outside the layout rectangle on
+  // one side and inside it on another, and this pass has no way to say which is
+  // which. It abstains, like it does for an unreadable length.
+  const quiet = codesOf(`<div data-id="home__box" data-type="frame" style="position:relative;width:100px;height:100px">
+    <div data-id="home__dot" data-type="shape" data-kind="rect" style="position:absolute;left:90px;top:0;width:20px;height:20px;transform:rotate(-2deg)"></div>
+  </div>`);
+  assert.deepEqual(quiet, [], "a turned box is not reported on a rectangle it no longer occupies");
+
+  // The same box, unturned, still reports: abstention is scoped to the rotation,
+  // not to the element or its ancestors.
+  const found = findings(`<div data-id="home__box" data-type="frame" style="position:relative;width:100px;height:100px">
+    <div data-id="home__dot" data-type="shape" data-kind="rect" style="position:absolute;left:90px;top:0;width:20px;height:20px"></div>
+  </div>`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].code, "geometry/absolute-outside");
+});
+
 test("the containing block is the nearest positioned ancestor, not the parent", () => {
   // A static parent between the box and the relative grandparent does not become
   // the base. The browser lays the box out against the grandparent, where it is

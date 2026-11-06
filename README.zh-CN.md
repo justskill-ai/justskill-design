@@ -127,7 +127,7 @@ design.html  ──validate──▶  diagnostics       (what is wrong, and what
 `<head>` 里只允许两个 `<style>` 块，而且两个都会读取：token 块（`:root`）和页面框架块。除此之外，每个元素都带内联 `style`。每个元素都带 `data-id` 和 `data-type`。
 
 - `docs/format-v3.md` —— 冻结的契约：元素模型、规范形式、诊断码、模块边界。
-- `references/styling.md` —— 45 个允许的属性及其取值语法。
+- `references/styling.md` —— 47 个允许的属性及其取值语法。
 - `references/schema.md` —— 元素契约，由格式表生成。
 - `references/images.md` —— 经过校验的 Unsplash 图片，用户没有提供图片时可以使用；每张都写明拍的是什么、谁拍的。
 - `references/product-flow.md` —— 从想法到代码的分阶段剧本，agent 按它推进。
@@ -249,7 +249,7 @@ npm run images:check    # 需要网络：确认图片清单里每个 URL 仍然�
 
 可读性指标的意思是：第一次响应永远可用，无论它是接受片段，还是用一条带代码、带目标、带修复方式的诊断拒绝它。这 20 个片段是模型真的会写的：`display:grid`、`position:fixed`、`rgba()`、`#fff`、单边 `margin`、缺 `alt`、标签和 `data-type` 不匹配、重复 id、`font` 简写、手写 `<svg>`。
 
-**其中 10 个被按名字拒绝。另外 10 个能编译，其中 9 个会报告它改写了或丢弃了什么**——`#fff` 变成 `#ffffff`、四值 `padding` 被折叠、`cursor` 或 `transform` 落进 `dropped`。还有一个本来就是干净的。崩溃、静默丢弃、或者拒绝时什么都没说，都会判定这个指标失败。它不声称 100% 的设计都会被接受；它声称没有哪次首次响应是死路。`evals/evals.json` 逐片段写明那次响应必须包含什么，`test/evals.test.mjs` 负责检查。
+**其中 10 个被按名字拒绝。另外 10 个能编译，其中 9 个会报告它改写了或丢弃了什么**——`#fff` 变成 `#ffffff`、四值 `padding` 被折叠、`cursor` 或 `z-index` 落进 `dropped`。还有一个本来就是干净的。崩溃、静默丢弃、或者拒绝时什么都没说，都会判定这个指标失败。它不声称 100% 的设计都会被接受；它声称没有哪次首次响应是死路。`evals/evals.json` 逐片段写明那次响应必须包含什么，`test/evals.test.mjs` 负责检查。
 
 ## 安装
 
@@ -274,7 +274,7 @@ node ~/Developer/justskill-design/scripts/install.mjs
 
 ## 范围
 
-这不是一个通用的 HTML 和 CSS 工具。它支持一个封闭集合：flexbox 布局、绝对定位、固定的属性白名单、图片、内联 SVG 图标，以及每个文本元素一段文字。没有 grid，没有 `position:fixed`，没有 transforms，没有动画，没有响应式断点，没有富文本。原因在 `docs/plan.md`，每个允许属性的取值语法在 `references/styling.md`。
+这不是一个通用的 HTML 和 CSS 工具。它支持一个封闭集合：flexbox 布局、绝对定位、固定的属性白名单、图片、内联 SVG 图标，以及每个文本元素一段文字。没有 grid，没有 `position:fixed`，除了旋转没有别的 transform，没有动画，没有响应式断点，没有富文本。原因在 `docs/plan.md`，每个允许属性的取值语法在 `references/styling.md`。
 
 ## 致谢
 

@@ -679,11 +679,11 @@ test("a stroked path is drawn with its stroke, not with a border around its box"
 });
 
 test("a rotated outline is turned in its own coordinates, and the ledger says so", () => {
-  // This format has no `transform` (the table refuses `transform` and `rotate` by
-  // name), so a turned outline is rewritten rather than wrapped. pen measures
-  // rotation counter-clockwise and CSS measures it clockwise, so the outline is
-  // turned by `-rotation`; pen turns the element about its top-left corner, which
-  // is the viewBox's origin.
+  // This format turns an element about its centre and has no `transform-origin`,
+  // while pen turns it about the top-left corner of its box. So a turned outline
+  // is rewritten rather than wrapped: pen measures rotation counter-clockwise and
+  // CSS measures it clockwise, so the outline is turned by `-rotation`; pen turns
+  // the element about its top-left corner, which is the viewBox's origin.
   const pen = JSON.stringify({
     version: "2.13",
     children: [{

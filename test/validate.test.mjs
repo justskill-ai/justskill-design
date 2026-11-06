@@ -100,8 +100,51 @@ test("a well formed file validates with no diagnostics", () => {
   assert.deepEqual(diagnostics, [], `unexpected diagnostics: ${JSON.stringify(diagnostics, null, 2)}`);
 });
 
-// -- version ------------------------------------------------------------------
+test("a tiled texture and a glass surface validate with no diagnostics", () => {
+  // The two properties a canvas-style page needs: a dot grid is a radial
+  // gradient plus a size pair, and a floating bar is a translucent fill plus a
+  // backdrop blur. Neither touches geometry, so neither may teach the validator
+  // to warn about a layout that is fine.
+  const doc = file(page(`
+    <div data-id="home__root" data-type="frame" style="position:relative;width:100%;height:100%;background-image:radial-gradient(circle, #e3e3e3 1px, #00000000 1.5px);background-size:26px 26px">
+      <div data-id="home__bar" data-type="frame" style="position:absolute;left:16px;top:16px;width:200px;height:48px;background-color:#ffffffb8;border:1px solid #ffffffcc;border-radius:999px;backdrop-filter:blur(20px) saturate(1.4)"></div>
+    </div>`));
+  const diagnostics = validateDesign(doc);
+  assert.deepEqual(diagnostics, [], `unexpected diagnostics: ${JSON.stringify(diagnostics, null, 2)}`);
+});
 
+test("a backdrop filter outside blur and saturate is refused by name, with a hint", () => {
+  const doc = file(page(`<div data-id="home__card" data-type="frame" style="display:flex;width:100px;height:60px;backdrop-filter:drop-shadow(0 4px 8px #00000033)"></div>`));
+  const found = errorsOf(doc).find((d) => d.code === "style/bad-value" && /drop-shadow/.test(d.message));
+  assert.ok(found, `expected a style/bad-value naming drop-shadow, got ${errorsOf(doc).map((d) => d.code).join(", ")}`);
+  assert.match(found.hint, /blur\(/);
+});
+
+test("a size pair that contradicts itself is refused, not guessed", () => {
+  const doc = file(page(`<div data-id="home__card" data-type="frame" style="display:flex;width:100px;height:60px;background-size:cover 26px"></div>`));
+  const found = errorsOf(doc).find((d) => d.code === "style/bad-value" && /background-size/.test(d.message));
+  assert.ok(found, `expected a style/bad-value naming background-size, got ${errorsOf(doc).map((d) => d.code).join(", ")}`);
+  assert.match(found.message, /whole picture|half of a pair/);
+});
+
+test("a rotation belongs to a box, and a page is refused one", () => {
+  const ok = file(page(`<div data-id="home__card" data-type="frame" style="width:120px;height:80px;transform:rotate(-1.5deg)"></div>`));
+  assert.deepEqual(validateDesign(ok), [], "a tilted card is a legal card");
+
+  const bad = file(page("", 'data-id="home" data-type="page" data-canvas="0,0" style="width:390px;height:844px;transform:rotate(2deg)"'));
+  const found = errorsOf(bad).find((d) => d.code === "style/transform-on-page");
+  assert.ok(found, `expected style/transform-on-page, got ${errorsOf(bad).map((d) => d.code).join(", ")}`);
+  assert.match(found.hint, /content/, "the hint says where the tilt belongs");
+});
+
+test("a transform the format cannot draw is refused, and the hint names rotate", () => {
+  const doc = file(page(`<div data-id="home__card" data-type="frame" style="width:100px;height:60px;transform:translateX(-50%)"></div>`));
+  const found = errorsOf(doc).find((d) => d.code === "style/bad-value" && /only rotate/.test(d.message));
+  assert.ok(found, `expected a style/bad-value naming rotate, got ${errorsOf(doc).map((d) => d.code).join(", ")}`);
+  assert.match(found.hint, /rotate\(/);
+});
+
+// -- version ------------------------------------------------------------------
 test("a missing or wrong schema marker is an error", () => {
   const noMarker = file(page(""), `<head><style>:root{--a:#111111}</style></head>`);
   assert.ok(codes(noMarker).includes("version/missing-marker"));

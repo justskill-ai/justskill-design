@@ -37,7 +37,7 @@ export const GROUPS = [
   { id: "appearance", label: "Appearance", members: ["opacity", "border-radius", "overflow"] },
   { id: "fill", label: "Fill", members: ["background-color", "background-image", "background-size", "background-position"] },
   { id: "stroke", label: "Stroke", members: ["border", "border-width", "border-style", "border-color", "outline", "outline-offset"] },
-  { id: "effects", label: "Effects", members: ["box-shadow"] },
+  { id: "effects", label: "Effects", members: ["box-shadow", "backdrop-filter", "transform"] },
   { id: "text", label: "Text", members: ["font-family", "font-size", "font-weight", "font-style", "line-height", "letter-spacing", "color", "text-align", "text-transform", "white-space"] },
   { id: "image", label: "Image", members: ["object-fit"] },
 ];

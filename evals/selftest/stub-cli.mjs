@@ -76,7 +76,7 @@ const attrOf = (attrs, name) => {
 };
 
 const ALIASES = { margin: null, background: "background-color" };
-const UNKNOWN = new Set(["font", "transform", "cursor", "animation", "object-fit", "grid-template-columns", "border-bottom", "margin-left", "margin-top", "margin-bottom", "margin-right", "position", "left", "bottom"]);
+const UNKNOWN = new Set(["font", "z-index", "cursor", "animation", "object-fit", "grid-template-columns", "border-bottom", "margin-left", "margin-top", "margin-bottom", "margin-right", "position", "left", "bottom"]);
 
 // ------------------------------------------------------------------ validate
 

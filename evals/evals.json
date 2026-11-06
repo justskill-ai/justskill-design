@@ -77,20 +77,20 @@
       "id": 4,
       "name": "empty-state",
       "prompt": "收藏页没有内容的时候，显示一个空状态：居中的图标位、标题、一行提示文字。",
-      "expected_output": "`transform:translateY(4px)` is not one of the 45 properties in CSS_ORDER/CSS_ALLOWED, so it appears in the receipt's dropped list with a reason — never removed silently; `margin:0` on home__empty-hint is kept, because `margin` is a member of CSS_ALLOWED; `padding:40px 16px` survives as the two- or four-value form; the trailing `;` on home__empty's style attribute is removed.",
+      "expected_output": "`z-index:1` is not one of the 47 properties in CSS_ORDER/CSS_ALLOWED, so it appears in the receipt's dropped list with a reason — never removed silently; `margin:0` on home__empty-hint is kept, because `margin` is a member of CSS_ALLOWED; `padding:40px 16px` survives as the two- or four-value form; the trailing `;` on home__empty's style attribute is removed.",
       "files": ["evals/snippets/s04.html"],
       "expect": {
         "stage": "accepted",
         "codes": [],
         "dropped": [
-          {"target": "home__empty", "prop": "transform", "value": "translateY(4px)"}
+          {"target": "home__empty", "prop": "z-index", "value": "1"}
         ],
         "normalized": [
           {"target": "home__empty-title", "prop": "color", "from": "#111", "to": "#111111"}
         ]
       },
       "assertions": [
-        { "text": "`transform` on home__empty appears in the receipt's dropped list with a reason — reported, so never removed silently", "type": "boolean" },
+        { "text": "`z-index` on home__empty appears in the receipt's dropped list with a reason — reported, so never removed silently", "type": "boolean" },
         { "text": "`margin:0` on home__empty-hint is kept in the file, and no receipt entry names a margin property", "type": "boolean" },
         { "text": "the compiled style of home__empty still contains a padding declaration with the horizontal value 16px and the vertical value 40px (either `40px 16px` or `40px 16px 40px 16px`)", "type": "boolean" },
         { "text": "the compiled style attribute of home__empty does not end with `;`", "type": "boolean" }
@@ -124,7 +124,7 @@
       "id": 6,
       "name": "toast",
       "prompt": "复制成功以后，在底部弹一个黑色半透明的 toast，提示「已复制到剪贴板」。",
-      "expected_output": "`position:fixed` is not one of the values `position` accepts (`absolute | relative`), so the fragment is refused by a style/ bad-enum diagnostic on home__toast and the file is not changed; `transform:translateX(-50%)` is not in the table, and `background:rgba(17,17,17,.9)` and `box-shadow:0 8px 24px rgba(0,0,0,.24)` get no verdict in this receipt, because the compile stops at the refusal.",
+      "expected_output": "`position:fixed` is not one of the values `position` accepts (`absolute | relative`), so the fragment is refused by a style/ bad-enum diagnostic on home__toast and the file is not changed; `z-index:10` is not in the table, and `background:rgba(17,17,17,.9)` and `box-shadow:0 8px 24px rgba(0,0,0,.24)` get no verdict in this receipt, because the compile stops at the refusal.",
       "files": ["evals/snippets/s06.html"],
       "expect": {
         "stage": "refused",
@@ -139,7 +139,7 @@
         { "text": "the receipt refuses the fragment at home__toast with a style/ bad-enum diagnostic whose message names `position` and `fixed`, so nothing is compiled and no colour is normalized in this receipt", "type": "boolean" },
         { "text": "no `background-color` is normalized for home__toast, because the compile stops at the refusal", "type": "boolean" },
         { "text": "no box-shadow declaration is recorded for home__toast either — the refusal is the whole receipt", "type": "boolean" },
-        { "text": "no verdict is reported for `transform` on home__toast, because the compile stops at the refusal", "type": "boolean" }
+        { "text": "no verdict is reported for `z-index` on home__toast, because the compile stops at the refusal", "type": "boolean" }
       ]
     },
     {
@@ -403,7 +403,7 @@
       "id": 18,
       "name": "stepper",
       "prompt": "加一个数量步进器：减号、数字 2、加号。",
-      "expected_output": "`DATA-ID` and `data-TYPE` on the plus button must be read case-insensitively and must yield exactly one design element; `transform:scale(1.02)` and `cursor:pointer` are not in the property table and must be accounted for; `border:1px solid #e5e7eb` and `border-radius:14px` are kept on both round buttons.",
+      "expected_output": "`DATA-ID` and `data-TYPE` on the plus button must be read case-insensitively and must yield exactly one design element; `z-index:2` and `cursor:pointer` are not in the property table and must be accounted for; `border:1px solid #e5e7eb` and `border-radius:14px` are kept on both round buttons.",
       "files": ["evals/snippets/s18.html"],
       "expect": {
         "stage": "accepted",
@@ -411,7 +411,7 @@
         "dropped": [
           {"target": "home__stepper-minus", "prop": "cursor", "value": "pointer"},
           {"target": "home__stepper-plus", "prop": "cursor", "value": "pointer"},
-          {"target": "home__stepper-plus", "prop": "transform", "value": "scale(1.02)"}
+          {"target": "home__stepper-plus", "prop": "z-index", "value": "2"}
         ],
         "normalized": [
           {"target": "home__stepper-count", "prop": "color", "from": "#111", "to": "#111111"}
@@ -419,7 +419,7 @@
       },
       "assertions": [
         { "text": "`home__stepper-plus` is recognized as a design element: no missing-id or missing-type diagnostic targets it and it carries exactly one data-id after compile", "type": "boolean" },
-        { "text": "`transform` and `cursor` each appear in the receipt for home__stepper-plus, either as a normalized value or as a style/ diagnostic", "type": "boolean" },
+        { "text": "`z-index` and `cursor` each appear in the receipt for home__stepper-plus, either as a normalized value or as a style/ diagnostic", "type": "boolean" },
         { "text": "the three ids home__stepper-minus, home__stepper-count and home__stepper-plus are all present and distinct after compile", "type": "boolean" },
         { "text": "the border declaration `1px solid #e5e7eb` is preserved on both home__stepper-minus and home__stepper-plus", "type": "boolean" }
       ]

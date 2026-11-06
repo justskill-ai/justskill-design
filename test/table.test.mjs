@@ -174,6 +174,56 @@ test("opacity is clamped and rounded", () => {
   assert.equal(normalizeValue("opacity", "-1").value, "0");
 });
 
+// -- the two properties that paint behind the element --------------------------
+
+test("a background size is a keyword, or a pair of lengths for a tile", () => {
+  const size = (value) => normalizeValue("background-size", value);
+  assert.deepEqual(size("cover"), { value: "cover", changed: false });
+  assert.deepEqual(size("100% 100%"), { value: "100% 100%", changed: false }, "a pair of percentages is a pair, not a keyword");
+  assert.deepEqual(size("26px 26px"), { value: "26px 26px", changed: false }, "a dot grid is one dot every 26px");
+  assert.equal(size("26px auto").value, "26px", "a trailing auto is the same picture, so it is dropped");
+  assert.equal(size("auto 50%").value, "auto 50%");
+  assert.equal(size("0 0").value, "0 0");
+  assert.throws(() => size("cover 26px"), /half of a pair/, "cover describes the whole picture");
+  assert.throws(() => size("26px 26px 26px"), /one or two values/);
+  assert.throws(() => size("fit-content"), /not a background size/);
+  assert.throws(() => size("-26px"), /not a background size/, "a size cannot be negative");
+});
+
+test("a transform is a rotation, or none, and nothing else", () => {
+  const transform = (value) => normalizeValue("transform", value);
+  assert.deepEqual(transform("rotate(-1.5deg)"), { value: "rotate(-1.5deg)", changed: false });
+  assert.equal(transform("rotate( 2deg )").value, "rotate(2deg)");
+  assert.equal(transform("rotate(-0deg)").value, "rotate(0deg)", "zero has one spelling");
+  assert.deepEqual(transform("none"), { value: "none", changed: false });
+  assert.throws(() => transform("rotate(1turn)"), /only rotate/, "one unit, so one spelling");
+  assert.throws(() => transform("translateX(-50%)"), /only rotate/, "left and top already say this");
+  assert.throws(() => transform("scale(1.02)"), /only rotate/, "width and height already say this");
+  assert.throws(() => transform("var(--tilt)"), /only rotate/, "the canvas and the checks have to read the angle");
+});
+
+test("a rotation is written with the other paint properties", () => {
+  const { text, dropped } = normalize("transform:rotate(-1.5deg);display:flex;opacity:0.8");
+  assert.deepEqual(dropped, []);
+  assert.equal(text, "display:flex;opacity:0.8;transform:rotate(-1.5deg)");
+});
+
+test("a backdrop filter is blur and saturate, written in the canonical order", () => {
+  const filter = (value) => normalizeValue("backdrop-filter", value);
+  assert.deepEqual(filter("blur(20px)"), { value: "blur(20px)", changed: false });
+  assert.equal(filter("blur( 20px ) saturate(1.4)").value, "blur(20px) saturate(1.4)");
+  assert.equal(filter("saturate(1.4) blur(20px)").value, "blur(20px) saturate(1.4)", "the written order is not the canonical one");
+  assert.equal(filter("blur(4)").value, "blur(4px)", "a bare number is a length, as everywhere else");
+  assert.deepEqual(filter("none"), { value: "none", changed: false });
+  assert.equal(filter("var(--glass)").value, "var(--glass)", "a token is left for the token resolver");
+  assert.throws(() => filter("drop-shadow(0 4px 8px #00000033)"), /not a filter/);
+  assert.throws(() => filter("blur(4px) blur(2px)"), /twice/, "two blurs are two intents");
+  assert.throws(() => filter("blur(-4px)"), /cannot be negative/);
+  assert.throws(() => filter("saturate(140%)"), /takes a number/);
+  assert.throws(() => filter("blur(auto)"), /not a length/, "a blur needs a length, not a box keyword");
+  assert.throws(() => filter("blur(100%)"), /not a length/, "a percentage is not a blur radius");
+});
+
 // -- whole style attributes ---------------------------------------------------
 
 const normalize = (text) => normalizeStyleText(text, parseDeclarations);
@@ -191,10 +241,10 @@ test("a data URI style value survives normalization whole", () => {
 });
 
 test("out of table properties are dropped with a reason, never silently", () => {
-  const { text, dropped } = normalize("display:flex;cursor:pointer;transform:rotate(3deg)");
+  const { text, dropped } = normalize("display:flex;cursor:pointer;animation:none");
   assert.equal(text, "display:flex");
   assert.equal(dropped.length, 2);
-  assert.deepEqual(dropped.map((d) => d.prop), ["cursor", "transform"]);
+  assert.deepEqual(dropped.map((d) => d.prop), ["cursor", "animation"]);
   for (const item of dropped) assert.ok(item.reason.length > 10, `${item.prop} has a reason`);
 });
 
@@ -228,6 +278,19 @@ test("the background alias becomes background-color", () => {
   assert.equal(normalized[0].prop, "background-color");
   assert.equal(normalized[0].reason, "aliased");
   assert.equal(normalized[1].to, "background-color: #ffffff");
+});
+
+test("the prefixed transform is an alias too, so old snippets are not dropped", () => {
+  const { text, dropped } = normalize("-webkit-transform:rotate(-2deg);display:flex");
+  assert.deepEqual(dropped, []);
+  assert.equal(text, "display:flex;transform:rotate(-2deg)");
+});
+
+test("the prefixed backdrop filter is an alias of the one that is emitted", () => {
+  const { text, dropped, normalized } = normalize("-webkit-backdrop-filter:blur(4px);opacity:0.8");
+  assert.deepEqual(dropped, [], "Safari's spelling is the same declaration, so it is not refused");
+  assert.equal(text, "opacity:0.8;backdrop-filter:blur(4px)", "the write order follows the table");
+  assert.ok(normalized.some((entry) => entry.reason === "aliased"), "the rewrite is reported");
 });
 
 test("custom properties pass through untouched", () => {

@@ -321,7 +321,7 @@ applyEdits(source, edits)            // 按区间替换，返回新文本
 
 `geometry/` 的五个码**全是 warning**，所以它们永不阻塞写入 —— 这不是约定，是结构：`newErrors` 只对 `severity === "error"` 的诊断做差集。它们**不带 `offset`**（说的是布局，不是文本位置），因此键是 `code|""|target|message` —— 下面那条「`target` 不能省」的规则，主要是为它们写的。
 
-`geometry/` 里没有布局引擎，这是刻意的：第二份 flexbox 实现会在边角上和浏览器不一致，而**会喊狼来了的检查比安静的检查更糟**。凡是需要测量才能知道的量（一段文字多宽、一张图多大）一律是 `unknown` 并向上传播，依赖它的检查随即不报。同一个码最多报 20 条。
+`geometry/` 里没有布局引擎，这是刻意的：第二份 flexbox 实现会在边角上和浏览器不一致，而**会喊狼来了的检查比安静的检查更糟**。凡是需要测量才能知道的量（一段文字多宽、一张图多大）一律是 `unknown` 并向上传播，依赖它的检查随即不报。同一个码最多报 20 条。被旋转的子树同理：`transform` 把盒子变成非轴对齐的多边形，`geometry/absolute-outside` 对整条旋转链弃权，画布的实测遍也只对未旋转的子树比对两个 `getBoundingClientRect`。
 
 `geometry/` 读 `display` 时只认 `none` 和 `flex` 两个值，其余一律**不下压 flex 语义**：
 
@@ -356,7 +356,7 @@ export const CSS_ORDER = [...];        // 输出顺序。每个属性恰好出�
 export const CSS_ALLOWED = { "display": Spec };  // 属性 → 取值语法
 export const CSS_ALIASES = { background: "background-color", "background-colour": "background-color", "bg-color": "background-color" };  // 别名 → 规范属性名
 export const VALUE_ALIASES = { "font-weight": { normal: "400", semibold: "600" }, ... };  // 取值别名 → 规范写法
-export const REJECTED_PROPERTIES = { transform: { replacement: null, reason: "No transforms." }, ... };  // 拒绝的属性。replacement 为 null 表示没有替代写法
+export const REJECTED_PROPERTIES = { animation: { replacement: null, reason: "No animation. A design file is a still." }, ... };  // 拒绝的属性。replacement 为 null 表示没有替代写法
 export const TAG_TO_TYPE = { div: "frame", section: "page", p: "text", ... };
 export const TYPE_TAGS = { text: ["p","h1",...] };  // 反向
 export const ATTR_BY_TYPE = { image: { required: ["src","alt"] }, ... };
@@ -367,7 +367,7 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 
 `margin` 是 `CSS_ALLOWED` 的正式成员，只接受四值简写；`margin-top` / `margin-right` / `margin-bottom` / `margin-left` 在 `REJECTED_PROPERTIES` 里，各自点名简写写法。理由：把元素挪半个像素是真实需求（pen 的导出用 `margin:-0.5px 0 0 0` 顶焦点环），彻底拒绝会为了半个像素逼出一个 wrapper 元素；而单边写法是同一意图的第二种拼法。
 
-`Spec` 是 `CSS_ALLOWED` 的一项。`kind` 决定这一项怎么检查、怎么归一化，`hint` 是给人看的取值说明。**13 种 kind**：
+`Spec` 是 `CSS_ALLOWED` 的一项。`kind` 决定这一项怎么检查、怎么归一化，`hint` 是给人看的取值说明。**16 种 kind**：
 
 ```js
 { kind: "enum", values: ["flex","block","none"], hint: "flex | block | none" }
@@ -382,6 +382,9 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 { kind: "font-weight", hint: "…" }
 { kind: "line-height", hint: "…" }
 { kind: "image", hint: "…" }
+{ kind: "size", hint: "…" }              // 背景图尺寸：整图关键字，或一对长度（贴图平铺）
+{ kind: "backdrop", hint: "…" }          // 背景滤镜：blur() 与可选的 saturate()，规范顺序固定
+{ kind: "transform", hint: "…" }         // 变换：只允许 rotate(<deg>) 与 none，角度必须是字面量
 { kind: "text", hint: "…" }              // 自由文本，例如 font-family
 ```
 
@@ -439,7 +442,7 @@ export const COMMON_OPTIONAL = ["data-name", "data-hidden", "data-locked"];
 |---|---|---|
 | 字形坐标 | `viewBox` 是**轮廓自身**的墨水盒（`lib/svg-path.mjs` 精确求极值），量不出来时回落节点盒 | pen 自己的导出对 366×366 的节点写 `viewBox="0 0 14 14"`：网格是轮廓的，元素把它放大到节点盒。用节点盒当网格时，一支 14×14 的箭头会被画成 14px |
 | 轮廓的描边 | 写在 `<path>` 上：`fill="none" stroke="currentColor" stroke-width="…" vector-effect="non-scaling-stroke"`，`<svg>` 上写 `color` 与 `overflow:visible` | pen 的导出在同一元素上写的正是这三个属性。`border` 是方框的语义，`applyStroke` 只对非字形节点生效 |
-| 旋转 | `path` 节点的轮廓绕 viewBox 原点转 `-rotation` 度后写回 `d`（pen 逆时针为正、CSS 顺时针为正，pen 转的是元素左上角），计 `converted.bakedRotation`；其余节点无法表达，计 `lost.rotation` | 本格式没有 `transform`（`REJECTED_PROPERTIES` 点名拒绝 `transform` 与 `rotate`） |
+| 旋转 | `path` 节点的轮廓绕 viewBox 原点转 `-rotation` 度后写回 `d`（pen 逆时针为正、CSS 顺时针为正，pen 转的是元素左上角），计 `converted.bakedRotation`；其余节点记 `lost.rotation` | 本格式的 `transform` 只允许 `rotate(<deg>)`，且绕元素**中心**转；pen 绕左上角转，复现它需要 `transform-origin`，而本格式没有这个属性。`path` 没有可旋转的盒子，所以轮廓直接被转进 `d` |
 | 硬换行 | `content` 含换行时写 `white-space:pre-line`，计 `converted.hardBreaks` | 等价于 pen 导出写的 `<br>`：保留换行、折叠空格。`pre-wrap` 还保留空格，行尾空格会参与居中——实测偏离 pen 的导出 11px |
 | 主题变量 | `value` 是数组时取不带 `theme` 的那一项（pen 导出内联的就是它），计 `converted.themedVariables`；整项取不出一个值时**不写**该令牌并计 `lost.unresolvedVariable` | 数组不是值：按值读会写出字符串 `[object Object],[object Object]`，文件还能通过校验。留空比留错好，引用它的地方会由校验器报 `var()` 无定义 |
 | `ref` 引用 | **就地展开**：被引用节点的子树复制到引用处，副本根用引用自己的 id，其后代编号为 `<引用id>__<自己的id>`，`descendants` 的字段级补丁在导入时应用，计 `refs.inlined` 与 `refs.overridesApplied` | 本格式没有"引用"这个概念：一个元素不被另一个元素按 id 命名，所以一个引用只能是它指向的那棵子树。副本必须重编号，因为 `data-id` 在文件内唯一（§3）。解不开的引用报 `pen/unresolved-ref`，成环报 `pen/ref-cycle`，超过 16 层报 `pen/ref-depth` |
