@@ -1,3 +1,5 @@
+<div align="center">
+
 # JustSkill Design
 
 English · [简体中文](README.md)
@@ -17,6 +19,8 @@ Your agent runs the skill, designs the screens, and leaves one HTML file behind.
 You review those screens on a local canvas, approve them, and the validated file
 becomes the spec the code is written against. You never draw — the agent draws,
 you judge.
+
+</div>
 
 **How to use it.**
 
