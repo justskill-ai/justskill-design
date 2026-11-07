@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <title>内容 · dsh-media-desk</title>
+  <meta name="design-schema" content="3.0">
+  <style>*,*::before,*::after{box-sizing:border-box}
+*{margin:0}
+img{display:block}
+svg:not([data-fill]) > :not([fill]):not([stroke]){fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:root{ --color-bg:#fbfbfa; --color-panel:#f4f3f0; --color-card:#ffffff; --color-ink:#17160f; --color-muted:#6b6b6b; --color-faint:#6f6f6f; --color-line:#00000012; --color-link:#3f6fd8; --color-dot-idea:#b3b3b3; --color-dot-outline:#e0a83a; --color-dot-draft:#4a8ff0; --color-dot-ready:#8a5cf0; --color-dot-done:#35a06a; --font-body:'PingFang SC','Inter',system-ui,sans-serif; --font-serif:'Songti SC','Source Han Serif SC',serif; --radius-card:14px; --radius-panel:16px; --radius-pill:999px; --shadow-card:0 1px 2px #0000000a, 0 10px 22px -14px #0000001f; --shadow-pill:0 1px 2px #0000000a, 0 8px 20px -12px #0000001a; --size-caption:11.5px; --size-small:13px; --size-body:14px; --size-title:48px }</style>
+  <style>section[data-type="page"]{ margin:0 0 24px }</style>
+</head>
+<body>
+<section data-id="desk" data-type="page" data-canvas="0,0" data-name="内容" style="width:1600px;height:1100px;background-color:var(--color-bg);overflow:hidden;font-family:var(--font-body)">
+  <div data-id="desk__root" data-type="frame" style="position:relative;width:100%;height:100%;overflow:hidden">
+
+    <!-- nav -->
+    <div data-id="nav" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:6px;position:absolute;left:32px;top:20px;height:54px;background-color:#ffffffcc;border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+      <p data-id="nav__idea" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">灵感</p>
+      <div data-id="nav__active" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 22px;height:40px;background-color:var(--color-ink);border-radius:999px">
+        <p data-id="nav__active_text" data-type="text" style="font-size:14px;font-weight:500;color:#ffffff">内容</p>
+      </div>
+      <p data-id="nav__schedule" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">排期</p>
+      <p data-id="nav__review" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">复盘</p>
+      <p data-id="nav__style" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">风格</p>
+    </div>
+
+    <!-- top right -->
+    <div data-id="topbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 32px 0 0;position:absolute;left:0;top:24px;width:100%">
+      <div data-id="topbar__demo" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <p data-id="topbar__demo_text" data-type="text" style="font-size:13px;color:#55524c">示例数据 · 清空</p>
+      </div>
+      <div data-id="topbar__theme" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <svg data-id="topbar__theme_icon" data-type="icon" data-icon="sun" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:#55524c"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+      </div>
+      <div data-id="topbar__assistant" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <svg data-id="topbar__assistant_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#55524c"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+        <p data-id="topbar__assistant_text" data-type="text" style="font-size:13px;color:#55524c">助手</p>
+      </div>
+    </div>
+
+    <!-- title -->
+    <p data-id="title" data-type="text" style="position:absolute;left:48px;top:92px;font-family:var(--font-serif);font-size:var(--size-title);font-weight:500;line-height:1.1;letter-spacing:0.01em;color:var(--color-ink)">内容</p>
+    <p data-id="subtitle" data-type="text" style="position:absolute;left:48px;top:170px;font-size:13px;color:var(--color-muted)">共 25 条 · 12 个灵感待推进 · 1 篇已成稿 · 4 篇已发布</p>
+
+    <!-- search + view switch -->
+    <div data-id="toolbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 48px 0 0;position:absolute;left:0;top:100px;width:100%">
+      <div data-id="search" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:0 16px;width:360px;height:46px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:12px;box-shadow:var(--shadow-card)">
+        <svg data-id="search__icon" data-type="icon" data-icon="search" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-faint)"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        <p data-id="search__placeholder" data-type="text" style="font-size:13px;color:var(--color-faint)">搜索标题、标签、平台</p>
+      </div>
+      <div data-id="views" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:3px;height:46px;background-color:var(--color-panel);border:1px solid var(--color-line);border-radius:12px">
+        <div data-id="views__board" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:64px;height:38px;background-color:var(--color-card);border-radius:9px;box-shadow:0 1px 2px #00000014">
+          <p data-id="views__board_text" data-type="text" style="font-size:13px;font-weight:500;color:var(--color-ink)">看板</p>
+        </div>
+        <div data-id="views__table" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:64px;height:38px;border-radius:9px">
+          <p data-id="views__table_text" data-type="text" style="font-size:13px;color:var(--color-muted)">表格</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- board -->
+    <div data-id="board" data-type="frame" style="display:flex;flex-direction:row;gap:18px;position:absolute;left:48px;top:200px;width:1504px;height:884px;overflow:hidden">
+
+      <!-- 灵感 -->
+      <div data-id="col_idea" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:14px;min-width:0;flex:1 1 0%;background-color:var(--color-panel);border-radius:var(--radius-panel);overflow:hidden">
+        <div data-id="col_idea__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:2px 2px 0 2px">
+          <div data-id="col_idea__dot" data-type="frame" style="width:8px;height:8px;background-color:var(--color-dot-idea);border-radius:50%"></div>
+          <p data-id="col_idea__name" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">灵感</p>
+          <p data-id="col_idea__count" data-type="text" style="font-size:12px;color:var(--color-faint)">12</p>
+        </div>
+        <div data-id="idea_1" data-type="frame" style="padding:16px;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card)">
+          <p data-id="idea_1__text" data-type="text" style="font-size:14px;line-height:1.65;color:#1f1f1f">好的选题不是想出来的，是被你反复抱怨出来的。</p>
+        </div>
+        <div data-id="idea_2" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="idea_2__media" data-type="frame" style="width:100%;height:116px;background-image:repeating-conic-gradient(#232323 0 25%, #b8b6b0 0 50%);background-size:26px 26px"></div>
+          <div data-id="idea_2__body" data-type="frame" style="display:flex;flex-direction:column;padding:12px 14px 14px 14px">
+            <p data-id="idea_2__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">老城立面：被时间改写的设计系统</p>
+          </div>
+        </div>
+        <div data-id="idea_3" data-type="frame" style="padding:16px;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card)">
+          <p data-id="idea_3__text" data-type="text" style="font-size:14px;line-height:1.65;color:#1f1f1f">工具的终点，是让你忘记它。</p>
+        </div>
+        <div data-id="idea_4" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="idea_4__media" data-type="frame" style="position:relative;width:100%;height:116px;background-color:#f0eeea;overflow:hidden">
+            <div data-id="idea_4__ring" data-type="frame" style="position:absolute;left:14px;top:18px;width:96px;height:96px;border:2px solid #2b2b2b;border-radius:50%"></div>
+            <div data-id="idea_4__ring2" data-type="frame" style="position:absolute;left:34px;top:38px;width:56px;height:56px;border:2px solid #2b2b2b;border-radius:50%"></div>
+            <div data-id="idea_4__green" data-type="frame" style="position:absolute;left:168px;top:10px;width:74px;height:74px;background-color:#2f6b4f;border-radius:50%"></div>
+            <div data-id="idea_4__orange" data-type="frame" style="position:absolute;left:96px;top:50px;width:92px;height:56px;background-color:#e8892b"></div>
+            <div data-id="idea_4__red" data-type="frame" style="position:absolute;left:158px;top:64px;width:66px;height:42px;background-color:#c8452f"></div>
+            <div data-id="idea_4__purple" data-type="frame" style="position:absolute;left:216px;top:86px;width:22px;height:22px;background-color:#8a5cf0;border-radius:50%"></div>
+          </div>
+          <div data-id="idea_4__body" data-type="frame" style="padding:12px 14px 14px 14px">
+            <p data-id="idea_4__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">十个让人想截图的数据图</p>
+          </div>
+        </div>
+        <div data-id="idea_5" data-type="frame" style="padding:16px;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card)">
+          <p data-id="idea_5__text" data-type="text" style="font-size:14px;line-height:1.65;color:#1f1f1f">你不是缺灵感，你是缺一个存放灵感的地方。</p>
+        </div>
+        <div data-id="idea_6" data-type="frame" style="padding:16px;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card)">
+          <p data-id="idea_6__text" data-type="text" style="font-size:14px;line-height:1.65;color:#1f1f1f">灵感不是等来的，是记下来的。</p>
+        </div>
+      </div>
+
+      <!-- 大纲 -->
+      <div data-id="col_outline" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:14px;min-width:0;flex:1 1 0%;background-color:var(--color-panel);border-radius:var(--radius-panel);overflow:hidden">
+        <div data-id="col_outline__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:2px 2px 0 2px">
+          <div data-id="col_outline__dot" data-type="frame" style="width:8px;height:8px;background-color:var(--color-dot-outline);border-radius:50%"></div>
+          <p data-id="col_outline__name" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">大纲</p>
+          <p data-id="col_outline__count" data-type="text" style="font-size:12px;color:var(--color-faint)">4</p>
+        </div>
+        <div data-id="outline_1" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="outline_1__media" data-type="frame" style="width:100%;height:116px;background-image:radial-gradient(circle at 32% 34%, #b9a6f0, #00000000 58%), radial-gradient(circle at 72% 58%, #7fd8a8, #00000000 52%), linear-gradient(140deg, #eef2ea, #dfe7e2)"></div>
+          <div data-id="outline_1__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="outline_1__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">30 秒看懂 Agent 和聊天机器人的区别</p>
+            <div data-id="outline_1__meta" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px">
+              <p data-id="outline_1__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">抖音</p>
+              <p data-id="outline_1__date" data-type="text" style="font-size:11.5px;color:var(--color-link)">明天</p>
+            </div>
+          </div>
+        </div>
+        <div data-id="outline_2" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="outline_2__media" data-type="frame" style="width:100%;height:116px;background-image:linear-gradient(180deg, #ffffffcc 0%, #ffffff00 34%), linear-gradient(160deg, #ffffff00 22%, #ededed 22% 38%, #ffffff00 38%), linear-gradient(196deg, #ffffff00 30%, #b5b5b5 30% 48%, #ffffff00 48%), linear-gradient(170deg, #ffffff00 52%, #7a7a7a 52% 70%, #ffffff00 70%), linear-gradient(180deg, #f6f6f6, #d0d0d0 58%, #a2a2a2)"></div>
+          <div data-id="outline_2__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="outline_2__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">山水里的信息层级</p>
+            <div data-id="outline_2__meta" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px">
+              <p data-id="outline_2__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">公众号</p>
+              <p data-id="outline_2__date" data-type="text" style="font-size:11.5px;color:var(--color-link)">11 月 12 日</p>
+            </div>
+          </div>
+        </div>
+        <div data-id="outline_3" data-type="frame" style="padding:16px;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card)">
+          <p data-id="outline_3__text" data-type="text" style="font-size:14px;line-height:1.65;color:#1f1f1f">评论区问得最多的 5 个问题</p>
+        </div>
+        <div data-id="outline_4" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="outline_4__media" data-type="frame" style="width:100%;height:116px;background-image:radial-gradient(circle at 28% 26%, #f6c9d8, #00000000 56%), radial-gradient(circle at 74% 68%, #c9dcf5, #00000000 54%), linear-gradient(140deg, #fdeef3, #eef1fa)"></div>
+          <div data-id="outline_4__body" data-type="frame" style="padding:12px 14px 14px 14px">
+            <p data-id="outline_4__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">给焦虑的新手写一封信</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 草稿 -->
+      <div data-id="col_draft" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:14px;min-width:0;flex:1 1 0%;background-color:var(--color-panel);border-radius:var(--radius-panel);overflow:hidden">
+        <div data-id="col_draft__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:2px 2px 0 2px">
+          <div data-id="col_draft__dot" data-type="frame" style="width:8px;height:8px;background-color:var(--color-dot-draft);border-radius:50%"></div>
+          <p data-id="col_draft__name" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">草稿</p>
+          <p data-id="col_draft__count" data-type="text" style="font-size:12px;color:var(--color-faint)">4</p>
+        </div>
+        <div data-id="draft_1" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="draft_1__media" data-type="frame" style="width:100%;height:116px;background-image:linear-gradient(180deg, #ffffff88 0%, #ffffff00 36%), linear-gradient(172deg, #ffffff00 44%, #6f8f5c 44% 60%, #ffffff00 60%), linear-gradient(194deg, #ffffff00 56%, #33563d 56% 74%, #ffffff00 74%), linear-gradient(160deg, #dfe7d8, #7fa06a 48%, #2f5a3f 80%, #1e3c2b)"></div>
+          <div data-id="draft_1__body" data-type="frame" style="padding:12px 14px 14px 14px">
+            <p data-id="draft_1__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">普通人第一次用 AI 做出能赚钱的东西，到底卡在哪</p>
+          </div>
+        </div>
+        <div data-id="draft_2" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="draft_2__media" data-type="frame" style="width:100%;height:116px;background-image:repeating-radial-gradient(circle at 34% 62%, #ffffff00 0 7px, #b9b3a8 7px 8px), linear-gradient(160deg, #faf9f6, #efece5)"></div>
+          <div data-id="draft_2__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="draft_2__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">40 个独立产品定价页，拼出一张地形图</p>
+            <svg data-id="draft_2__icon" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--color-faint)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+          </div>
+        </div>
+        <div data-id="draft_3" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="draft_3__media" data-type="frame" style="width:100%;height:116px;background-image:repeating-linear-gradient(3deg, #d9ecee 0 5px, #7fb3bf 5px 9px, #2f7f95 9px 20px)"></div>
+          <div data-id="draft_3__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="draft_3__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">潮汐式工作法：两小时深潜，一小时靠岸</p>
+            <div data-id="draft_3__meta" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px">
+              <p data-id="draft_3__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">B 站</p>
+              <p data-id="draft_3__date" data-type="text" style="font-size:11.5px;color:var(--color-link)">11 月 10 日</p>
+            </div>
+          </div>
+        </div>
+        <div data-id="draft_4" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="draft_4__media" data-type="frame" style="width:100%;height:116px;background-image:linear-gradient(160deg, #d7d3c9, #6f6a5f 55%, #2b2925)"></div>
+          <div data-id="draft_4__body" data-type="frame" style="padding:12px 14px 14px 14px">
+            <p data-id="draft_4__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">一张图看懂一人公司的成本结构</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 待发布 -->
+      <div data-id="col_ready" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:14px;min-width:0;flex:1 1 0%;background-color:var(--color-panel);border-radius:var(--radius-panel);overflow:hidden">
+        <div data-id="col_ready__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:2px 2px 0 2px">
+          <div data-id="col_ready__dot" data-type="frame" style="width:8px;height:8px;background-color:var(--color-dot-ready);border-radius:50%"></div>
+          <p data-id="col_ready__name" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">待发布</p>
+          <p data-id="col_ready__count" data-type="text" style="font-size:12px;color:var(--color-faint)">1</p>
+        </div>
+        <div data-id="ready_1" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:16px;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card)">
+          <p data-id="ready_1__text" data-type="text" style="font-size:14px;line-height:1.65;color:#1f1f1f">发布前 10 分钟检查清单</p>
+          <div data-id="ready_1__meta" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px">
+            <p data-id="ready_1__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">小红书</p>
+            <p data-id="ready_1__date" data-type="text" style="font-size:11.5px;color:var(--color-link)">今天</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 已发布 -->
+      <div data-id="col_done" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:14px;min-width:0;flex:1 1 0%;background-color:var(--color-panel);border-radius:var(--radius-panel);overflow:hidden">
+        <div data-id="col_done__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:2px 2px 0 2px">
+          <div data-id="col_done__dot" data-type="frame" style="width:8px;height:8px;background-color:var(--color-dot-done);border-radius:50%"></div>
+          <p data-id="col_done__name" data-type="text" style="font-size:14px;font-weight:600;color:var(--color-ink)">已发布</p>
+          <p data-id="col_done__count" data-type="text" style="font-size:12px;color:var(--color-faint)">4</p>
+        </div>
+        <div data-id="done_1" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="done_1__media" data-type="frame" style="position:relative;width:100%;height:150px;background-color:#0b0b0b;overflow:hidden">
+            <p data-id="done_1__think" data-type="text" style="position:absolute;left:18px;top:10px;font-family:var(--font-serif);font-size:64px;font-weight:700;line-height:1.1;color:#f5f3ee">叹</p>
+            <p data-id="done_1__write" data-type="text" style="position:absolute;left:146px;top:44px;font-family:var(--font-serif);font-size:86px;font-weight:700;line-height:1.05;color:#e8542c">写</p>
+          </div>
+          <div data-id="done_1__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="done_1__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">慢写：把一个念头养成一篇长文</p>
+            <p data-id="done_1__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">公众号</p>
+          </div>
+        </div>
+        <div data-id="done_2" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="done_2__media" data-type="frame" style="width:100%;height:116px;background-image:radial-gradient(circle at 64% 18%, #f8e0b4, #00000000 42%), linear-gradient(172deg, #ffffff00 58%, #b23f28 58% 74%, #ffffff00 74%), linear-gradient(192deg, #ffffff00 68%, #8e2f24 68% 84%, #ffffff00 84%), linear-gradient(160deg, #f0a35f, #c9482f 58%, #8e2f24)"></div>
+          <div data-id="done_2__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="done_2__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">一人公司第 300 天：沙漠里的三次转向</p>
+            <p data-id="done_2__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">公众号</p>
+          </div>
+        </div>
+        <div data-id="done_3" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="done_3__media" data-type="frame" style="width:100%;height:116px;background-image:repeating-linear-gradient(0deg, #e8c25a 0 40px, #24479c 40px 60px, #b03227 60px 74px, #efe7d8 74px 96px)"></div>
+          <div data-id="done_3__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px 14px">
+            <p data-id="done_3__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">封面用色实验：高饱和与条纹为什么点击率高</p>
+            <p data-id="done_3__tag" data-type="text" style="font-size:11.5px;color:var(--color-faint)">小红书</p>
+          </div>
+        </div>
+        <div data-id="done_4" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;background-color:var(--color-card);border-radius:var(--radius-card);box-shadow:var(--shadow-card);overflow:hidden">
+          <div data-id="done_4__media" data-type="frame" style="width:100%;height:116px;background-image:linear-gradient(150deg, #cfd6d2, #7d8b84 58%, #33403a)"></div>
+          <div data-id="done_4__body" data-type="frame" style="padding:12px 14px 14px 14px">
+            <p data-id="done_4__title" data-type="text" style="font-size:13.5px;font-weight:500;line-height:1.55;color:#1f1f1f">把一次沙龙，写成一年的内容库</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+  <!-- ===================== 排期 ===================== -->
+  <section data-id="schedule" data-type="page" data-canvas="1660,0" data-name="排期" style="width:1600px;height:1100px;background-color:var(--color-bg);overflow:hidden;font-family:var(--font-body)">
+    <div data-id="schedule__root" data-type="frame" style="position:relative;width:100%;height:100%;overflow:hidden">
+
+      <div data-id="sch_nav" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:6px;position:absolute;left:32px;top:20px;height:54px;background-color:#ffffffcc;border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <p data-id="sch_nav__idea" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">灵感</p>
+        <p data-id="sch_nav__content" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">内容</p>
+        <div data-id="sch_nav__active" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 22px;height:40px;background-color:var(--color-ink);border-radius:999px">
+          <p data-id="sch_nav__active_text" data-type="text" style="font-size:14px;font-weight:500;color:#ffffff">排期</p>
+        </div>
+        <p data-id="sch_nav__review" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">复盘</p>
+        <p data-id="sch_nav__style" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">风格</p>
+      </div>
+
+      <div data-id="sch_topbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 32px 0 0;position:absolute;left:0;top:24px;width:100%">
+        <div data-id="sch_topbar__demo" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <p data-id="sch_topbar__demo_text" data-type="text" style="font-size:13px;color:#55524c">示例数据 · 清空</p>
+        </div>
+        <div data-id="sch_topbar__theme" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <svg data-id="sch_topbar__theme_icon" data-type="icon" data-icon="sun" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:#55524c"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+        </div>
+        <div data-id="sch_topbar__assistant" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <svg data-id="sch_topbar__assistant_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#55524c"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+          <p data-id="sch_topbar__assistant_text" data-type="text" style="font-size:13px;color:#55524c">助手</p>
+        </div>
+      </div>
+
+      <!-- calendar card -->
+      <div data-id="sch_calendar" data-type="frame" style="display:flex;flex-direction:column;position:absolute;left:12px;top:76px;width:1172px;height:1012px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:18px;box-shadow:var(--shadow-card);overflow:hidden">
+
+        <div data-id="sch_head" data-type="frame" style="padding:16px 24px 0 24px;position:relative;width:100%;height:126px;flex-shrink:0">
+          <p data-id="sch_head__day" data-type="text" style="font-family:var(--font-serif);font-size:78px;font-weight:600;line-height:1;color:var(--color-ink)">11</p>
+          <p data-id="sch_head__year" data-type="text" style="position:absolute;left:118px;top:16px;font-size:13px;color:var(--color-muted)">2026</p>
+          <p data-id="sch_head__month" data-type="text" style="position:absolute;left:116px;top:36px;font-family:var(--font-serif);font-size:38px;font-style:italic;line-height:1.05;color:var(--color-muted)">November</p>
+
+          <div data-id="sch_stats" data-type="frame" style="display:flex;flex-direction:row;gap:44px;position:absolute;left:360px;top:22px">
+            <div data-id="sch_stat_a" data-type="frame" style="display:flex;flex-direction:column;gap:6px">
+              <p data-id="sch_stat_a_label" data-type="text" style="font-size:12px;color:var(--color-muted)">连续记录</p>
+              <div data-id="sch_stat_a_value" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:4px"><p data-id="sch_stat_a_num" data-type="text" style="font-size:26px;font-weight:600;color:var(--color-ink)">14</p><p data-id="sch_stat_a_unit" data-type="text" style="font-size:12px;color:var(--color-muted)">天</p></div>
+            </div>
+            <div data-id="sch_stat_b" data-type="frame" style="display:flex;flex-direction:column;gap:6px">
+              <p data-id="sch_stat_b_label" data-type="text" style="font-size:12px;color:var(--color-muted)">本月灵感</p>
+              <div data-id="sch_stat_b_value" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:4px"><p data-id="sch_stat_b_num" data-type="text" style="font-size:26px;font-weight:600;color:var(--color-ink)">11</p><p data-id="sch_stat_b_unit" data-type="text" style="font-size:12px;color:var(--color-muted)">条</p></div>
+            </div>
+            <div data-id="sch_stat_c" data-type="frame" style="display:flex;flex-direction:column;gap:6px">
+              <p data-id="sch_stat_c_label" data-type="text" style="font-size:12px;color:var(--color-muted)">本月发布</p>
+              <div data-id="sch_stat_c_value" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:4px"><p data-id="sch_stat_c_num" data-type="text" style="font-size:26px;font-weight:600;color:var(--color-ink)">5</p><p data-id="sch_stat_c_unit" data-type="text" style="font-size:12px;color:var(--color-muted)">条</p></div>
+            </div>
+          </div>
+
+          <div data-id="sch_controls" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px;position:absolute;left:1016px;top:30px">
+            <svg data-id="sch_controls__prev" data-type="icon" data-icon="chevron-left" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m15 18-6-6 6-6"></path></svg>
+            <div data-id="sch_controls__today" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 18px;height:36px;background-color:#ffffff;border:1px solid var(--color-line);border-radius:999px;box-shadow:0 1px 2px #0000000f">
+              <p data-id="sch_controls__today_text" data-type="text" style="font-size:13px;color:var(--color-ink)">今天</p>
+            </div>
+            <svg data-id="sch_controls__next" data-type="icon" data-icon="chevron-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-muted)"><path d="m9 18 6-6-6-6"></path></svg>
+          </div>
+        </div>
+
+        <div data-id="sch_weekdays" data-type="frame" style="display:flex;flex-direction:row;gap:8px;padding:0 24px 10px 24px;flex-shrink:0">
+          <p data-id="sch_wd_0" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周日</p>
+          <p data-id="sch_wd_1" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周一</p>
+          <p data-id="sch_wd_2" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周二</p>
+          <p data-id="sch_wd_3" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周三</p>
+          <p data-id="sch_wd_4" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周四</p>
+          <p data-id="sch_wd_5" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周五</p>
+          <p data-id="sch_wd_6" data-type="text" style="flex:1 1 0%;font-size:12px;color:var(--color-muted)">周六</p>
+        </div>
+
+        <div data-id="sch_grid" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:0 24px 24px 24px;flex-shrink:0;overflow:hidden">
+
+          <div data-id="sch_week1" data-type="frame" style="display:flex;flex-direction:row;gap:8px;height:160px;flex-shrink:0">
+            <div data-id="sch_d1" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d1__num" data-type="text" style="font-size:14px;color:var(--color-muted)">1</p>
+              <div data-id="sch_d1__tag" data-type="frame" style="display:flex;align-items:center;justify-content:center;position:absolute;left:106px;top:10px;width:26px;height:26px;background-color:#efe6ff;border-radius:6px"><p data-id="sch_d1__tag_text" data-type="text" style="font-size:11px;color:#6b4bd0">评</p></div>
+            </div>
+            <div data-id="sch_d2" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d2__num" data-type="text" style="font-size:14px;color:var(--color-muted)">2</p>
+              <div data-id="sch_d2__thumb" data-type="frame" style="position:absolute;left:102px;top:10px;width:30px;height:30px;border-radius:6px;background-image:linear-gradient(160deg,#efefef,#bdbdbd 55%,#6f6f6f)"></div>
+            </div>
+            <div data-id="sch_d3" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d3__num" data-type="text" style="font-size:14px;color:var(--color-muted)">3</p>
+              <div data-id="sch_d3__thumb" data-type="frame" style="position:absolute;left:102px;top:10px;width:30px;height:30px;border-radius:6px;background-image:repeating-linear-gradient(3deg,#d9ecee 0 4px,#7fb3bf 4px 7px,#2f7f95 7px 14px)"></div>
+            </div>
+            <div data-id="sch_d4" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d4__num" data-type="text" style="font-size:14px;color:var(--color-muted)">4</p>
+              <div data-id="sch_d4__thumb" data-type="frame" style="position:absolute;left:102px;top:10px;width:30px;height:30px;border-radius:6px;background-image:repeating-conic-gradient(#232323 0 25%, #b8b6b0 0 50%);background-size:10px 10px"></div>
+            </div>
+            <div data-id="sch_d5" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d5__num" data-type="text" style="font-size:14px;color:var(--color-muted)">5</p>
+              <div data-id="sch_d5__thumb" data-type="frame" style="position:absolute;left:102px;top:10px;width:30px;height:30px;border-radius:6px;background-image:radial-gradient(circle at 34% 34%,#9fd6b0,#00000000 60%),radial-gradient(circle at 70% 66%,#315f8f,#00000000 62%),linear-gradient(140deg,#e6f2ea,#cfe6e2)"></div>
+            </div>
+            <div data-id="sch_d6" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d6__num" data-type="text" style="font-size:14px;color:var(--color-muted)">6</p>
+              <div data-id="sch_d6__thumb" data-type="frame" style="position:absolute;left:102px;top:10px;width:30px;height:30px;border-radius:6px;background-image:linear-gradient(180deg,#ffffff88 0%,#ffffff00 40%),linear-gradient(160deg,#dfe7d8,#7fa06a 48%,#2f5a3f)"></div>
+            </div>
+            <div data-id="sch_d7" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:#eceae5;border-radius:12px">
+              <div data-id="sch_d7__num_wrap" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;background-color:var(--color-ink);border-radius:50%"><p data-id="sch_d7__num" data-type="text" style="font-size:13px;font-weight:500;color:#ffffff">7</p></div>
+              <div data-id="sch_d7__add" data-type="frame" style="display:flex;align-items:center;justify-content:center;position:absolute;left:104px;top:10px;width:28px;height:28px;background-color:var(--color-ink);border-radius:8px">
+                <svg data-id="sch_d7__add_icon" data-type="icon" data-icon="plus" data-icon-library="lucide" viewBox="0 0 24 24" style="width:14px;height:14px;color:#ffffff"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+              </div>
+              <div data-id="sch_d7__event" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:6px 8px;position:absolute;left:10px;top:104px;width:112px;background-color:#ffffff;border-radius:8px;box-shadow:0 1px 2px #00000014">
+                <div data-id="sch_d7__event_thumb" data-type="frame" style="width:22px;height:22px;border-radius:5px;background-image:radial-gradient(circle at 30% 30%,#f2c9a0,#00000000 60%),linear-gradient(150deg,#2b3a55,#10131a)"></div>
+                <div data-id="sch_d7__event_body" data-type="frame" style="display:flex;flex-direction:column;min-width:0">
+                  <p data-id="sch_d7__event_time" data-type="text" style="font-size:10px;color:var(--color-muted)">09:00</p>
+                  <p data-id="sch_d7__event_title" data-type="text" style="overflow:hidden;font-size:11px;color:var(--color-ink);white-space:nowrap">发布前 10 ...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-id="sch_week2" data-type="frame" style="display:flex;flex-direction:row;gap:8px;height:160px;flex-shrink:0">
+            <div data-id="sch_d8" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d8__num" data-type="text" style="font-size:14px;color:var(--color-muted)">8</p>
+              <div data-id="sch_d8__event" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:6px 8px;position:absolute;left:10px;top:104px;width:112px;background-color:#ffffff;border-radius:8px;box-shadow:0 1px 2px #00000014">
+                <div data-id="sch_d8__event_thumb" data-type="frame" style="width:22px;height:22px;border-radius:5px;background-image:radial-gradient(circle at 34% 34%,#9fd6b0,#00000000 60%),linear-gradient(140deg,#e6f2ea,#315f8f)"></div>
+                <div data-id="sch_d8__event_body" data-type="frame" style="display:flex;flex-direction:column;min-width:0">
+                  <p data-id="sch_d8__event_time" data-type="text" style="font-size:10px;color:var(--color-muted)">20:00</p>
+                  <p data-id="sch_d8__event_title" data-type="text" style="overflow:hidden;font-size:11px;color:var(--color-ink);white-space:nowrap">30 秒看懂 ...</p>
+                </div>
+              </div>
+            </div>
+            <div data-id="sch_d9" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d9__num" data-type="text" style="font-size:14px;color:var(--color-muted)">9</p></div>
+            <div data-id="sch_d10" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d10__num" data-type="text" style="font-size:14px;color:var(--color-muted)">10</p>
+              <div data-id="sch_d10__event" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:6px 8px;position:absolute;left:10px;top:104px;width:112px;background-color:#ffffff;border-radius:8px;box-shadow:0 1px 2px #00000014">
+                <div data-id="sch_d10__event_thumb" data-type="frame" style="width:22px;height:22px;border-radius:5px;background-image:repeating-linear-gradient(3deg,#d9ecee 0 4px,#7fb3bf 4px 7px,#2f7f95 7px 14px)"></div>
+                <div data-id="sch_d10__event_body" data-type="frame" style="display:flex;flex-direction:column;min-width:0">
+                  <p data-id="sch_d10__event_time" data-type="text" style="font-size:10px;color:var(--color-muted)">12:00</p>
+                  <p data-id="sch_d10__event_title" data-type="text" style="overflow:hidden;font-size:11px;color:var(--color-ink);white-space:nowrap">潮汐式工作 ...</p>
+                </div>
+              </div>
+            </div>
+            <div data-id="sch_d11" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d11__num" data-type="text" style="font-size:14px;color:var(--color-muted)">11</p></div>
+            <div data-id="sch_d12" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d12__num" data-type="text" style="font-size:14px;color:var(--color-muted)">12</p>
+              <div data-id="sch_d12__event" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:6px 8px;position:absolute;left:10px;top:104px;width:112px;background-color:#ffffff;border-radius:8px;box-shadow:0 1px 2px #00000014">
+                <div data-id="sch_d12__event_thumb" data-type="frame" style="width:22px;height:22px;border-radius:5px;background-image:linear-gradient(160deg,#efefef,#bdbdbd 55%,#6f6f6f)"></div>
+                <div data-id="sch_d12__event_body" data-type="frame" style="display:flex;flex-direction:column;min-width:0">
+                  <p data-id="sch_d12__event_time" data-type="text" style="font-size:10px;color:var(--color-muted)">20:00</p>
+                  <p data-id="sch_d12__event_title" data-type="text" style="overflow:hidden;font-size:11px;color:var(--color-ink);white-space:nowrap">山水里的信 ...</p>
+                </div>
+              </div>
+            </div>
+            <div data-id="sch_d13" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d13__num" data-type="text" style="font-size:14px;color:var(--color-muted)">13</p></div>
+            <div data-id="sch_d14" data-type="frame" style="padding:10px;position:relative;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px">
+              <p data-id="sch_d14__num" data-type="text" style="font-size:14px;color:var(--color-muted)">14</p>
+              <div data-id="sch_d14__event" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:6px 8px;position:absolute;left:10px;top:104px;width:112px;background-color:#ffffff;border-radius:8px;box-shadow:0 1px 2px #00000014">
+                <div data-id="sch_d14__event_thumb" data-type="frame" style="width:22px;height:22px;border-radius:5px;background-image:repeating-linear-gradient(0deg,#e8c25a 0 5px,#24479c 5px 8px,#b03227 8px 10px,#efe7d8 10px 13px)"></div>
+                <div data-id="sch_d14__event_body" data-type="frame" style="display:flex;flex-direction:column;min-width:0">
+                  <p data-id="sch_d14__event_time" data-type="text" style="font-size:10px;color:var(--color-muted)">20:00</p>
+                  <p data-id="sch_d14__event_title" data-type="text" style="overflow:hidden;font-size:11px;color:var(--color-ink);white-space:nowrap">增长的台阶 ...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-id="sch_week3" data-type="frame" style="display:flex;flex-direction:row;gap:8px;height:160px;flex-shrink:0">
+            <div data-id="sch_d15" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d15__num" data-type="text" style="font-size:14px;color:var(--color-muted)">15</p></div>
+            <div data-id="sch_d16" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d16__num" data-type="text" style="font-size:14px;color:var(--color-muted)">16</p></div>
+            <div data-id="sch_d17" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d17__num" data-type="text" style="font-size:14px;color:var(--color-muted)">17</p></div>
+            <div data-id="sch_d18" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d18__num" data-type="text" style="font-size:14px;color:var(--color-muted)">18</p></div>
+            <div data-id="sch_d19" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d19__num" data-type="text" style="font-size:14px;color:var(--color-muted)">19</p></div>
+            <div data-id="sch_d20" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d20__num" data-type="text" style="font-size:14px;color:var(--color-muted)">20</p></div>
+            <div data-id="sch_d21" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d21__num" data-type="text" style="font-size:14px;color:var(--color-muted)">21</p></div>
+          </div>
+
+          <div data-id="sch_week4" data-type="frame" style="display:flex;flex-direction:row;gap:8px;height:160px;flex-shrink:0">
+            <div data-id="sch_d22" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d22__num" data-type="text" style="font-size:14px;color:var(--color-muted)">22</p></div>
+            <div data-id="sch_d23" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d23__num" data-type="text" style="font-size:14px;color:var(--color-muted)">23</p></div>
+            <div data-id="sch_d24" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d24__num" data-type="text" style="font-size:14px;color:var(--color-muted)">24</p></div>
+            <div data-id="sch_d25" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d25__num" data-type="text" style="font-size:14px;color:var(--color-muted)">25</p></div>
+            <div data-id="sch_d26" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d26__num" data-type="text" style="font-size:14px;color:var(--color-muted)">26</p></div>
+            <div data-id="sch_d27" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d27__num" data-type="text" style="font-size:14px;color:var(--color-muted)">27</p></div>
+            <div data-id="sch_d28" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d28__num" data-type="text" style="font-size:14px;color:var(--color-muted)">28</p></div>
+          </div>
+
+          <div data-id="sch_week5" data-type="frame" style="display:flex;flex-direction:row;gap:8px;height:160px;flex-shrink:0">
+            <div data-id="sch_d29" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d29__num" data-type="text" style="font-size:14px;color:var(--color-muted)">29</p></div>
+            <div data-id="sch_d30" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_d30__num" data-type="text" style="font-size:14px;color:var(--color-muted)">30</p></div>
+            <div data-id="sch_n1" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_n1__num" data-type="text" style="font-size:14px;color:var(--color-faint)">1</p></div>
+            <div data-id="sch_n2" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_n2__num" data-type="text" style="font-size:14px;color:var(--color-faint)">2</p></div>
+            <div data-id="sch_n3" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_n3__num" data-type="text" style="font-size:14px;color:var(--color-faint)">3</p></div>
+            <div data-id="sch_n4" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_n4__num" data-type="text" style="font-size:14px;color:var(--color-faint)">4</p></div>
+            <div data-id="sch_n5" data-type="frame" style="padding:10px;width:152px;min-width:0;flex:none;background-color:var(--color-panel);border-radius:12px"><p data-id="sch_n5__num" data-type="text" style="font-size:14px;color:var(--color-faint)">5</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- right column -->
+      <div data-id="sch_side" data-type="frame" style="display:flex;flex-direction:column;gap:14px;position:absolute;left:1200px;top:76px;width:388px">
+
+        <div data-id="sch_next" data-type="frame" style="display:flex;flex-direction:column;padding:20px;background-color:#101010;border-radius:16px">
+          <div data-id="sch_next__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+            <p data-id="sch_next__label" data-type="text" style="font-size:13px;color:#b9b3a8">下一条</p>
+            <p data-id="sch_next__today" data-type="text" style="font-size:13px;color:#b9b3a8">今天</p>
+          </div>
+          <p data-id="sch_next__time" data-type="text" style="margin:14px 0 0 0;font-size:44px;font-weight:500;line-height:1.05;color:#ffffff">09:00</p>
+          <p data-id="sch_next__title" data-type="text" style="margin:10px 0 0 0;font-size:15px;color:#f2efe8">发布前 10 分钟检查清单</p>
+          <p data-id="sch_next__meta" data-type="text" style="margin:6px 0 0 0;font-size:11.5px;color:#b9b3a8">小红书 · 待发布 · 11 月 7 日</p>
+        </div>
+
+        <div data-id="sch_queue" data-type="frame" style="display:flex;flex-direction:column;padding:18px;flex-shrink:0;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;overflow:hidden">
+          <div data-id="sch_queue__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px">
+            <p data-id="sch_queue__title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">待排期</p>
+            <p data-id="sch_queue__hint" data-type="text" style="font-size:12px;color:var(--color-muted)">拖到日历上</p>
+          </div>
+          <p data-id="sch_queue__label1" data-type="text" style="margin:18px 0 0 0;font-size:12px;color:var(--color-muted)">已成稿 1</p>
+          <div data-id="sch_queue__draft" data-type="frame" style="display:flex;flex-direction:column;flex-shrink:0;margin:10px 0 0 0">
+            <div data-id="sch_queue__draft_media" data-type="frame" style="width:100%;height:150px;border-radius:10px;background-image:repeating-radial-gradient(circle at 34% 62%, #ffffff00 0 7px, #b9b3a8 7px 8px), linear-gradient(160deg, #faf9f6, #efece5)"></div>
+            <p data-id="sch_queue__draft_title" data-type="text" style="margin:10px 0 0 0;font-size:13px;line-height:1.5;color:var(--color-ink)">40 个独立产品定价页，拼出一张地形图</p>
+          </div>
+          <p data-id="sch_queue__label2" data-type="text" style="margin:18px 0 0 0;font-size:12px;color:var(--color-muted)">灵感 15</p>
+          <div data-id="sch_queue__list" data-type="frame" style="display:flex;flex-direction:column;gap:12px;flex-shrink:0;margin:10px 0 0 0;overflow:hidden">
+            <div data-id="sch_qi_1" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_1_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:linear-gradient(160deg,#dfe7d8,#7fa06a 60%,#2f5a3f)"></div><p data-id="sch_qi_1_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">普通人第一次用 AI 做出能赚钱的...</p></div>
+            <div data-id="sch_qi_2" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_2_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:radial-gradient(circle at 30% 30%,#b9a6f0,#00000000 60%),linear-gradient(150deg,#2a2140,#0f0d18)"></div><p data-id="sch_qi_2_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">好的选题不是想出来的，是被你...</p></div>
+            <div data-id="sch_qi_3" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_3_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:repeating-conic-gradient(#232323 0 25%, #b8b6b0 0 50%);background-size:9px 9px"></div><p data-id="sch_qi_3_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">老城立面：被时间改写的设计系统</p></div>
+            <div data-id="sch_qi_4" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_4_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:radial-gradient(circle at 34% 34%,#b9a6f0,#00000000 60%),linear-gradient(150deg,#efe9fb,#cfc2ef)"></div><p data-id="sch_qi_4_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">工具的终点，是让你忘记它。</p></div>
+            <div data-id="sch_qi_5" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_5_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:linear-gradient(150deg,#f0eeea,#e8892b 62%,#c8452f)"></div><p data-id="sch_qi_5_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">十个让人想截图的数据图</p></div>
+            <div data-id="sch_qi_6" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_6_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:radial-gradient(circle at 40% 36%,#c9dcf5,#00000000 60%),linear-gradient(150deg,#2b3550,#10131f)"></div><p data-id="sch_qi_6_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">评论区问得最多的 5 个问题</p></div>
+            <div data-id="sch_qi_7" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_7_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:radial-gradient(circle at 30% 30%,#f6c9d8,#00000000 60%),linear-gradient(150deg,#fdeef3,#cfc2ef)"></div><p data-id="sch_qi_7_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">你不是缺灵感，你是缺一个存放...</p></div>
+            <div data-id="sch_qi_8" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_8_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:linear-gradient(150deg,#dfe7ea,#8fb9c4 60%,#4a8fa1)"></div><p data-id="sch_qi_8_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">留白的勇气：三个删掉一半功能...</p></div>
+            <div data-id="sch_qi_9" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_9_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:linear-gradient(150deg,#f6e6cf,#e2b98f 60%,#b07a4a)"></div><p data-id="sch_qi_9_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">桌上的橘子：一个关于「注意力...</p></div>
+            <div data-id="sch_qi_10" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0"><div data-id="sch_qi_10_thumb" data-type="frame" style="width:28px;height:28px;border-radius:6px;background-image:linear-gradient(150deg,#e8e4da,#a7a094 60%,#6b655c)"></div><p data-id="sch_qi_10_text" data-type="text" style="overflow:hidden;font-size:13px;color:#1f1f1f;white-space:nowrap">字体的触感：为什么浮雕字让人...</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 复盘 ===================== -->
+  <section data-id="review" data-type="page" data-canvas="3320,0" data-name="复盘" style="width:1600px;height:1100px;background-color:var(--color-bg);overflow:hidden;font-family:var(--font-body)">
+    <div data-id="review__root" data-type="frame" style="position:relative;width:100%;height:100%;overflow:hidden">
+
+      <div data-id="rev_nav" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:6px;position:absolute;left:32px;top:20px;height:54px;background-color:#ffffffcc;border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <p data-id="rev_nav__idea" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">灵感</p>
+        <p data-id="rev_nav__content" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">内容</p>
+        <p data-id="rev_nav__schedule" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">排期</p>
+        <div data-id="rev_nav__active" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 22px;height:40px;background-color:var(--color-ink);border-radius:999px">
+          <p data-id="rev_nav__active_text" data-type="text" style="font-size:14px;font-weight:500;color:#ffffff">复盘</p>
+        </div>
+        <p data-id="rev_nav__style" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">风格</p>
+      </div>
+
+      <div data-id="rev_topbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 32px 0 0;position:absolute;left:0;top:24px;width:100%">
+        <div data-id="rev_topbar__demo" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <p data-id="rev_topbar__demo_text" data-type="text" style="font-size:13px;color:#55524c">示例数据 · 清空</p>
+        </div>
+        <div data-id="rev_topbar__theme" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <svg data-id="rev_topbar__theme_icon" data-type="icon" data-icon="sun" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:#55524c"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+        </div>
+        <div data-id="rev_topbar__assistant" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <svg data-id="rev_topbar__assistant_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#55524c"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+          <p data-id="rev_topbar__assistant_text" data-type="text" style="font-size:13px;color:#55524c">助手</p>
+        </div>
+      </div>
+
+      <!-- hero -->
+      <div data-id="rev_hero" data-type="frame" style="position:absolute;left:12px;top:92px;width:1576px;height:230px;border:1px solid var(--color-line);border-radius:18px;overflow:hidden;background-image:radial-gradient(circle at 84% 16%, #fbe4ee, #00000000 50%), radial-gradient(circle at 62% 92%, #e9effb, #00000000 58%), linear-gradient(112deg, #fdfcfb, #faf8fb 58%, #fdf1f2)">
+
+        <div data-id="rev_hero__line1" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:10px;position:absolute;left:32px;top:34px">
+          <p data-id="rev_hero__l1a" data-type="text" style="font-size:30px;font-weight:600;letter-spacing:0.01em;color:var(--color-ink)">4 条内容</p>
+          <p data-id="rev_hero__l1b" data-type="text" style="font-size:30px;color:var(--color-muted)">带来了</p>
+          <p data-id="rev_hero__l1c" data-type="text" style="font-size:30px;font-weight:600;letter-spacing:0.01em;color:var(--color-ink)">18 万</p>
+          <p data-id="rev_hero__l1d" data-type="text" style="font-size:30px;color:var(--color-muted)">次播放，</p>
+        </div>
+        <div data-id="rev_hero__line2" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;position:absolute;left:32px;top:82px">
+          <p data-id="rev_hero__l2a" data-type="text" style="font-size:30px;color:var(--color-muted)">表现最好的是</p>
+          <div data-id="rev_hero__thumb" data-type="frame" style="width:34px;height:34px;border-radius:50%;background-image:radial-gradient(circle at 30% 26%,#f2c9a0,#00000000 56%),radial-gradient(circle at 74% 72%,#2f6b8f,#00000000 60%),linear-gradient(150deg,#28324a,#0d1017)"></div>
+          <p data-id="rev_hero__l2b" data-type="text" style="font-size:30px;font-weight:600;letter-spacing:0.01em;color:var(--color-ink)">夜班巴士上写完的第一个产品。</p>
+        </div>
+
+        <div data-id="rev_hero__actions" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;position:absolute;left:32px;top:150px">
+          <div data-id="rev_hero__import" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:40px;background-color:var(--color-ink);border-radius:999px">
+            <svg data-id="rev_hero__import_icon" data-type="icon" data-icon="user" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:#ffffff"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <p data-id="rev_hero__import_text" data-type="text" style="font-size:13px;color:#ffffff">导入账号数据</p>
+          </div>
+          <div data-id="rev_hero__entry" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 16px;height:40px;background-color:#ffffff;border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="rev_hero__entry_icon" data-type="icon" data-icon="plus" data-icon-library="lucide" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--color-ink)"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+            <p data-id="rev_hero__entry_text" data-type="text" style="font-size:13px;color:var(--color-ink)">录入数据</p>
+          </div>
+          <div data-id="rev_hero__csv" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 16px;height:40px;background-color:#ffffff;border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="rev_hero__csv_icon" data-type="icon" data-icon="file-text" data-icon-library="lucide" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--color-ink)"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+            <p data-id="rev_hero__csv_text" data-type="text" style="font-size:13px;color:var(--color-ink)">粘贴 CSV</p>
+          </div>
+        </div>
+
+        <div data-id="rev_hero__stats" data-type="frame" style="display:flex;flex-direction:row;gap:44px;position:absolute;left:1276px;top:34px">
+          <div data-id="rev_hero__stat_a" data-type="frame" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <p data-id="rev_hero__stat_a_label" data-type="text" style="font-size:13px;color:var(--color-muted)">互动率</p>
+            <div data-id="rev_hero__stat_a_value" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:2px"><p data-id="rev_hero__stat_a_num" data-type="text" style="font-size:32px;font-weight:500;color:var(--color-ink)">9.0</p><p data-id="rev_hero__stat_a_unit" data-type="text" style="font-size:14px;color:var(--color-muted)">%</p></div>
+          </div>
+          <div data-id="rev_hero__stat_b" data-type="frame" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <p data-id="rev_hero__stat_b_label" data-type="text" style="font-size:13px;color:var(--color-muted)">总互动</p>
+            <div data-id="rev_hero__stat_b_value" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:2px"><p data-id="rev_hero__stat_b_num" data-type="text" style="font-size:32px;font-weight:500;color:var(--color-ink)">1.6</p><p data-id="rev_hero__stat_b_unit" data-type="text" style="font-size:14px;color:var(--color-muted)">万</p></div>
+          </div>
+          <div data-id="rev_hero__stat_c" data-type="frame" style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <p data-id="rev_hero__stat_c_label" data-type="text" style="font-size:13px;color:var(--color-muted)">平台</p>
+            <div data-id="rev_hero__stat_c_value" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:2px"><p data-id="rev_hero__stat_c_num" data-type="text" style="font-size:32px;font-weight:500;color:var(--color-ink)">3</p><p data-id="rev_hero__stat_c_unit" data-type="text" style="font-size:14px;color:var(--color-muted)">个</p></div>
+          </div>
+        </div>
+        <p data-id="rev_hero__sample" data-type="text" style="position:absolute;left:1478px;top:200px;font-size:11px;color:var(--color-faint)">示例数据</p>
+      </div>
+
+      <!-- chart -->
+      <div data-id="rev_chart" data-type="frame" style="display:flex;flex-direction:column;padding:20px;position:absolute;left:12px;top:336px;width:1024px;height:396px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:18px;overflow:hidden">
+        <div data-id="rev_chart__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+          <p data-id="rev_chart__title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">每日播放</p>
+          <div data-id="rev_chart__views" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:3px;height:36px;background-color:var(--color-panel);border:1px solid var(--color-line);border-radius:10px">
+            <div data-id="rev_chart__view_graph" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:28px;background-color:var(--color-card);border-radius:7px;box-shadow:0 1px 2px #00000014"><p data-id="rev_chart__view_graph_text" data-type="text" style="font-size:12px;color:var(--color-ink)">图</p></div>
+            <div data-id="rev_chart__view_table" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:28px;border-radius:7px"><p data-id="rev_chart__view_table_text" data-type="text" style="font-size:12px;color:var(--color-muted)">表</p></div>
+          </div>
+        </div>
+
+        <div data-id="rev_chart__plot" data-type="frame" style="display:flex;flex-direction:column;justify-content:space-between;position:relative;height:268px;margin:22px 0 0 0">
+          <div data-id="rev_chart__grid1" data-type="frame" style="width:100%;height:1px;background-color:#0000000f"></div>
+          <div data-id="rev_chart__grid2" data-type="frame" style="width:100%;height:1px;background-color:#0000000f"></div>
+          <div data-id="rev_chart__grid3" data-type="frame" style="width:100%;height:1px;background-color:#0000000f"></div>
+          <div data-id="rev_chart__area" data-type="frame" style="position:absolute;left:0;top:0;width:100%;height:100%;background-image:url(&quot;data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20900%20268%27%20preserveAspectRatio%3D%27none%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%270%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%233f6fd8%27%20stop-opacity%3D%270.22%27%2F%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%233f6fd8%27%20stop-opacity%3D%270%27%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%27M0%2C188C6.7%2C191.7%2026.7%2C200.5%2040%2C210C53.3%2C219.5%2066.7%2C237.0%2080%2C245C93.3%2C253.0%20108.3%2C255.2%20120%2C258C131.7%2C260.8%20140.0%2C263.3%20150%2C262C160.0%2C260.7%20170.0%2C258.0%20180%2C250C190.0%2C242.0%20200.0%2C215.7%20210%2C214C220.0%2C212.3%20230.0%2C233.7%20240%2C240C250.0%2C246.3%20260.0%2C249.0%20270%2C252C280.0%2C255.0%20290.0%2C256.7%20300%2C258C310.0%2C259.3%20320.0%2C261.0%20330%2C260C340.0%2C259.0%20350.0%2C254.3%20360%2C252C370.0%2C249.7%20380.0%2C268.0%20390%2C246C400.0%2C224.0%20410.0%2C131.0%20420%2C120C430.0%2C109.0%20440.0%2C162.5%20450%2C180C460.0%2C197.5%20470.0%2C214.2%20480%2C225C490.0%2C235.8%20500.0%2C240.5%20510%2C245C520.0%2C249.5%20530.0%2C252.0%20540%2C252C550.0%2C252.0%20560.0%2C247.3%20570%2C245C580.0%2C242.7%20590.0%2C237.2%20600%2C238C610.0%2C238.8%20620.0%2C247.2%20630%2C250C640.0%2C252.8%20650.0%2C255.0%20660%2C255C670.0%2C255.0%20680.0%2C272.5%20690%2C250C700.0%2C227.5%20710.0%2C130.0%20720%2C120C730.0%2C110.0%20740.0%2C170.8%20750%2C190C760.0%2C209.2%20770.0%2C225.0%20780%2C235C790.0%2C245.0%20800.0%2C246.5%20810%2C250C820.0%2C253.5%20830.0%2C254.5%20840%2C256C850.0%2C257.5%20860.0%2C258.2%20870%2C259C880.0%2C259.8%20895.0%2C260.7%20900%2C261L900%2C268L0%2C268Z%27%20fill%3D%27url%28%23g%29%27%2F%3E%3Cpath%20d%3D%27M0%2C188C6.7%2C191.7%2026.7%2C200.5%2040%2C210C53.3%2C219.5%2066.7%2C237.0%2080%2C245C93.3%2C253.0%20108.3%2C255.2%20120%2C258C131.7%2C260.8%20140.0%2C263.3%20150%2C262C160.0%2C260.7%20170.0%2C258.0%20180%2C250C190.0%2C242.0%20200.0%2C215.7%20210%2C214C220.0%2C212.3%20230.0%2C233.7%20240%2C240C250.0%2C246.3%20260.0%2C249.0%20270%2C252C280.0%2C255.0%20290.0%2C256.7%20300%2C258C310.0%2C259.3%20320.0%2C261.0%20330%2C260C340.0%2C259.0%20350.0%2C254.3%20360%2C252C370.0%2C249.7%20380.0%2C268.0%20390%2C246C400.0%2C224.0%20410.0%2C131.0%20420%2C120C430.0%2C109.0%20440.0%2C162.5%20450%2C180C460.0%2C197.5%20470.0%2C214.2%20480%2C225C490.0%2C235.8%20500.0%2C240.5%20510%2C245C520.0%2C249.5%20530.0%2C252.0%20540%2C252C550.0%2C252.0%20560.0%2C247.3%20570%2C245C580.0%2C242.7%20590.0%2C237.2%20600%2C238C610.0%2C238.8%20620.0%2C247.2%20630%2C250C640.0%2C252.8%20650.0%2C255.0%20660%2C255C670.0%2C255.0%20680.0%2C272.5%20690%2C250C700.0%2C227.5%20710.0%2C130.0%20720%2C120C730.0%2C110.0%20740.0%2C170.8%20750%2C190C760.0%2C209.2%20770.0%2C225.0%20780%2C235C790.0%2C245.0%20800.0%2C246.5%20810%2C250C820.0%2C253.5%20830.0%2C254.5%20840%2C256C850.0%2C257.5%20860.0%2C258.2%20870%2C259C880.0%2C259.8%20895.0%2C260.7%20900%2C261%27%20fill%3D%27none%27%20stroke%3D%27%233f6fd8%27%20stroke-width%3D%272.4%27%20stroke-linecap%3D%27round%27%2F%3E%3C%2Fsvg%3E&quot;);background-size:100% 100%"></div>
+          <p data-id="rev_chart__y1" data-type="text" style="position:absolute;left:0;top:0;font-size:11px;color:var(--color-faint)">5.0 万</p>
+          <p data-id="rev_chart__y2" data-type="text" style="position:absolute;left:0;top:120px;font-size:11px;color:var(--color-faint)">2.5 万</p>
+          <p data-id="rev_chart__y3" data-type="text" style="position:absolute;left:0;top:248px;font-size:11px;color:var(--color-faint)">0</p>
+        </div>
+
+        <div data-id="rev_chart__x" data-type="frame" style="display:flex;flex-direction:row;justify-content:space-between;padding:0 0 0 2px;margin:8px 0 0 0">
+          <p data-id="rev_chart__x1" data-type="text" style="font-size:11px;color:var(--color-faint)">10/9</p>
+          <p data-id="rev_chart__x2" data-type="text" style="font-size:11px;color:var(--color-faint)">10/13</p>
+          <p data-id="rev_chart__x3" data-type="text" style="font-size:11px;color:var(--color-faint)">10/17</p>
+          <p data-id="rev_chart__x4" data-type="text" style="font-size:11px;color:var(--color-faint)">10/21</p>
+          <p data-id="rev_chart__x5" data-type="text" style="font-size:11px;color:var(--color-faint)">10/25</p>
+          <p data-id="rev_chart__x6" data-type="text" style="font-size:11px;color:var(--color-faint)">10/29</p>
+          <p data-id="rev_chart__x7" data-type="text" style="font-size:11px;color:var(--color-faint)">11/2</p>
+        </div>
+      </div>
+
+      <!-- platform -->
+      <div data-id="rev_platform" data-type="frame" style="display:flex;flex-direction:column;padding:20px;position:absolute;left:1048px;top:336px;width:540px;height:396px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:18px">
+        <div data-id="rev_platform__head" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;gap:10px">
+          <p data-id="rev_platform__title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">平台分布</p>
+          <p data-id="rev_platform__hint" data-type="text" style="font-size:12px;color:var(--color-muted)">播放</p>
+        </div>
+
+        <div data-id="rev_platform__row1" data-type="frame" style="display:flex;flex-direction:column;gap:10px;margin:44px 0 0 0">
+          <div data-id="rev_platform__row1_head" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;justify-content:space-between"><p data-id="rev_platform__row1_name" data-type="text" style="font-size:15px;color:var(--color-ink)">抖音</p><p data-id="rev_platform__row1_value" data-type="text" style="font-size:16px;font-weight:500;color:var(--color-ink)">8.0 万</p></div>
+          <div data-id="rev_platform__track1" data-type="frame" style="width:100%;height:6px;background-color:#ececec;border-radius:999px;overflow:hidden"><div data-id="rev_platform__fill1" data-type="frame" style="width:100%;height:100%;background-color:var(--color-link);border-radius:999px"></div></div>
+        </div>
+        <div data-id="rev_platform__row2" data-type="frame" style="display:flex;flex-direction:column;gap:10px;margin:34px 0 0 0">
+          <div data-id="rev_platform__row2_head" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;justify-content:space-between"><p data-id="rev_platform__row2_name" data-type="text" style="font-size:15px;color:var(--color-ink)">公众号</p><p data-id="rev_platform__row2_value" data-type="text" style="font-size:16px;font-weight:500;color:var(--color-ink)">6.8 万</p></div>
+          <div data-id="rev_platform__track2" data-type="frame" style="width:100%;height:6px;background-color:#ececec;border-radius:999px;overflow:hidden"><div data-id="rev_platform__fill2" data-type="frame" style="width:85%;height:100%;background-color:var(--color-link);border-radius:999px"></div></div>
+        </div>
+        <div data-id="rev_platform__row3" data-type="frame" style="display:flex;flex-direction:column;gap:10px;margin:34px 0 0 0">
+          <div data-id="rev_platform__row3_head" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;justify-content:space-between"><p data-id="rev_platform__row3_name" data-type="text" style="font-size:15px;color:var(--color-ink)">小红书</p><p data-id="rev_platform__row3_value" data-type="text" style="font-size:16px;font-weight:500;color:var(--color-ink)">2.9 万</p></div>
+          <div data-id="rev_platform__track3" data-type="frame" style="width:100%;height:6px;background-color:#ececec;border-radius:999px;overflow:hidden"><div data-id="rev_platform__fill3" data-type="frame" style="width:36%;height:100%;background-color:var(--color-link);border-radius:999px"></div></div>
+        </div>
+      </div>
+
+      <!-- best content -->
+      <div data-id="rev_best" data-type="frame" style="display:flex;flex-direction:column;padding:20px;position:absolute;left:12px;top:748px;width:1024px;height:340px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:18px;overflow:hidden">
+        <p data-id="rev_best__title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">表现最好的内容</p>
+        <div data-id="rev_best__list" data-type="frame" style="display:flex;flex-direction:column;margin:18px 0 0 0">
+          <div data-id="rev_best__row1" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:14px;height:62px;flex-shrink:0">
+            <p data-id="rev_best__row1_n" data-type="text" style="width:14px;font-size:12px;color:var(--color-faint)">1</p>
+            <div data-id="rev_best__row1_thumb" data-type="frame" style="width:36px;height:36px;border-radius:8px;background-image:radial-gradient(circle at 30% 26%,#f2c9a0,#00000000 56%),radial-gradient(circle at 74% 72%,#2f6b8f,#00000000 60%),linear-gradient(150deg,#28324a,#0d1017)"></div>
+            <div data-id="rev_best__row1_body" data-type="frame" style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <p data-id="rev_best__row1_title" data-type="text" style="overflow:hidden;font-size:14px;font-weight:500;color:var(--color-ink);white-space:nowrap">夜班巴士上写完的第一个产品</p>
+              <p data-id="rev_best__row1_meta" data-type="text" style="font-size:11.5px;color:var(--color-muted)">抖音 · 3,677 赞 · 1,439 收藏</p>
+            </div>
+            <p data-id="rev_best__row1_value" data-type="text" style="margin:0 0 0 auto;font-size:20px;font-weight:500;color:var(--color-ink)">8.0 万</p>
+          </div>
+          <div data-id="rev_best__row2" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:14px;height:62px;flex-shrink:0">
+            <p data-id="rev_best__row2_n" data-type="text" style="width:14px;font-size:12px;color:var(--color-faint)">2</p>
+            <div data-id="rev_best__row2_thumb" data-type="frame" style="width:36px;height:36px;border-radius:8px;background-image:radial-gradient(circle at 64% 20%,#f8e0b4,#00000000 46%),linear-gradient(160deg,#f0a35f,#c9482f 56%,#8e2f24)"></div>
+            <div data-id="rev_best__row2_body" data-type="frame" style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <p data-id="rev_best__row2_title" data-type="text" style="overflow:hidden;font-size:14px;font-weight:500;color:var(--color-ink);white-space:nowrap">一人公司第 300 天：沙漠里的三次转向</p>
+              <p data-id="rev_best__row2_meta" data-type="text" style="font-size:11.5px;color:var(--color-muted)">公众号 · 2,262 赞 · 885 收藏</p>
+            </div>
+            <p data-id="rev_best__row2_value" data-type="text" style="margin:0 0 0 auto;font-size:20px;font-weight:500;color:var(--color-ink)">4.9 万</p>
+          </div>
+          <div data-id="rev_best__row3" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:14px;height:62px;flex-shrink:0">
+            <p data-id="rev_best__row3_n" data-type="text" style="width:14px;font-size:12px;color:var(--color-faint)">3</p>
+            <div data-id="rev_best__row3_thumb" data-type="frame" style="width:36px;height:36px;border-radius:8px;background-image:repeating-linear-gradient(0deg,#e8c25a 0 10px,#24479c 10px 15px,#b03227 15px 19px,#efe7d8 19px 24px)"></div>
+            <div data-id="rev_best__row3_body" data-type="frame" style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <p data-id="rev_best__row3_title" data-type="text" style="overflow:hidden;font-size:14px;font-weight:500;color:var(--color-ink);white-space:nowrap">封面用色实验：高饱和与条纹为什么点击率高</p>
+              <p data-id="rev_best__row3_meta" data-type="text" style="font-size:11.5px;color:var(--color-muted)">小红书 · 1,332 赞 · 1,446 收藏</p>
+            </div>
+            <p data-id="rev_best__row3_value" data-type="text" style="margin:0 0 0 auto;font-size:20px;font-weight:500;color:var(--color-ink)">2.9 万</p>
+          </div>
+          <div data-id="rev_best__row4" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:14px;height:62px;flex-shrink:0">
+            <p data-id="rev_best__row4_n" data-type="text" style="width:14px;font-size:12px;color:var(--color-faint)">4</p>
+            <div data-id="rev_best__row4_thumb" data-type="frame" style="width:36px;height:36px;border-radius:8px;background-image:linear-gradient(160deg,#22201d,#0b0b0b)"></div>
+            <div data-id="rev_best__row4_body" data-type="frame" style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <p data-id="rev_best__row4_title" data-type="text" style="overflow:hidden;font-size:14px;font-weight:500;color:var(--color-ink);white-space:nowrap">慢写：把一个念头养成一篇长文</p>
+              <p data-id="rev_best__row4_meta" data-type="text" style="font-size:11.5px;color:var(--color-muted)">公众号 · 867 赞 · 339 收藏</p>
+            </div>
+            <p data-id="rev_best__row4_value" data-type="text" style="margin:0 0 0 auto;font-size:20px;font-weight:500;color:var(--color-ink)">1.9 万</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- advice -->
+      <div data-id="rev_advice" data-type="frame" style="display:flex;flex-direction:column;padding:20px;position:absolute;left:1048px;top:748px;width:540px;height:340px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:18px">
+        <div data-id="rev_advice__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+          <p data-id="rev_advice__title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">给你的建议</p>
+          <div data-id="rev_advice__again" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 14px;height:34px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="rev_advice__again_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--color-ink)"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+            <p data-id="rev_advice__again_text" data-type="text" style="font-size:12px;color:var(--color-ink)">重新分析</p>
+          </div>
+        </div>
+        <p data-id="rev_advice__body" data-type="text" style="margin:18px 0 0 0;font-size:13px;line-height:1.7;color:var(--color-muted)">点「重新分析」，从现有数据里找出值得坚持的做法。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 风格 ===================== -->
+  <section data-id="style" data-type="page" data-canvas="0,1160" data-name="风格" style="width:1600px;height:1100px;background-color:var(--color-bg);overflow:hidden;font-family:var(--font-body)">
+    <div data-id="style__root" data-type="frame" style="position:relative;width:100%;height:100%;overflow:hidden">
+
+      <div data-id="sty_nav" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:6px;position:absolute;left:32px;top:20px;height:54px;background-color:#ffffffcc;border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <p data-id="sty_nav__idea" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">灵感</p>
+        <p data-id="sty_nav__content" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">内容</p>
+        <p data-id="sty_nav__schedule" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">排期</p>
+        <p data-id="sty_nav__review" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">复盘</p>
+        <div data-id="sty_nav__active" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 22px;height:40px;background-color:var(--color-ink);border-radius:999px">
+          <p data-id="sty_nav__active_text" data-type="text" style="font-size:14px;font-weight:500;color:#ffffff">风格</p>
+        </div>
+      </div>
+
+      <div data-id="sty_topbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 32px 0 0;position:absolute;left:0;top:24px;width:100%">
+        <div data-id="sty_topbar__demo" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <p data-id="sty_topbar__demo_text" data-type="text" style="font-size:13px;color:#55524c">示例数据 · 清空</p>
+        </div>
+        <div data-id="sty_topbar__theme" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <svg data-id="sty_topbar__theme_icon" data-type="icon" data-icon="sun" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:#55524c"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+        </div>
+        <div data-id="sty_topbar__assistant" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+          <svg data-id="sty_topbar__assistant_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#55524c"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+          <p data-id="sty_topbar__assistant_text" data-type="text" style="font-size:13px;color:#55524c">助手</p>
+        </div>
+      </div>
+
+      <!-- hero -->
+      <div data-id="sty_hero" data-type="frame" style="position:absolute;left:12px;top:92px;width:1576px;height:246px;border:1px solid var(--color-line);border-radius:18px;overflow:hidden;background-image:radial-gradient(circle at 82% 18%, #fbe4ee, #00000000 52%), radial-gradient(circle at 56% 92%, #e9effb, #00000000 60%), linear-gradient(112deg, #fdfcfb, #faf8fb 56%, #fdf1f2)">
+        <p data-id="sty_hero__line1" data-type="text" style="position:absolute;left:32px;top:38px;font-size:34px;line-height:1.35;color:var(--color-muted)">选一种预设直接开写，</p>
+        <p data-id="sty_hero__line2" data-type="text" style="position:absolute;left:32px;top:88px;font-size:34px;line-height:1.35;color:var(--color-muted)">或者抓自己的账号，提炼你的风格。</p>
+
+        <div data-id="sty_hero__actions" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;position:absolute;left:32px;top:164px">
+          <div data-id="sty_hero__grab" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:40px;background-color:var(--color-ink);border-radius:999px">
+            <svg data-id="sty_hero__grab_icon" data-type="icon" data-icon="user" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:#ffffff"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <p data-id="sty_hero__grab_text" data-type="text" style="font-size:13px;color:#ffffff">抓我的账号</p>
+          </div>
+          <div data-id="sty_hero__paste" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 16px;height:40px;background-color:#ffffff;border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="sty_hero__paste_icon" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--color-ink)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+            <p data-id="sty_hero__paste_text" data-type="text" style="font-size:13px;color:var(--color-ink)">贴内容</p>
+          </div>
+          <div data-id="sty_hero__link" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 16px;height:40px;background-color:#ffffff;border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="sty_hero__link_icon" data-type="icon" data-icon="share-2" data-icon-library="lucide" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--color-ink)"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"></line><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"></line></svg>
+            <p data-id="sty_hero__link_text" data-type="text" style="font-size:13px;color:var(--color-ink)">贴链接</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- chips -->
+      <div data-id="sty_chips" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:22px;position:absolute;left:12px;top:356px">
+        <div data-id="sty_chip_all" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:36px;background-color:var(--color-ink);border-radius:999px"><p data-id="sty_chip_all_text" data-type="text" style="font-size:13.5px;color:#ffffff">全部</p></div>
+        <p data-id="sty_chip_tech" data-type="text" style="font-size:14px;color:var(--color-muted)">科技数码</p>
+        <p data-id="sty_chip_travel" data-type="text" style="font-size:14px;color:var(--color-muted)">旅行探店</p>
+        <p data-id="sty_chip_vlog" data-type="text" style="font-size:14px;color:var(--color-muted)">Vlog 生活</p>
+        <p data-id="sty_chip_view" data-type="text" style="font-size:14px;color:var(--color-muted)">观点认知</p>
+        <p data-id="sty_chip_howto" data-type="text" style="font-size:14px;color:var(--color-muted)">干货教程</p>
+        <p data-id="sty_chip_review" data-type="text" style="font-size:14px;color:var(--color-muted)">种草测评</p>
+        <p data-id="sty_chip_emotion" data-type="text" style="font-size:14px;color:var(--color-muted)">情感故事</p>
+        <p data-id="sty_chip_news" data-type="text" style="font-size:14px;color:var(--color-muted)">热点资讯</p>
+      </div>
+
+      <p data-id="sty_group_tech" data-type="text" style="position:absolute;left:16px;top:414px;font-size:13.5px;color:var(--color-muted)">科技数码</p>
+
+      <!-- tech cards -->
+      <div data-id="sty_card_ai" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:12px;top:442px;width:382px;height:306px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="sty_card_ai__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="sty_card_ai__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="sty_card_ai__emoji" data-type="text" style="font-size:20px">🤖</p></div>
+          <div data-id="sty_card_ai__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="sty_card_ai__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">AI 科技博主</p>
+            <p data-id="sty_card_ai__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">科技数码</p>
+          </div>
+          <svg data-id="sty_card_ai__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="sty_card_ai__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">把复杂的技术讲成一个能听懂的比喻，再告诉你跟你有什么关系。</p>
+        <div data-id="sty_card_ai__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="sty_card_ai__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">说白了，它不是变聪明了，是终于记得住你刚才说过什么了。</p></div>
+        <div data-id="sty_card_ai__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="sty_card_ai__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+
+      <div data-id="sty_card_digital" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:414px;top:442px;width:382px;height:306px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="sty_card_digital__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="sty_card_digital__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="sty_card_digital__emoji" data-type="text" style="font-size:20px">📱</p></div>
+          <div data-id="sty_card_digital__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="sty_card_digital__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">数码测评博主</p>
+            <p data-id="sty_card_digital__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">科技数码</p>
+          </div>
+          <svg data-id="sty_card_digital__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="sty_card_digital__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">不念参数，只讲用了两周之后，哪里真香，哪里想退货。</p>
+        <div data-id="sty_card_digital__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="sty_card_digital__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">实测一天两充，厂商写的三十小时，大概只在说明书里成立。</p></div>
+        <div data-id="sty_card_digital__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="sty_card_digital__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+
+      <p data-id="sty_group_travel" data-type="text" style="position:absolute;left:16px;top:778px;font-size:13.5px;color:var(--color-muted)">旅行探店</p>
+
+      <div data-id="sty_card_travel" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:12px;top:806px;width:382px;height:290px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="sty_card_travel__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="sty_card_travel__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="sty_card_travel__emoji" data-type="text" style="font-size:20px">✈️</p></div>
+          <div data-id="sty_card_travel__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="sty_card_travel__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">旅行博主</p>
+            <p data-id="sty_card_travel__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">旅行探店</p>
+          </div>
+          <svg data-id="sty_card_travel__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="sty_card_travel__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">不列攻略清单，带你站到那个地方，再把真正有用的细节交给你。</p>
+        <div data-id="sty_card_travel__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="sty_card_travel__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">那天早上六点的码头没有游客，只有卸鱼的声音和一碗烫嘴的粉。</p></div>
+        <div data-id="sty_card_travel__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="sty_card_travel__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+
+      <div data-id="sty_card_food" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:414px;top:806px;width:382px;height:290px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="sty_card_food__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="sty_card_food__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="sty_card_food__emoji" data-type="text" style="font-size:20px">🍜</p></div>
+          <div data-id="sty_card_food__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="sty_card_food__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">美食探店博主</p>
+            <p data-id="sty_card_food__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">旅行探店</p>
+          </div>
+          <svg data-id="sty_card_food__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="sty_card_food__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">一口下去是什么感觉，值不值这个价，排队多久，全都说清楚。</p>
+        <div data-id="sty_card_food__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="sty_card_food__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">这一口是焦脆的，咬开之后油香才慢慢出来。</p></div>
+        <div data-id="sty_card_food__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="sty_card_food__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ===================== 风格（下半段） ===================== -->
+  <section data-id="style_lower" data-type="page" data-canvas="1660,1160" data-name="风格 · 规则" style="width:1600px;height:1100px;background-color:var(--color-bg);overflow:hidden;font-family:var(--font-body)">
+    <div data-id="style_lower__root" data-type="frame" style="position:relative;width:100%;height:100%;overflow:hidden">
+
+      <div data-id="styl_nav" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:6px;position:absolute;left:32px;top:20px;height:54px;background-color:#ffffffcc;border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <p data-id="styl_nav__idea" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">灵感</p>
+        <p data-id="styl_nav__content" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">内容</p>
+        <p data-id="styl_nav__schedule" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">排期</p>
+        <p data-id="styl_nav__review" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">复盘</p>
+        <div data-id="styl_nav__active" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 22px;height:40px;background-color:var(--color-ink);border-radius:999px"><p data-id="styl_nav__active_text" data-type="text" style="font-size:14px;font-weight:500;color:#ffffff">风格</p></div>
+      </div>
+      <div data-id="styl_topbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 32px 0 0;position:absolute;left:0;top:24px;width:100%">
+        <div data-id="styl_topbar__demo" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)"><p data-id="styl_topbar__demo_text" data-type="text" style="font-size:13px;color:#55524c">示例数据 · 清空</p></div>
+        <div data-id="styl_topbar__theme" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)"><svg data-id="styl_topbar__theme_icon" data-type="icon" data-icon="sun" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:#55524c"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></div>
+        <div data-id="styl_topbar__assistant" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)"><svg data-id="styl_topbar__assistant_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#55524c"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg><p data-id="styl_topbar__assistant_text" data-type="text" style="font-size:13px;color:#55524c">助手</p></div>
+      </div>
+
+      <p data-id="styl_group_emotion" data-type="text" style="position:absolute;left:16px;top:104px;font-size:13.5px;color:var(--color-muted)">情感故事</p>
+      <div data-id="styl_card_moon" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:12px;top:132px;width:382px;height:300px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="styl_card_moon__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="styl_card_moon__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="styl_card_moon__emoji" data-type="text" style="font-size:20px">🌙</p></div>
+          <div data-id="styl_card_moon__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="styl_card_moon__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">情感故事博主</p>
+            <p data-id="styl_card_moon__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">情感故事</p>
+          </div>
+          <svg data-id="styl_card_moon__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="styl_card_moon__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">像深夜跟朋友聊天，从一件小事讲到一个想明白的道理。</p>
+        <div data-id="styl_card_moon__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="styl_card_moon__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">那天晚上十一点，我们坐在车里，谁都没先开口。</p></div>
+        <div data-id="styl_card_moon__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="styl_card_moon__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+      <div data-id="styl_card_kid" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:414px;top:132px;width:382px;height:300px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="styl_card_kid__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="styl_card_kid__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="styl_card_kid__emoji" data-type="text" style="font-size:20px">🧸</p></div>
+          <div data-id="styl_card_kid__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="styl_card_kid__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">亲子成长博主</p>
+            <p data-id="styl_card_kid__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">情感故事</p>
+          </div>
+          <svg data-id="styl_card_kid__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="styl_card_kid__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">记录孩子的一句话和一件小事，再讲家长自己学到了什么。</p>
+        <div data-id="styl_card_kid__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="styl_card_kid__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">今天他说，妈妈你生气的时候，声音会变小，我更害怕。</p></div>
+        <div data-id="styl_card_kid__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="styl_card_kid__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+
+      <p data-id="styl_group_news" data-type="text" style="position:absolute;left:16px;top:462px;font-size:13.5px;color:var(--color-muted)">热点资讯</p>
+      <div data-id="styl_card_news" data-type="frame" style="display:flex;flex-direction:column;padding:18px;position:absolute;left:12px;top:490px;width:382px;height:300px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden">
+        <div data-id="styl_card_news__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <div data-id="styl_card_news__icon" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-panel);border-radius:12px"><p data-id="styl_card_news__emoji" data-type="text" style="font-size:20px">📰</p></div>
+          <div data-id="styl_card_news__name_box" data-type="frame" style="display:flex;flex-direction:column;gap:4px">
+            <p data-id="styl_card_news__name" data-type="text" style="font-size:16px;font-weight:600;color:var(--color-ink)">热点快评博主</p>
+            <p data-id="styl_card_news__cat" data-type="text" style="font-size:12px;color:var(--color-muted)">热点资讯</p>
+          </div>
+          <svg data-id="styl_card_news__edit" data-type="icon" data-icon="pen-line" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;margin:0 0 0 auto;color:var(--color-muted)"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>
+        </div>
+        <p data-id="styl_card_news__desc" data-type="text" style="margin:16px 0 0 0;font-size:13px;line-height:1.7;color:#3d3d38">一分钟讲清发生了什么，分清事实和观点，再说一个别人没提的角度。</p>
+        <div data-id="styl_card_news__quote" data-type="frame" style="padding:0 0 0 12px;margin:14px 0 0 0;border-width:0 0 0 2px;border-style:solid;border-color:#d8d4cc"><p data-id="styl_card_news__quote_text" data-type="text" style="font-size:13px;line-height:1.8;color:var(--color-muted)">目前能确认的只有两件事，其他都还只是传闻。</p></div>
+        <div data-id="styl_card_news__use" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:36px;margin:auto 0 0 0;background-color:var(--color-ink);border-radius:999px"><p data-id="styl_card_news__use_text" data-type="text" style="font-size:13px;color:#ffffff">用这个写</p></div>
+      </div>
+
+      <div data-id="styl_rules" data-type="frame" style="display:flex;flex-direction:column;padding:18px 22px;position:absolute;left:12px;top:810px;width:1576px;height:276px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:18px">
+        <div data-id="styl_rules__head" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px">
+          <p data-id="styl_rules__title" data-type="text" style="font-size:17px;font-weight:600;color:var(--color-ink)">写作规则</p>
+          <p data-id="styl_rules__hint" data-type="text" style="font-size:12px;color:var(--color-muted)">每种风格都会遵守</p>
+          <div data-id="styl_rules__learn" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 14px;height:34px;margin:0 0 0 auto;border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="styl_rules__learn_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--color-ink)"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+            <p data-id="styl_rules__learn_text" data-type="text" style="font-size:12px;color:var(--color-ink)">从数据中学习</p>
+          </div>
+          <div data-id="styl_rules__export" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 14px;height:34px;border:1px solid var(--color-line);border-radius:999px">
+            <svg data-id="styl_rules__export_icon" data-type="icon" data-icon="zap" data-icon-library="lucide" viewBox="0 0 24 24" style="width:13px;height:13px;color:var(--color-ink)"><path d="M15.914 4a1.5 1.5 0 00-2.474-1.561l-9 9A1.5 1.5 0 005.5 14h4.002a.5.5 0 01.471.666L8.086 20a1.5 1.5 0 002.475 1.56l9-9A1.5 1.5 0 0018.5 10h-3.997a.5.5 0 01-.472-.667z"></path></svg>
+            <p data-id="styl_rules__export_text" data-type="text" style="font-size:12px;color:var(--color-ink)">导出为 Skill</p>
+          </div>
+        </div>
+        <div data-id="styl_rules__list" data-type="frame" style="display:flex;flex-direction:column;gap:10px;margin:12px 0 0 0">
+        <div data-id="styl_r1" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px;flex-shrink:0">
+          <div data-id="styl_r1__body" data-type="frame" style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <p data-id="styl_r1__title" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-ink)">开头先给数字</p>
+            <p data-id="styl_r1__desc" data-type="text" style="font-size:13px;line-height:1.6;color:var(--color-muted)">开头 50 字内出现一个具体数字或结果，不做背景铺垫。</p>
+          </div>
+          <div data-id="styl_r1__toggle" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:34px;flex-shrink:0;margin:0 0 0 auto;border:1px solid var(--color-line);border-radius:999px"><p data-id="styl_r1__toggle_text" data-type="text" style="font-size:13px;color:var(--color-muted)">停用</p></div>
+        </div>
+        <div data-id="styl_r2" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px;flex-shrink:0">
+          <div data-id="styl_r2__body" data-type="frame" style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <p data-id="styl_r2__title" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-ink)">一篇只讲一件事</p>
+            <p data-id="styl_r2__desc" data-type="text" style="font-size:13px;line-height:1.6;color:var(--color-muted)">删掉所有不服务于核心观点的段落，宁可拆成系列。</p>
+          </div>
+          <div data-id="styl_r2__toggle" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:34px;flex-shrink:0;margin:0 0 0 auto;border:1px solid var(--color-line);border-radius:999px"><p data-id="styl_r2__toggle_text" data-type="text" style="font-size:13px;color:var(--color-muted)">停用</p></div>
+        </div>
+        <div data-id="styl_r3" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:12px;flex-shrink:0">
+          <div data-id="styl_r3__body" data-type="frame" style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <p data-id="styl_r3__title" data-type="text" style="font-size:15px;font-weight:600;color:var(--color-ink)">标题里写读者原话</p>
+            <p data-id="styl_r3__desc" data-type="text" style="font-size:13px;line-height:1.6;color:var(--color-muted)">从评论区摘原句放进标题，比自己概括的点击更高。</p>
+          </div>
+          <div data-id="styl_r3__toggle" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 16px;width:fit-content;height:34px;flex-shrink:0;margin:0 0 0 auto;border:1px solid var(--color-line);border-radius:999px"><p data-id="styl_r3__toggle_text" data-type="text" style="font-size:13px;color:var(--color-muted)">停用</p></div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ===================== 灵感 ===================== -->
+  <section data-id="inspiration" data-type="page" data-canvas="3320,1160" data-name="灵感" style="width:1600px;height:1100px;background-color:#fbfbfa;overflow:hidden;font-family:var(--font-body);background-image:radial-gradient(circle, #dedad2 1px, #00000000 1.6px);background-size:26px 26px">
+    <div data-id="inspiration__root" data-type="frame" style="position:relative;width:100%;height:100%;overflow:hidden">
+
+      <div data-id="insp_nav" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:6px;position:absolute;left:32px;top:20px;height:54px;background-color:#ffffffcc;border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)">
+        <div data-id="insp_nav__active" data-type="frame" style="display:flex;align-items:center;justify-content:center;padding:0 22px;height:40px;background-color:var(--color-ink);border-radius:999px"><p data-id="insp_nav__active_text" data-type="text" style="font-size:14px;font-weight:500;color:#ffffff">灵感</p></div>
+        <p data-id="insp_nav__content" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">内容</p>
+        <p data-id="insp_nav__schedule" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">排期</p>
+        <p data-id="insp_nav__review" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">复盘</p>
+        <p data-id="insp_nav__style" data-type="text" style="padding:0 18px;font-size:14px;line-height:40px;color:var(--color-muted)">风格</p>
+      </div>
+
+      <div data-id="insp_topbar" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:flex-end;gap:10px;padding:0 32px 0 0;position:absolute;left:0;top:24px;width:100%">
+        <div data-id="insp_topbar__demo" data-type="frame" style="display:flex;align-items:center;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)"><p data-id="insp_topbar__demo_text" data-type="text" style="font-size:13px;color:#55524c">示例数据 · 清空</p></div>
+        <div data-id="insp_topbar__theme" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)"><svg data-id="insp_topbar__theme_icon" data-type="icon" data-icon="sun" data-icon-library="lucide" viewBox="0 0 24 24" style="width:17px;height:17px;color:#55524c"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg></div>
+        <div data-id="insp_topbar__assistant" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;padding:0 18px;height:44px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-pill)"><svg data-id="insp_topbar__assistant_icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#55524c"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg><p data-id="insp_topbar__assistant_text" data-type="text" style="font-size:13px;color:#55524c">助手</p></div>
+      </div>
+
+      <!-- cards -->
+      <div data-id="insp_card_check" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:18px 20px;position:absolute;left:48px;top:132px;width:300px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);transform:rotate(-0.9deg)">
+        <p data-id="insp_card_check__title" data-type="text" style="font-size:15px;font-weight:600;line-height:1.6;color:#141414">发布前 10 分钟检查清单</p>
+        <p data-id="insp_card_check__body" data-type="text" style="font-size:12px;line-height:1.85;color:var(--color-muted)">标题有没有动词；前三秒说人话；封面手机上看得清；结尾只留一个行动。</p>
+        <div data-id="insp_card_check__meta" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+          <div data-id="insp_card_check__tag" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px"><div data-id="insp_card_check__dot" data-type="frame" style="width:6px;height:6px;background-color:#8454e4;border-radius:50%"></div><p data-id="insp_card_check__tagtext" data-type="text" style="font-size:11px;color:var(--color-faint)">自用清单</p></div>
+          <p data-id="insp_card_check__due" data-type="text" style="font-size:11px;color:var(--color-faint)">明天</p>
+        </div>
+      </div>
+
+      <div data-id="insp_card_link" data-type="frame" style="display:flex;flex-direction:column;position:absolute;left:952px;top:-22px;width:300px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);transform:rotate(1.2deg);overflow:hidden">
+        <div data-id="insp_card_link__media" data-type="frame" style="width:100%;height:150px;background-image:repeating-radial-gradient(circle at 38% 46%, #d6cec1 0, #d6cec1 1px, #f1ece3 1px, #f1ece3 7px)"></div>
+        <div data-id="insp_card_link__body" data-type="frame" style="display:flex;flex-direction:column;gap:10px;padding:16px">
+          <p data-id="insp_card_link__title" data-type="text" style="font-size:14px;font-weight:600;line-height:1.6;color:#141414">40 个独立产品定价页，拼出一张地形图</p>
+          <div data-id="insp_card_link__meta" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:space-between">
+            <div data-id="insp_card_link__src" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px"><div data-id="insp_card_link__dot" data-type="frame" style="width:5px;height:5px;background-color:#3c6ce4;border-radius:50%"></div><p data-id="insp_card_link__site" data-type="text" style="font-size:11px;color:var(--color-faint)">example.com</p></div>
+            <p data-id="insp_card_link__status" data-type="text" style="font-size:11px;color:var(--color-faint)">已成稿</p>
+          </div>
+        </div>
+      </div>
+
+      <div data-id="insp_card_quote" data-type="frame" style="display:flex;flex-direction:column;gap:18px;padding:26px 26px 20px 26px;position:absolute;left:1000px;top:410px;width:320px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);transform:rotate(-1deg)">
+        <p data-id="insp_card_quote__text" data-type="text" style="font-size:17px;line-height:1.9;color:#1c1c1c">好的选题不是想出来的，是被你反复抱怨出来的。</p>
+        <div data-id="insp_card_quote__tag" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px"><div data-id="insp_card_quote__dot" data-type="frame" style="width:6px;height:6px;background-color:#8454e4;border-radius:50%"></div><p data-id="insp_card_quote__tagtext" data-type="text" style="font-size:11px;color:var(--color-faint)">读书笔记</p></div>
+      </div>
+
+      <div data-id="insp_card_dark" data-type="frame" style="display:flex;flex-direction:column;position:absolute;left:1436px;top:165px;width:196px;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:16px;box-shadow:var(--shadow-card);transform:rotate(1deg);overflow:hidden">
+        <div data-id="insp_card_dark__media" data-type="frame" style="width:100%;height:296px;background-image:repeating-linear-gradient(90deg, #0f0f0f 0, #0f0f0f 22px, #00000000 22px, #00000000 27px), repeating-linear-gradient(0deg, #0f0f0f 0, #0f0f0f 20px, #2e2e2e 20px, #2e2e2e 26px)"></div>
+        <div data-id="insp_card_dark__body" data-type="frame" style="display:flex;flex-direction:column;gap:8px;padding:14px 16px 18px 16px">
+          <p data-id="insp_card_dark__title" data-type="text" style="font-size:12px;line-height:1.6;color:#141414">老城立面：系统</p>
+          <p data-id="insp_card_dark__tag" data-type="text" style="font-size:11px;color:var(--color-faint)">街拍</p>
+        </div>
+      </div>
+
+      <div data-id="insp_card_waves" data-type="frame" style="position:absolute;left:190px;top:700px;width:300px;height:210px;border-radius:16px;transform:rotate(-1.5deg);overflow:hidden;background-image:repeating-linear-gradient(0deg, #cfe6e9 0, #cfe6e9 7px, #8fb9c4 7px, #8fb9c4 13px, #4a8fa1 13px, #4a8fa1 24px)"></div>
+
+      <div data-id="insp_card_plasma" data-type="frame" style="position:absolute;left:600px;top:688px;width:320px;height:232px;border-radius:16px;transform:rotate(1.2deg);overflow:hidden;background-image:radial-gradient(circle at 28% 26%, #6fbf9e, #00000000 58%), radial-gradient(circle at 74% 62%, #6f5bb0, #00000000 52%), linear-gradient(140deg, #0e2330, #14323f)"></div>
+
+      <div data-id="insp_card_orange" data-type="frame" style="position:absolute;left:1180px;top:690px;width:220px;height:205px;border-radius:16px;transform:rotate(-1.6deg);overflow:hidden;background-image:radial-gradient(circle at 72% 34%, #f2b23e, #f2b23e 40px, #00000000 41px), linear-gradient(160deg, #f2711c, #e8541f)"></div>
+
+      <!-- hero -->
+      <div data-id="insp_hero" data-type="frame" style="display:flex;flex-direction:column;position:absolute;left:372px;top:320px;width:620px">
+        <p data-id="insp_hero__date" data-type="text" style="font-size:12px;letter-spacing:0.08em;color:var(--color-faint)">2026 · 11 月 6 日 · 周五</p>
+
+        <div data-id="insp_hero__line1" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline;margin:20px 0 0 0">
+          <p data-id="insp_hero__l1a" data-type="text" style="font-family:var(--font-serif);font-size:38px;line-height:1.45;color:#7e8184;white-space:pre-wrap">还有 </p>
+          <p data-id="insp_hero__l1b" data-type="text" style="font-family:var(--font-serif);font-size:38px;font-weight:600;line-height:1.45;color:var(--color-ink);white-space:pre-wrap">12 个灵感</p>
+          <p data-id="insp_hero__l1c" data-type="text" style="font-family:var(--font-serif);font-size:38px;line-height:1.45;color:#7e8184;white-space:pre-wrap"> 等你成稿，</p>
+        </div>
+        <div data-id="insp_hero__line2" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline">
+          <p data-id="insp_hero__l2a" data-type="text" style="font-family:var(--font-serif);font-size:38px;font-weight:600;line-height:1.45;color:var(--color-ink);white-space:pre-wrap">4 条内容</p>
+          <p data-id="insp_hero__l2b" data-type="text" style="font-family:var(--font-serif);font-size:38px;line-height:1.45;color:#7e8184;white-space:pre-wrap"> 排在本周，</p>
+        </div>
+        <div data-id="insp_hero__line3" data-type="frame" style="display:flex;flex-direction:row;align-items:baseline">
+          <p data-id="insp_hero__l3a" data-type="text" style="font-family:var(--font-serif);font-size:38px;line-height:1.45;color:#7e8184;white-space:pre-wrap">你已经连续记录</p>
+          <p data-id="insp_hero__l3b" data-type="text" style="font-family:var(--font-serif);font-size:38px;font-weight:600;line-height:1.45;color:var(--color-ink);white-space:pre-wrap"> 14 天。</p>
+        </div>
+
+        <div data-id="insp_capture" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:10px;padding:0 7px 0 18px;width:580px;height:54px;margin:30px 0 0 0;background-color:var(--color-card);border:1px solid var(--color-line);border-radius:999px;box-shadow:var(--shadow-card)">
+          <svg data-id="insp_capture__icon" data-type="icon" data-icon="sparkles" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:var(--color-faint)"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+          <p data-id="insp_capture__text" data-type="text" style="font-size:14px;color:var(--color-muted);white-space:nowrap">记下一个灵感，或贴一个链接</p>
+          <div data-id="insp_capture__spacer" data-type="frame" style="flex:1 1 auto"></div>
+          <div data-id="insp_capture__send" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;background-color:#dedede;border-radius:50%">
+            <svg data-id="insp_capture__arrow" data-type="icon" data-icon="arrow-right" data-icon-library="lucide" viewBox="0 0 24 24" style="width:18px;height:18px;color:#ffffff"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </div>
+        </div>
+
+        <div data-id="insp_thumbs" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:8px;margin:18px 0 0 0">
+          <div data-id="insp_thumb1" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#e8c8a0,#a9713f)"></div>
+          <div data-id="insp_thumb2" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#c9c6c0,#4c4a47)"></div>
+          <div data-id="insp_thumb3" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#9fc6d4,#3d6f83)"></div>
+          <div data-id="insp_thumb4" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#f4d9e2,#c58fa6)"></div>
+          <div data-id="insp_thumb5" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#dcd9d2,#8e8b83)"></div>
+          <div data-id="insp_thumb6" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#bfe4e0,#2f8f86)"></div>
+          <div data-id="insp_thumb7" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#7bd3b4,#1d6b57)"></div>
+          <div data-id="insp_thumb8" data-type="frame" style="width:40px;height:40px;border-radius:8px;background-image:linear-gradient(160deg,#a9e6cf,#2f7d63)"></div>
+        </div>
+      </div>
+
+      <!-- floating chrome -->
+      <div data-id="insp_dock" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:6px;padding:0 8px;position:absolute;left:430px;top:980px;width:620px;height:62px;background-color:#ffffffb8;border:1px solid #ffffffcc;border-radius:999px;box-shadow:var(--shadow-pill);backdrop-filter:blur(20px) saturate(1.4)">
+        <div data-id="insp_dock__views" data-type="frame" style="display:flex;flex-direction:row;align-items:center;gap:2px;padding:3px;background-color:#efeeea;border-radius:999px">
+          <div data-id="insp_dock__grid" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background-color:var(--color-card);border-radius:50%;box-shadow:0 1px 2px #00000014"><svg data-id="insp_dock__grid_icon" data-type="icon" data-icon="layout-dashboard" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#333333"><rect height="9" rx="1" width="7" x="3" y="3"></rect><rect height="5" rx="1" width="7" x="14" y="3"></rect><rect height="9" rx="1" width="7" x="14" y="12"></rect><rect height="5" rx="1" width="7" x="3" y="16"></rect></svg></div>
+          <div data-id="insp_dock__list" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%"><svg data-id="insp_dock__list_icon" data-type="icon" data-icon="file-text" data-icon-library="lucide" viewBox="0 0 24 24" style="width:16px;height:16px;color:#8a8a8a"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg></div>
+        </div>
+        <div data-id="insp_dock__chip_all" data-type="frame" style="display:flex;align-items:center;padding:0 15px;height:34px;background-color:var(--color-ink);border-radius:999px"><p data-id="insp_dock__chip_all_text" data-type="text" style="font-size:13px;color:#ffffff">全部</p></div>
+        <p data-id="insp_dock__chip_photo" data-type="text" style="padding:0 12px;font-size:13px;line-height:34px;color:var(--color-muted)">图片</p>
+        <p data-id="insp_dock__chip_video" data-type="text" style="padding:0 12px;font-size:13px;line-height:34px;color:var(--color-muted)">视频</p>
+        <p data-id="insp_dock__chip_web" data-type="text" style="padding:0 12px;font-size:13px;line-height:34px;color:var(--color-muted)">网页</p>
+        <p data-id="insp_dock__chip_quote" data-type="text" style="padding:0 12px;font-size:13px;line-height:34px;color:var(--color-muted)">金句</p>
+        <p data-id="insp_dock__chip_note" data-type="text" style="padding:0 12px;font-size:13px;line-height:34px;color:var(--color-muted)">笔记</p>
+        <div data-id="insp_dock__spacer" data-type="frame" style="flex:1 1 auto"></div>
+        <div data-id="insp_dock__fab" data-type="frame" style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;background-color:var(--color-ink);border-radius:50%"><svg data-id="insp_dock__fab_icon" data-type="icon" data-icon="plus" data-icon-library="lucide" viewBox="0 0 24 24" style="width:20px;height:20px;color:#ffffff"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg></div>
+      </div>
+
+      <div data-id="insp_zoom" data-type="frame" style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;position:absolute;left:1180px;top:990px;width:128px;height:46px;background-color:#ffffffb8;border:1px solid #ffffffcc;border-radius:999px;box-shadow:var(--shadow-pill);backdrop-filter:blur(20px) saturate(1.4)">
+        <p data-id="insp_zoom__minus" data-type="text" style="font-size:14px;color:var(--color-muted)">−</p>
+        <svg data-id="insp_zoom__gear" data-type="icon" data-icon="settings" data-icon-library="lucide" viewBox="0 0 24 24" style="width:15px;height:15px;color:#4b4b4b"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"></path><circle cx="12" cy="12" r="3"></circle></svg>
+        <p data-id="insp_zoom__plus" data-type="text" style="font-size:14px;color:var(--color-muted)">+</p>
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>

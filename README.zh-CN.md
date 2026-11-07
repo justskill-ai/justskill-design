@@ -142,6 +142,7 @@ design.html  ──validate──▶  diagnostics       (what is wrong, and what
 |---|---|---|
 | `examples/design.html` | 1 页，22 个元素 | 还称得上是设计的最小文件长什么样：一个 header、一个 hero、两张数据卡、一个列表、三个 lucide 图标、一个 token 块。 |
 | `examples/alarm.html` | 6 页，447 个元素 | 手写的 App 长什么样：闹钟列表、带滚轮选择器的编辑器、响铃页、就寝、计时器、设置。它的颜色是 14 个 token，所以换主题只要一条 op——`node design.mjs tokens examples/alarm.html set color.accent '#7c3aed'`。它也是按这个 skill 要求的方式写出来的：用 `add` 一页页加，用 `set` 调间距，画布一直开着，没有整文件重写。 |
+| `examples/dsh-media-desk.html` | 6 页，766 个元素 | 一个真实产品在这个格式里长什么样：带五列看板的内容页、带排期卡片的月历、含面积图/平台分布条/最佳内容榜的复盘页、以及预设风格库。图全是渐变——棋盘格用 `repeating-conic-gradient`，山脊和沙丘用多层 `linear-gradient`——所以不需要任何图片文件，也能一页一个文件导成 PNG 或 SVG。 |
 | `examples/miniprogram.html` | 26 页，2197 个元素 | `.pen` 文件会变成什么样：一个真实的 705 KB 文件，26 个画板，239 个引用被内联，其中 140 个带覆盖，还有一处被明确记录的丢失（`perCornerRadius`）。用 `node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram` 重新生成；提交的副本一旦过期，`test/pen-reader.test.mjs` 就会失败。 |
 
 像一个人看设计那样打开它。画布会写回同一个文件，所以一次拖拽和一条命令就是同一次编辑：
