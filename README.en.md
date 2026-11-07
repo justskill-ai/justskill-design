@@ -17,8 +17,8 @@ there is one Skill, and one HTML file.
 **What it is.** A design tool that lives in your repository, not in a design app.
 Your agent runs the skill, designs the screens, and leaves one HTML file behind.
 You review those screens on a local canvas, approve them, and the validated file
-becomes the spec the code is written against. You never draw — the agent draws,
-you judge.
+becomes the spec the code is written against.<br>
+You never draw — the agent draws, you judge.
 
 </div>
 
