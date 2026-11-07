@@ -146,9 +146,9 @@ node ~/Developer/justskill-design/scripts/install.mjs
 
 ## 运行时到底需要什么
 
-skill 本身很小：`SKILL.md`、`references/`、`design.mjs`、`lib/`、`canvas/`，大约 1 MB。仓库里还带着一些没有任何命令会读取的媒体文件：两支演示 GIF（中英各一支，各约 2.8 MB）、两支演示 MP4（各约 1.2 MB），以及截图（约 1 MB，包括案例墙）。
+skill 本身很小：`SKILL.md`、`references/`、`design.mjs`、`lib/`、`canvas/`，大约 1 MB。仓库里还带着一些没有任何命令会读取的媒体文件：两支演示 GIF（中英各一支，各约 3.3 MB）、两支演示 MP4（各约 1.3 MB），以及截图（约 1 MB，包括案例墙）。
 
-如果 skill 是复制进 skills 目录的（而不是 symlink 到 checkout），安装后可以删掉这些，腾出约 9 MB，`validate`、`set`、`serve`、`export` 都不受影响：
+如果 skill 是复制进 skills 目录的（而不是 symlink 到 checkout），安装后可以删掉这些，腾出约 10 MB，`validate`、`set`、`serve`、`export` 都不受影响：
 
 ```sh
 rm -rf docs/*.gif docs/*.mp4 docs/*.png

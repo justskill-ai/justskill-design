@@ -414,12 +414,12 @@ The skill runs from `SKILL.md`, `references/`, `design.mjs`, `lib/` and
 
 | Media only | What it is | Size |
 |---|---|---|
-| `docs/justskill-demo.gif`, `docs/justskill-demo.mp4` | the README demo (English) | ~4 MB |
-| `docs/justskill-demo-zh.gif`, `docs/justskill-demo-zh.mp4` | the same demo in Chinese, for the Chinese README | ~4 MB |
+| `docs/justskill-demo.gif`, `docs/justskill-demo.mp4` | the README demo (English, 30s) | ~4.6 MB |
+| `docs/justskill-demo-zh.gif`, `docs/justskill-demo-zh.mp4` | the same demo in Chinese, for the Chinese README | ~4.6 MB |
 | `docs/*.png` | the screenshots, including the case wall | ~1 MB |
 
 If the skill was copied into the skills directory (not symlinked to a checkout),
-the user can remove those and free about 9 MB; nothing in `validate`, `set`,
+the user can remove those and free about 10 MB; nothing in `validate`, `set`,
 `serve` or `export` changes, and every other file is text:
 
 ```sh

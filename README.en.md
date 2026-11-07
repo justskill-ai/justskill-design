@@ -46,7 +46,7 @@ approve them, and it implements them in your stack.
 
 ![justSkill in motion: a prompt is copied into the agent, the agent designs the screens, then you open the canvas and review them](docs/justskill-demo.gif)
 
-[Watch the full 24-second demo (MP4)](docs/justskill-demo.mp4)
+[Watch the full 30-second demo (MP4)](docs/justskill-demo.mp4)
 
 ## What lives in your repo
 

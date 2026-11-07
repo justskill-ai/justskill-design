@@ -38,7 +38,7 @@ Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "
 
 ![justSkill 动起来的样子：把一段提示词复制给 agent，agent 设计页面，然后你打开画布检查确认](docs/justskill-demo-zh.gif)
 
-[看完整的 24 秒演示（MP4）](docs/justskill-demo-zh.mp4)
+[看完整的 30 秒演示（MP4）](docs/justskill-demo-zh.mp4)
 
 ## 你的仓库里有什么
 
@@ -118,7 +118,7 @@ npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justs
 它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的
 agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`SKILL.md`、
 `references/`、`design.mjs`、`lib/`、`canvas/`）；演示视频和截图是给人看的，复制安装
-的话可以删掉腾出约 9 MB——agent 会主动提出。
+的话可以删掉腾出约 10 MB——agent 会主动提出。
 
 ## 技术细节
 
