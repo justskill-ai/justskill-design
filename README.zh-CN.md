@@ -5,279 +5,132 @@
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 让 AI Agent 把你的产品从想法做到代码
+**Design, just a skill.**
 
-**你在对话里确认功能，在画布上审批页面。**
+**设计软件新范式。**
 
-> **Design, just a skill.**
->
-> **没有 MCP server，没有要安装的 app，没有账号，没有构建步骤，没有 `npm install`。**
->
-> skill 就是 agent 读取的一个目录，所以唯一的“安装”就是把它交给 agent。
+没有 MCP，没有 APP，没有账号，没有云端。协作发生在 git 里——只有一个 Skill 和一张 HTML。
+
+**它是什么。** 一个活在代码仓库里、而不是活在设计软件里的设计工具。你的 agent 运行这个 skill，设计页面，最后留下一张 HTML 文件；你在本地画布上评审、确认，校验通过的文件就是写代码时的规格。你不画图——agent 画，你判断。
+
+**怎么用。**
+
+**1. 把它交给你的 agent。**
+```text
+Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "justskill-design"` and follow the printed instructions.
+```
+
+**2. 说你要什么。** 做一个新产品：
+```text
+我想做一个笔记 App：记录我每天值得被记住的事情，以及当时的心情。可以有个日历展示我的心情晴雨表。
+```
+
+改一个已有产品，去掉 UI 的“AI 味”：
+```text
+读取一下当前程序的产品设计、理念，帮我整理一份属于这个程序的设计风格，并使用 justskill-design 出一份设计稿。等我确认设计稿效果后，按照设计重构 UI。
+```
+
+**3. 评审、确认。** agent 一边设计一边打开画布。选中一个元素，按 ⌘C，把复制出来的指针粘贴回对话，说要改什么；agent 一次只应用一个操作。页面都对了就确认，它会在你的技术栈里把设计实现成代码。
 
 ![justSkill 动起来的样子：把一段提示词复制给 agent，agent 设计页面，然后你打开画布检查确认](docs/justskill-demo.gif)
 
 [看完整的 24 秒演示（MP4）](docs/justskill-demo.mp4)
 
-**立即使用。** 把下面这段复制给你的 agent：
+## 你的仓库里有什么
 
-```text
-Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "justskill-design"` and follow the generated skill instructions now.
-Read its complete output, redirecting it to a temporary file first if necessary.
-Resolve relative paths from the supporting-files directory it provides.
-```
+被版本化的有两样：工具和设计。
 
-![justSkill 画布：六屏闹钟 App 铺在画布上，左边是图层树，右边是检查器](docs/canvas-alarm.png)
-
-## 从一个想法到能跑的代码
-
-把产品想法交给 agent，它会主动接管设计流程：问清产品、拆出第一版、设计页面、由你在画布上审批，最后在你用的技术栈里把设计实现成代码。功能由你确认、页面由你审批，设计由它决定。
-
-| # | 阶段 | Agent 做什么 | 你做什么 |
-|---|---|---|---|
-| 1 | 想法 | 用一句话复述产品，只问你那些会改变页面的问题。 | 回答；如果复述得不对，就纠正它。 |
-| 2 | 功能拆解 | 给出最小的第一版：核心循环、1–5 个各有职责的页面、空/加载/错误状态、数据，以及明确不做什么。 | 读一遍，指出缺的，或者该移出第一版的。 |
-| 3 | 确认功能 | 只问一个明确的确认问题。你可以增删功能；问过之后它不再追问。 | 确认、增加、删除。 |
-| 4 | 接管设计 | 说明它来设计页面，给出页面清单和一个视觉方向，然后创建（或打开已有的）设计文件并设置 token。 | 对页面清单或视觉方向提意见，或者让它继续。 |
-| 5 | 先设计后写码 | 把顺序说一次：设计 → 确认 → 写码。 | — |
-| 6 | 画布 | 打开本地画布，然后一页一页地搭，设计会逐步出现在已经打开的画布上。 | 让画布保持打开，跟着看。 |
-| 7 | UI 调整 | 从文件里读取你指到的节点，一次只应用一个操作：`set`、`move`、`add`、`remove` 或 `tokens`。 | 在画布上选中一个元素，按 ⌘C（Windows/Linux 上是 Ctrl+C），把复制出来的指针粘贴回 agent 的对话框，说明要改什么。也可以直接在画布上拖动。 |
-| 8 | 确认页面 | 跑一遍校验，过一遍清单——页面、状态、文案、图片、token——然后请你明确审批。 | 通过，或者退回去改。 |
-| 9 | 实现代码 | 在你用的技术栈里逐屏实现这份已批准的设计；校验通过的设计文件就是规格。 | 审代码。 |
-
-这条路是软引导，不是必须走完的关卡：
-
-- 不问许可就开始，每个阶段都可以跳过。
-- “直接做”或者“现在就写代码”优先——agent 不会反过来跟你争。
-- 它问产品，但设计由它来定。
-- 一次最多问两三个问题，问过的确认不再重复问。
-- 拆解按风险定轻重：一个小页面就配一份短清单。
-
-两个入口会触发这条路：一个新的产品想法，以及新增或修改产品功能的请求——即使你没说“设计”。如果只是在已有设计里改一处具体的东西（一张卡片、一个颜色、一行），那就是一次直接编辑，不用走整条路线。
-
-这个 skill 本身不构建、也不编译你的应用。代码是 agent 在你的仓库里写的，校验通过的设计文件就是它的规格。
-
-**第 7 阶段是你用得最多的循环。** 在画布上选中元素，按 ⌘C（Windows/Linux 上是 Ctrl+C），把复制出来的指针粘贴回 agent 的对话框，然后说要改什么。这个指针指向文件里的节点；agent 读取那个节点，把改动作为一个操作应用——`set`、`move`、`add`、`remove` 或 `tokens`——一次一个，所以每一步都有一份可读的回执。在画布上拖动是同一回事。
-
-一段能启动这条路的提示词：
-
-```text
-我想做一个给自由职业者管理发票的工具：开票、催款、看回款进度。先帮我把功能拆一下，再设计页面。
-```
-
-它在每个阶段说什么、问什么，分阶段剧本见 `references/product-flow.md`。
-
-## 是 skill，不是产品
-
-产品要你安装它、升级它、登录它。skill 是 agent 读取的一个目录，而这里这个目录就是全部工具：指令、CLI，以及 CLI 校验的格式。
-
-| 没有 | 意味着什么 |
-|---|---|
-| 没有 MCP server | 没有要启动的进程，没有要改的客户端配置，模型和文件之间也没有协议。模型跑的是 `node design.mjs`——和你会敲的是同一条命令——而且每次修改都走同一个写入漏斗。 |
-| 没有要安装的 app | 没有要下载、更新或常驻的应用。skill 就是这个仓库，被链接进你的 skills 目录；画布是 CLI 按需在本地起的页面，用完就关。 |
-| 没有账号 | 不用登录、没有套餐、没有云端副本、没有使用量上报。设计文件就是唯一的状态，它就在你的 checkout 里。 |
-| 没有构建步骤 | 源码就是运行物——没有打包器、没有转译器、没有会落后于源码的构建产物。改 checkout，装好的 skill 跟着变。 |
-| 没有 `npm install` | 没有依赖，也没有 lockfile：没有东西要安装、审计或升级。Node 18 或更高版本，只用内置模块。 |
-
-每少一样东西，就少一种“设计还没出现就先失败”的方式——进程没起来、会话过期、依赖解析成了别的东西、构建产物比源码旧。剩下的，就是一张能打开、能 diff、能提交的 HTML 文件，以及一套不会静默出错的命令。
-
-```
-design.html  ──validate──▶  diagnostics       (what is wrong, and what to write instead)
-     ▲          format   ──▶  canonical text    (one intent, one spelling)
-     │          export   ──▶  a deliverable      (one page, or a whole site)
-     │
-     └──── canvas ◀── add / set / remove / move / rename
-```
-
-## 为什么设计文件是 HTML
-
-模型本来就很会写 HTML 和 CSS。让它去写一套私有的 JSON 文档，等于把注意力花在一个还得先学的格式上；而且每个这样的文件都得先有渲染器，别人才看得到设计。
-
-所以设计文件就是标记本身。它是一张合法、自包含的 HTML 文件：用浏览器打开，设计就在那里。这个工具加上的不是一种格式，而是四个保证：
-
-| 保证 | 意味着什么 |
-|---|---|
-| 它会被检查 | 每个元素、每条声明，要么被接受，要么被报告。不会有东西被静默丢弃。 |
-| 它可以被编辑 | 每个元素都有 `data-id`，所以一次编辑就是一个字节区间，而不是重写。 |
-| 它是规范形式 | 同一个意图只有一种写法。diff 保持可读，往返保持精确。 |
-| 它是诚实的 | 没人编辑过的文件，会一个字节不变地回来。你自己的格式、你的注释、你手写的 `<svg>`，都还留在你放的地方。 |
-
-## 一屏看懂格式
-
-```html
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Landing</title>
-  <meta name="design-schema" content="3.0">
-  <style>:root{ --color-ink:#111827; --space-md:16px }</style>
-  <style>section[data-type="page"]{ margin:0 0 24px }</style>
-</head>
-<body>
-  <section data-id="home" data-type="page" data-canvas="0,0" style="width:390px;height:844px">
-    <div data-id="home__root" data-type="frame" style="display:flex;flex-direction:column;gap:16px;padding:24px">
-      <p data-id="home__title" data-type="text" style="font-size:32px;font-weight:700;color:var(--color-ink)">你好</p>
-    </div>
-  </section>
-</body>
-</html>
-```
-
-`<head>` 里只允许两个 `<style>` 块，而且两个都会读取：token 块（`:root`）和页面框架块。除此之外，每个元素都带内联 `style`。每个元素都带 `data-id` 和 `data-type`。
-
-- `docs/format-v3.md` —— 冻结的契约：元素模型、规范形式、诊断码、模块边界。
-- `references/styling.md` —— 47 个允许的属性及其取值语法。
-- `references/schema.md` —— 元素契约，由格式表生成。
-- `references/images.md` —— 经过校验的 Unsplash 图片，用户没有提供图片时可以使用；每张都写明拍的是什么、谁拍的。
-- `references/product-flow.md` —— 从想法到代码的分阶段剧本，agent 按它推进。
-
-## 示例
-
-`examples/` 下有 3 个文件。每个都能通过校验，每个都已经是规范形式，而且 `test/purity.test.mjs` 会读取这个目录，把每个 `examples/*.html` 都按这个标准检查——所以第四个文件一落地就会被检查。
-
-![同一张画布：一个从 .pen 文件导入的 26 页小程序，按画板铺开](docs/canvas-miniprogram.png)
-
-| 文件 | 规模 | 回答了什么 |
+| 在你的仓库里 | 它是什么 | 为什么重要 |
 |---|---|---|
-| `examples/design.html` | 1 页，22 个元素 | 还称得上是设计的最小文件长什么样：一个 header、一个 hero、两张数据卡、一个列表、三个 lucide 图标、一个 token 块。 |
-| `examples/alarm.html` | 6 页，447 个元素 | 手写的 App 长什么样：闹钟列表、带滚轮选择器的编辑器、响铃页、就寝、计时器、设置。它的颜色是 14 个 token，所以换主题只要一条 op——`node design.mjs tokens examples/alarm.html set color.accent '#7c3aed'`。它也是按这个 skill 要求的方式写出来的：用 `add` 一页页加，用 `set` 调间距，画布一直开着，没有整文件重写。 |
-| `examples/dsh-media-desk.html` | 6 页，766 个元素 | 一个真实产品在这个格式里长什么样：带五列看板的内容页、带排期卡片的月历、含面积图/平台分布条/最佳内容榜的复盘页、以及预设风格库。图全是渐变——棋盘格用 `repeating-conic-gradient`，山脊和沙丘用多层 `linear-gradient`——所以不需要任何图片文件，也能一页一个文件导成 PNG 或 SVG。 |
-| `examples/miniprogram.html` | 26 页，2197 个元素 | `.pen` 文件会变成什么样：一个真实的 705 KB 文件，26 个画板，239 个引用被内联，其中 140 个带覆盖，还有一处被明确记录的丢失（`perCornerRadius`）。用 `node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram` 重新生成；提交的副本一旦过期，`test/pen-reader.test.mjs` 就会失败。 |
+| **Skill** | 设计画布 | 它和你的代码一起版本化；agent 需要时打开它，没有东西被安装、也没有进程常驻 |
+| **HTML** | 设计产物 | 它不依赖这个工具就能打开、能当文本 diff、能发给任何人 |
 
-像一个人看设计那样打开它。画布会写回同一个文件，所以一次拖拽和一条命令就是同一次编辑：
+设计不是被关在某个 app 里的文档，而是一张合法、自包含的 HTML 文件：用任何浏览器打开，页面就在那里。所以它能被 `git diff`、能在 pull request 里评审、能离线交给别人——不需要渲染器，不需要账号，也不需要“导出”这一步。
+
+## 一种软件新范式
+
+它不是“更快的设计 app”，而是另一种形状的设计软件。
+
+**AI 原生。** 设计由 agent 完成。没有东西可评审之前，你根本不用打开画布；你也不用拖一个矩形来表达想法。
+
+**Agent 驱动，人来审批。** 机器干活，判断留给人。通过一页、指一个元素、退回去改——agent 把改动作为一个操作应用，并给你看回执。
+
+**软件 Skill 化。** 工具是 agent 读取的一个目录，需要时打开、做完就放下——随用随开。没有安装、没有账号、没有云端副本，也不存在“工具的版本和它产出的设计对不上”。
+
+**设计是产物，不是一次会话。** 它就在你的仓库里、挨着代码；校验通过的那份文件，就是评审代码时对照的规格。
+
+更长的论证——当设计软件不再是一个 app，它变成了什么——写在[《App 之后的设计软件》](docs/zh/paradigm.md)里（[英文原文](docs/paradigm.md)）。
+
+### 和竞品比
+
+真正的问题不是“谁的功能更多”，而是：设计活在哪里、谁能改它、写下它的那台机器能不能被明确告知“这里写错了”。
+
+| | JustSkill Design | Figma · Penpot · Sketch | AI 应用生成器（v0、Lovable、Bolt） | Agent 直接手写 HTML/CSS |
+|---|---|---|---|---|
+| **设计是什么** | 一张自包含的 HTML 文件，内联样式，每个元素都有 `data-id` | 该工具格式的文档，活在该工具里（app 或云端） | 一个能跑的应用；设计是代码的副产品 | 同样是 HTML 文件，但没有工具能理解的结构 |
+| **agent 怎么改它** | 直接读写文件，走 CLI 或画布 | 走插件、Dev Mode/MCP server，或者对着画布截图 | 提示词进、代码出；设计是被重新生成，而不是被编辑 | 直接写文件 |
+| **你查看之前能否被拒绝** | 能——封闭的属性集合、规范形式、指出修复方式的诊断 | 不能；设计语言接受画布接受的写法 | 通常不能；浏览器是第一个检查 | 不能 |
+| **进 git、像代码一样 diff** | 能，一个文件，diff 可读 | 不能作为你提交的文件；只有可视化历史 | 代码可以，设计意图不行 | 可以，但通常很吵 |
+| **人怎么评审** | 本地画布：图层树、检查器、缩放、页名 | 工具本身，配评论和实时协作 | 浏览构建出来的应用 | 浏览器打开文件 |
+| **安装成本** | 一个 skill 目录；无账号、无 server、无安装 | 账号 + app，agent 接进来往往还要 MCP server | 账号 + 云项目 | 无 |
+| **不擅长** | 没有 grid、没有 fixed、没有动画、没有组件、没有实时协作 | 机器可检查的产物和文本 diff | 在成为代码之前评审设计、留住持久规格 | 没有校验；静默出错；页面之间漂移 |
+
+这些情况下它不是对的工具：
+
+- 你要组件、变体、原型或实时多人评审——Figma 和 Penpot 更擅长做设计工具。
+- 你要跳过设计步骤、直接拿到能跑的应用——AI 应用生成器才是对的形状。
+- 这个页面需要格式不允许的 CSS：grid、`position:fixed`、动画、富文本、响应式断点。范围是故意收窄的，见 `docs/zh/how-it-works.md#范围`。
+- 你不和 AI agent 一起工作。这是给 agent 的 skill，不是独立编辑器。
+
+## 能设计到什么程度
+
+`examples/` 里四个设计文件，同一个格式，仓库里没有任何图片文件：画面要么是渐变、要么是内联 SVG，要么是经过校验的图片清单里的 URL。
+
+| | |
+|---|---|
+| <img src="docs/case-desk.png" width="460" alt="一个桌面端内容看板：纸面画布上五列卡片，衬线标题和浮动胶囊"><br><br>**一个桌面产品。** 六页——灵感板、五列内容看板、日历、数据复盘页、风格库。倾斜卡片、点阵画布、毛玻璃工具条、一整张 SVG 面积图。[`examples/dsh-media-desk.html`](examples/dsh-media-desk.html) | <img src="docs/case-alarm.png" width="460" alt="六屏闹钟 App：闹钟列表、时间选择器、响铃页、就寝、计时器、设置"><br><br>**一个六屏 App。** 闹钟列表、带滚轮选择器的编辑器、响铃页、就寝、计时器、设置。用 `add` 和 `set` 一页页手写，画布一直开着。[`examples/alarm.html`](examples/alarm.html) |
+| <img src="docs/canvas-miniprogram.png" width="460" alt="26 个导入的画板铺在画布上"><br><br>**一次 26 个画板的导入。** 一个真实的 705 KB `.pen` 文件：26 个画板，239 个引用被内联，140 个覆盖被应用，一处被明确记录的丢失。[`examples/miniprogram.html`](examples/miniprogram.html) | <img src="docs/case-design.png" width="160" alt="最小的设计文件：一个 header、一个 hero、两张数据卡和一个列表"><br><br>**最小的设计。** 一页、22 个元素：还称得上是真实、合法、可导出设计的最短文件。[`examples/design.html`](examples/design.html) |
+
+像一个人看设计那样打开它：
 
 ```sh
 node design.mjs serve examples/alarm.html
 ```
 
-## 命令
+## 开始用
 
-```sh
-node design.mjs new      design.html --name home --title Landing
-node design.mjs validate design.html --json
-node design.mjs format   design.html --check
-node design.mjs ls       design.html --pages
-node design.mjs show     design.html home__title
-node design.mjs add      design.html --html-file card.html --in home__root
-node design.mjs set      design.html home__title --style 'font-size:40px'
-node design.mjs move     design.html home__card --index 0
-node design.mjs rename   design.html home__card product
-node design.mjs migrate  design.html
-node design.mjs remove   design.html home__note
-node design.mjs export   design.html --all -o dist
-node design.mjs import   pen some.pen -o design.html
-node design.mjs serve    design.html
-```
-
-`serve` 会打印一个带 token 的 URL，并打开画布。画布和 CLI 走同一个写入漏斗，所以拖拽和 `set` 不可能互相矛盾。
-
-画布分三列：左边是图层树——每一页和它下面嵌套的元素，默认收起，表头有全部展开和全部收起，在画布上点中一个元素会展开到它的路径；中间是设计本身；右边是选中元素自己的属性，按分区组织，用该属性的语法所要求的控件来编辑。悬停时会显示指针所在的容器（实线）和该容器的直接子元素（虚线）——单击选中这个容器，双击进入指针下的虚线框（深一层），Escape 往回退一层。每一页左上角都有一个胶囊形状的页名，页名属于界面外壳而不是画面内容：它在任何缩放下都保持自己的字号和那几像素的留白，所以 10% 和 100% 看起来一样。任一侧都能用画布边缘的按钮或 `⌘\`（图层树）、`⇧⌘\`（检查器）折叠，边缘也可以拖动改宽度。这些都不是文档状态：面板只把状态记在浏览器里，从不往设计文件写一个字节。
-
-退出码：`0` 成功，`1` 被拒绝或无效，`2` 文件不可读或参数错误。
-
-### 写入漏斗
-
-每一次写入都走同一条路径，无论来自命令还是画布：
-
-1. 重新读取文件——可能有另一个写入者改过它
-2. 先校验它，这样已有的错误不会被算到这次编辑头上
-3. 把改动编译成 ops
-4. 应用 ops
-5. 再校验一次；除非这次编辑**没有引入任何新错误**，否则拒绝
-6. 只规范化被改动的节点，然后原子写入
-7. 打印回执
-
-第 5 步让坏文件变得可修。文件可以本来就有错误；一次编辑可以修掉它们；但一次编辑不能再加上一个错误。
-
-### 回执
-
-模型看不到文件，所以回执就是它拥有的全部。每条声明要么被消费，要么被报告：
-
-```
-$ node design.mjs add design.html --html-file card.html --in home__root
-added:      home__cta, home__cta-label  (2 elements)
-normalized: #fff → #ffffff
-normalized: 12px 12px 12px 12px → 12px
-normalized: rgba(0,0,0,0.6) → #00000099
-dropped:    cursor:pointer — The format describes appearance, not interaction. A cursor is behavior.
-applied 1 op, revision a161db2c (0 errors, 0 warnings)
-```
-
-拒绝是一个结果，不是失败，而且它会告诉你该写什么：
-
-```
-REFUSED  display: grid is not a value of display.
-  Accepted: flex | block | none
-design.html was not changed.
-```
-
-## 测试
-
-```sh
-npm test                # node --test
-npm run images:check    # 需要网络：确认图片清单里每个 URL 仍然可访问
-```
-
-这套测试固定了哪些不变量，按“一旦失败，最先坏掉”的顺序：
-
-| 套件 | 不变量 |
-|---|---|
-| `byte-fidelity` | 解析再序列化返回同样的字节——手写文件、真实文件、注释、未知标签和 `<svg>` 几何都包括 |
-| `table` | 一张表驱动校验、规范化和提示；每个属性都有取值语法 |
-| `validate` | 每个元素要么合法，要么得到一条指出修复方式的诊断 |
-| `normalize` | 规范化是幂等的，而且永远不会碰已经是规范形式的文件 |
-| `ops`、`fragment` | 操作可逆；片段会被编译、检查，并以具名理由拒绝 |
-| `cli` | 退出码 0/1/2 在成功和拒绝路径上都稳定 |
-| `images` | 图片清单的每一行都是唯一、可复制的 URL，写明了拍的是什么、谁拍的 |
-
-## 今天量到的数据
-
-| 指标 | 门槛 | 实测 |
-|---|---|---|
-| 首次响应的可读性（20 个真实片段） | ≥ 80% | **20/20 = 100%** |
-| 静默丢弃 | 0 | 0 |
-| 序列化往返 | 字节精确 | 字节精确，11 个 fixture，包括一个 73 KB 的生成设计 |
-| 规范化 | 幂等 | 幂等 |
-| `.pen` 导入 | 0 错误、`unmapped` 为空 | **0 错误，`unmapped` 为空** |
-| `.pen` 导入账本 | 每次损失都有名字 | 1541 个源节点里 1 处损失（`perCornerRadius`） |
-| pen 自己的导出 | 同一张图 | 文本行盒和箭头的四个角都在 0.1px 以内，`viewBox` 和字体一致 |
-| 测试 | — | 695 通过，0 失败 |
-
-`.pen` 的验收用例是一个真实的 705 KB 文件，26 个画板、1541 个源节点。它导入成 2197 个元素，耗时约 100 ms：239 个引用被内联，其中 140 个带着字段级补丁，在导入过程中被应用。账本统计的是实际产出的元素，所以 26 个画板不在这个数字里，而副本在。结果能通过校验，而且已经是规范形式：`examples/miniprogram.html` 里有 2223 个 `data-id`（2197 个元素加 26 个页面）和总共 3066 个标签，其余是 `<svg>` 几何和不是设计节点的包装元素。文件里有一个节点带四个不同的圆角半径，这个格式没有对应的写法，账本会按名字把它记下来。
-
-这次导入是对 pen 自己的导出来测量的，不是对自己。pen 附带的欢迎文档——一个 1000×1458 的画板、两行文本、一支旋转的箭头——从 pen.dev 导出为 HTML，再在这里导入，然后在同一个浏览器里测量两张渲染结果：文本的两个行盒误差在 0.05px 以内（224.00/551 对 224.05/550.91，101.39/796.20 对 101.42/796.16），字体是 pen 导出所链接的同一个 Noto Sans（`measureText` 599 对 598.9），箭头的四个绘制角落在 pen 的 `transform: rotate(45deg)` 所放位置的 0.1px 以内。正是这次测量，让读取器用字形自己的盒子来算 `viewBox`，把描边轮廓画成 stroke 而不是给 `<svg>` 加 `border`，把旋转烘进轮廓，把作者写的换行保留为 `white-space: pre-line`，并且请求 `Noto Sans` 而不是假设机器上正好有它。
-
-可读性指标的意思是：第一次响应永远可用，无论它是接受片段，还是用一条带代码、带目标、带修复方式的诊断拒绝它。这 20 个片段是模型真的会写的：`display:grid`、`position:fixed`、`rgba()`、`#fff`、单边 `margin`、缺 `alt`、标签和 `data-type` 不匹配、重复 id、`font` 简写、手写 `<svg>`。
-
-**其中 10 个被按名字拒绝。另外 10 个能编译，其中 9 个会报告它改写了或丢弃了什么**——`#fff` 变成 `#ffffff`、四值 `padding` 被折叠、`cursor` 或 `z-index` 落进 `dropped`。还有一个本来就是干净的。崩溃、静默丢弃、或者拒绝时什么都没说，都会判定这个指标失败。它不声称 100% 的设计都会被接受；它声称没有哪次首次响应是死路。`evals/evals.json` 逐片段写明那次响应必须包含什么，`test/evals.test.mjs` 负责检查。
-
-## 安装
-
-上面的提示词只在当前会话里生效。要在每个会话里都有，可以让 skills CLI 装到它认识的所有 agent，或者自己把 checkout 链接进去。
-
-### 用 skills CLI
+最上面那行提示词在当前会话里就能用。要在每个会话里都有，装一次：
 
 ```sh
 npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justskill-design" -g -y
 ```
 
-它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的 agent 目录；之后用 `npx skills update` 更新。
+它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的
+agent 目录；`npx skills update` 负责更新。
 
-### 用一个 symlink
+## 技术细节
 
-```sh
-git clone https://github.com/justskill-ai/justskill-design.git ~/Developer/justskill-design
-node ~/Developer/justskill-design/scripts/install.mjs
-```
+README 到这里就停了，是有意的。格式、命令、画布、写入路径和测试数据，都写在它们该在的地方：
 
-仓库就是 skill，所以这次安装就是一条 symlink，指向 agent 本来就会读取的 skills 目录：没有编译，也没有东西常驻。它把 checkout 链接到 `~/.agents/skills/justskill-design` 和 `~/.claude/skills/justskill-design`，所以任何读取这些目录的 agent（包括 Claude Code）都能拿到它。链接是 symlink：改 checkout，装好的 skill 跟着变。`--uninstall` 删除两条链接，`--dry-run` 打印它准备做什么。
+| 文档 | 回答什么 |
+|---|---|
+| `SKILL.md` | agent 每次被触发时读的内容：什么时候用、格式、拒绝规则、写作规则。 |
+| `docs/zh/paradigm.md` | 更长的论证：软件 Skill 化、app 之后的设计软件，以及九阶段循环。 |
+| `docs/zh/how-it-works.md` | 为什么设计文件是 HTML、一屏看懂格式、所有命令、画布、写入漏斗、回执、范围，以及从 checkout 安装。 |
+| `docs/zh/quality.md` | 测试套件固定了哪些不变量，以及今天量到的数据。 |
+| `docs/format-v3.md` | 冻结的契约：元素模型、规范形式、诊断码、模块边界。 |
+| `references/styling.md` | 每个允许的属性及其取值语法。 |
+| `references/schema.md` | 元素契约，由格式表生成。 |
+| `references/images.md` | 经过校验的图片清单。 |
+| `references/product-flow.md` | 分阶段剧本。 |
 
-## 范围
-
-这不是一个通用的 HTML 和 CSS 工具。它支持一个封闭集合：flexbox 布局、绝对定位、固定的属性白名单、图片、内联 SVG 图标，以及每个文本元素一段文字。没有 grid，没有 `position:fixed`，除了旋转没有别的 transform，没有动画，没有响应式断点，没有富文本。原因在 `docs/plan.md`，每个允许属性的取值语法在 `references/styling.md`。
+`docs/format-v3.md` 和 `references/*.md` 保持英文（冻结的契约、生成的文件）；其余中文文档见 [docs/zh/](docs/zh/README.md)。
 
 ## 致谢
+
+`examples/dsh-media-desk.html` 复刻的是
+[dsh-media-desk](https://github.com/woniuniuniu/dsh-media-desk) 的界面——一个
+DeepSeek Harness 的自媒体工作台插件。那份设计稿就是用本项目做的，这里作为真实案例收录。
 
 `test/fixtures/real/open-design-components.html` 是 [OpenDesign](https://github.com/nexu-io/open-design)（Apache-2.0）里一个 fixture 的副本，保留作为真实世界的解析用例。
 

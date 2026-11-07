@@ -5,372 +5,163 @@
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Let an AI agent take your product from idea to code
+**Design, just a skill.**
 
-**You confirm the features in chat and approve the screens on the canvas.**
+**A new paradigm for design software.**
 
-> **Design, just a skill.**
->
-> **No MCP server. No app to install. No account. No build step. No `npm install`.**
->
-> A skill is a directory your agent reads, so the only setup is handing it over.
+No MCP server. No app. No account. No cloud. Collaboration happens in git —
+there is one Skill, and one HTML file.
+
+**What it is.** A design tool that lives in your repository, not in a design app.
+Your agent runs the skill, designs the screens, and leaves one HTML file behind.
+You review those screens on a local canvas, approve them, and the validated file
+becomes the spec the code is written against. You never draw — the agent draws,
+you judge.
+
+**How to use it.**
+
+**1. Hand it to your agent.**
+```text
+Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "justskill-design"` and follow the printed instructions.
+```
+
+**2. Say what you want.** A new product:
+```text
+I want to build a note-taking app: it records the small things from each day that are worth remembering, and how I felt at the time. A calendar shows my mood as a weather chart.
+```
+
+An existing app whose UI still looks AI-generated:
+```text
+Read the current program, its product design and its philosophy. Put together a design style that belongs to this product, then use the justskill-design skill to produce a design file. Once I approve the screens, refactor the UI to match.
+```
+
+**3. Review and approve.** The agent opens the canvas as it designs. Select an
+element, press ⌘C, paste the copied pointer into the agent chat, and say what to
+change; the agent applies one operation per change. When the screens are right,
+approve them, and it implements them in your stack.
 
 ![justSkill in motion: a prompt is copied into the agent, the agent designs the screens, then you open the canvas and review them](docs/justskill-demo.gif)
 
 [Watch the full 24-second demo (MP4)](docs/justskill-demo.mp4)
 
-**Use it now.** Copy this into your agent:
+## What lives in your repo
 
-```text
-Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "justskill-design"` and follow the generated skill instructions now.
-Read its complete output, redirecting it to a temporary file first if necessary.
-Resolve relative paths from the supporting-files directory it provides.
-```
+Two things are versioned: the tool and the design.
 
-![The justSkill canvas: a six-screen alarm app on the canvas, with the layer tree
-on the left and the inspector on the right](docs/canvas-alarm.png)
-
-## From an idea to running code
-
-Give the agent a product idea and it takes over the design process: it asks
-about the product, breaks the first version down, designs the screens, you
-approve them on the canvas, and it implements the approved design in your stack.
-You confirm the features and approve the screens; the agent makes the design
-decisions.
-
-| # | Stage | What the agent does | What you do |
-|---|---|---|---|
-| 1 | Idea | Restates the product in one sentence and asks only the questions that change the screens. | Answer, and correct the restatement if it is wrong. |
-| 2 | Feature breakdown | Sketches the smallest first version: the core loop, 1–5 screens with a job each, the empty, loading and error states, the data, and what is explicitly out of scope. | Read it, and name what is missing or out of scope. |
-| 3 | Feature confirmation | Asks one clear confirmation question. You can add or remove features; after that it does not ask again. | Confirm, add, or remove. |
-| 4 | Design takeover | Says it will design the screens, proposes the page list and one visual direction, then creates the design file and its tokens — or opens the existing file when the product already has one. | Push back on the page list or the direction, or let it proceed. |
-| 5 | Design first | States the order once: design → approval → code. | — |
-| 6 | Canvas | Opens the local canvas, then builds the pages one by one, so the design appears gradually in the open canvas. | Keep the canvas open and watch the screens arrive. |
-| 7 | UI adjustment | Reads the node you point at from the file and applies one op at a time: `set`, `move`, `add`, `remove`, or `tokens`. | Select an element on the canvas, press ⌘C (Ctrl+C on Windows/Linux), paste the copied pointer into the agent chat, and say what to change. You can also drag on the canvas. |
-| 8 | Page sign-off | Validates, walks the checklist — screens, states, copy, images, tokens — and asks for explicit approval. | Approve, or send it back. |
-| 9 | Code | Implements the approved design in your stack, screen by screen; the validated design file is the spec. | Review the code. |
-
-The route is soft guidance, not a required gate:
-
-- The agent starts without asking permission, and every stage can be skipped.
-- "Just do it" or "write the code now" wins; the agent does not re-argue.
-- It asks about the product and decides the design.
-- It asks at most two or three questions at once, and never repeats a confirmation it already has.
-- The breakdown scales to the risk: a small screen gets a short list.
-
-Two entry points start the route: a new product idea, and a request to add or
-change a product feature — even when you do not say "design". A concrete edit
-inside an existing design, such as a card, a colour, or a row, skips the route.
-
-The skill does not build or compile your app. The agent writes that code in your
-repository, with the validated design file as the spec.
-
-**Stage 7 is the loop you will use most.** Select the element on the canvas,
-press ⌘C (Ctrl+C on Windows/Linux), paste the copied pointer into the agent
-chat, and say what to change. The pointer names the node; the agent reads that
-node from the file and applies the change as one op — `set`, `move`, `add`,
-`remove`, or `tokens` — one at a time, so every step prints a receipt. Dragging
-on the canvas is the same edit.
-
-A prompt that starts the route:
-
-```text
-I want to build an invoicing tool for freelancers: create invoices, chase payment, and watch the receivables come in. Break the features down first, then design the screens.
-```
-
-The stage-by-stage playbook — what the agent says and asks at each stage — is
-in `references/product-flow.md`.
-
-## A skill, not a product
-
-A product asks you to install it, update it and sign into it. A skill is a
-directory an agent reads, and this one is the whole tool: the instructions, the
-CLI, and the format the CLI checks.
-
-| Not | What it means |
-|---|---|
-| No MCP server | No process to start, no client config to edit, no protocol between the model and the file. The model runs `node design.mjs`, the same command a person types, and every edit goes through the same write funnel. |
-| No app to install | No application to download, update or keep running. The skill is this repository, linked into your skills directory, and the canvas is a local page the CLI serves on demand and closes when you are done. |
-| No account | No sign-in, no plan, no cloud copy, no usage report. The design file is the only state, and it lives in your checkout. |
-| No build step | The source is what runs — no bundler, no transpiler, no compiled artifact that can fall behind its source. Edit the checkout and the installed skill follows. |
-| No `npm install` | No dependencies and no lockfile: nothing to install, audit or update. Node 18 or newer, built-in modules only. |
-
-Each absence removes a way to fail before the design exists — a process that did
-not start, a session that expired, a package that resolved to something else, a
-build older than its source. What is left is an HTML file you can open, diff and
-commit, and a command set that will not let it be wrong in silence.
-
-```
-design.html  ──validate──▶  diagnostics       (what is wrong, and what to write instead)
-     ▲          format   ──▶  canonical text    (one intent, one spelling)
-     │          export   ──▶  a deliverable      (one page, or a whole site)
-     │
-     └──── canvas ◀── add / set / remove / move / rename
-```
-
-## Why the design file is HTML
-
-A model already writes HTML and CSS well. Asking it to write a private JSON
-document instead spends its attention on a format it must first learn, and every
-one of those files needs a renderer before anyone can look at it.
-
-So the design file is the markup. It is a valid, self-contained HTML file: open
-it in a browser and the design is there. What this tool adds is not a format but
-four guarantees:
-
-| Guarantee | What it means |
-|---|---|
-| It is checked | Every element and every declaration is either accepted or reported. Nothing is dropped in silence. |
-| It is editable | Every element has a `data-id`, so an edit is one byte range, not a rewrite. |
-| It is canonical | One intent has one spelling. Diffs stay readable, round trips stay exact. |
-| It is honest | A file that nobody edited comes back byte for byte. Your own formatting, your comments and your hand-written `<svg>` stay where you put them. |
-
-## The format, in one screen
-
-```html
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Landing</title>
-  <meta name="design-schema" content="3.0">
-  <style>:root{ --color-ink:#111827; --space-md:16px }</style>
-  <style>section[data-type="page"]{ margin:0 0 24px }</style>
-</head>
-<body>
-  <section data-id="home" data-type="page" data-canvas="0,0" style="width:390px;height:844px">
-    <div data-id="home__root" data-type="frame" style="display:flex;flex-direction:column;gap:16px;padding:24px">
-      <p data-id="home__title" data-type="text" style="font-size:32px;font-weight:700;color:var(--color-ink)">你好</p>
-    </div>
-  </section>
-</body>
-</html>
-```
-
-Two style blocks are allowed in `<head>`, and both are read: the token block
-(`:root`) and the page-frame block. Every element otherwise carries an inline
-`style`. Every element carries `data-id` and `data-type`.
-
-- `docs/format-v3.md` — the frozen contract: the element model, the canonical
-  form, the diagnostic codes, the module boundaries.
-- `references/styling.md` — the 47 allowed properties and their value grammars.
-- `references/schema.md` — the element contract, generated from the format table.
-- `references/images.md` — the verified Unsplash photos a page may use when the
-  user has not supplied one, with what each photo shows and who took it.
-- `references/product-flow.md` — the stage-by-stage playbook the agent follows
-  from idea to code.
-
-## Examples
-
-Three files in `examples/`. Each validates, each is already in canonical form,
-and `test/purity.test.mjs` reads the directory and holds every `examples/*.html`
-to that — so a fourth file is checked the moment it lands.
-
-![The same canvas with a 26-page mini program imported from a .pen file, laid
-out as artboards](docs/canvas-miniprogram.png)
-
-| File | Scale | What it answers |
+| In your repository | What it is | Why that matters |
 |---|---|---|
-| `examples/design.html` | 1 page, 22 elements | What the smallest file that is still a design looks like: a header, a hero, two stat cards, a list, three lucide glyphs, one token block. |
-| `examples/alarm.html` | 6 pages, 447 elements | What a hand-written app looks like: the alarm list, the editor with a wheel picker, the ringing screen, bedtime, timer, settings. Its colour is 14 tokens, so the theme is one op — `node design.mjs tokens examples/alarm.html set color.accent '#7c3aed'`. It was also authored the way the skill asks for: page by page through `add`, the spacing through `set`, with the canvas open, and no whole-file rewrite. |
-| `examples/dsh-media-desk.html` | 6 pages, 766 elements | What a real product looks like in this format: an inspiration board (tilted cards on a dot grid, a glass toolbar and the serif headline), a content board with five kanban columns, a month calendar with scheduled cards, an analytics screen (an area chart drawn as one SVG background image, platform bars, a best-content list) and a style library of preset cards over two artboards. Every picture in it is a gradient, so it needs no image files. Every picture in it is a gradient — `repeating-conic-gradient` for the checkerboard, layered `linear-gradient`s for the ridges and dunes — so the example needs no image files and still exports to PNG or SVG, one file per page. |
-| `examples/miniprogram.html` | 26 pages, 2197 elements | What a `.pen` file becomes: a real 705 KB file with 26 artboards, 239 references inlined, 140 of them carrying overrides, and one named loss (`perCornerRadius`). Regenerate it with `node design.mjs import pen <the .pen> -o examples/miniprogram.html --title miniprogram`; `test/pen-reader.test.mjs` fails when the committed copy goes stale. |
+| **The Skill** | the design canvas | it versions with your code; the agent opens it when needed, and nothing is installed or left running |
+| **The HTML** | the design artifact | it opens without this tool, diffs as text, and can be sent anywhere |
 
-Open one the way a person looks at a design. The canvas writes back to the same
-file, so a drag and a command are the same edit:
+The design is not a document trapped inside an app. It is a valid, self-contained
+HTML file: open it in any browser and the screens are there. That is what makes
+it a file you can `git diff`, review in a pull request, and hand to someone
+offline — no renderer, no account, no export step.
+
+## A new software paradigm
+
+This is not a faster way to draw in a design app. It is a different shape of
+design software.
+
+**AI-native.** The agent does the designing. You do not open a canvas until there
+is something to review, and you never drag a rectangle to express an idea.
+
+**Agent-driven, human-approved.** The machine does the work; you keep the
+judgment. Approve a screen, point at an element, send it back — the agent applies
+the change as one operation and shows the receipt.
+
+**Software as a skill.** The tool is a directory the agent reads, opened on
+demand and put down when the work is done — 随用随开. No install, no account, no
+cloud copy, no version of the tool drifting away from the design it produced.
+
+**The design is an artifact, not a session.** It lives in your repository, next
+to the code, and the validated file is the spec that code is reviewed against.
+
+I wrote the longer argument — what design software becomes when it stops being an
+app — in [Design software after the app](docs/paradigm.md).
+
+### How it compares
+
+The question is not which tool has more features. It is where the design lives,
+who can edit it, and whether the machine that wrote it can be told it is wrong.
+
+| | JustSkill Design | Figma · Penpot · Sketch | AI app builders (v0, Lovable, Bolt) | Agent writing HTML/CSS by hand |
+|---|---|---|---|---|
+| **The design is** | one self-contained HTML file with inline styles and `data-id` on every element | a document in that tool's format, inside that tool (app or cloud) | a running app; the design is a side effect of the code | the same kind of HTML file, with no structure the tool understands |
+| **How the agent works on it** | reads and writes the file itself, through the CLI or the canvas | through a plugin, Dev Mode/MCP server, or screenshots of the canvas | prompt in, code out; the design is regenerated rather than edited | writes the file directly |
+| **Can it be refused before you look?** | yes — closed property set, canonical form, diagnostics that name the fix | no; the design language accepts what the canvas accepts | usually no; the browser is the first check | no |
+| **Lives in git, diffs like code** | yes, one file, readable diffs | not as a file you commit; visual history only | code yes, design intent no | yes, usually noisy |
+| **How a human reviews it** | local canvas: layer tree, inspector, zoom, page names | the app itself, with comments and live multiplayer | browse the built app | open the file in a browser |
+| **Setup** | a skill directory; no account, no server, no install | account + app, often an MCP server for agent access | account + cloud project | nothing |
+| **Weak at** | no grid, no fixed positioning, no animation, no components, no realtime co-editing | machine-checkable output and textual diffs | reviewing a design before it is code, keeping a durable spec | no validation; silent breakage; drift between screens |
+
+Where this is the wrong tool:
+
+- You want components, variants, prototyping or live multiplayer review. Figma
+  and Penpot are better at being a design tool.
+- You want a running app without a design step. An AI app builder is the right
+  shape.
+- The screen needs CSS this format does not allow — grid, fixed positioning,
+  animation, rich text, responsive breakpoints. The scope is deliberate; see
+  `docs/how-it-works.md#scope`.
+- You do not work with an AI agent. This is a skill for an agent, not a
+  standalone editor.
+
+## What it can design
+
+Four design files in `examples/`, one format, and no image files in the
+repository: every picture is a gradient, an inline SVG, or a URL from the
+checked photo catalogue.
+
+| | |
+|---|---|
+| <img src="docs/case-desk.png" width="460" alt="A desktop content board: five kanban columns of cards on a paper canvas, with a serif title and floating pills"><br><br>**A desktop product.** Six pages — an inspiration board, a five-column content board, a calendar, an analytics screen, and a style library. Tilted cards, a dot grid, glass toolbars, an area chart drawn as one SVG. [`examples/dsh-media-desk.html`](examples/dsh-media-desk.html) | <img src="docs/case-alarm.png" width="460" alt="Six alarm app screens in a row: alarm list, time picker, ringing screen, bedtime, timer, settings"><br><br>**A six-screen app.** The alarm list, the editor with a wheel picker, the ringing screen, bedtime, the timer, settings. Hand-written page by page through `add` and `set`, with the canvas open. [`examples/alarm.html`](examples/alarm.html) |
+| <img src="docs/canvas-miniprogram.png" width="460" alt="26 imported artboards laid out on the canvas"><br><br>**A 26-artboard import.** A real 705 KB `.pen` file: 26 artboards, 239 references inlined, 140 overrides applied, one named loss. [`examples/miniprogram.html`](examples/miniprogram.html) | <img src="docs/case-design.png" width="160" alt="The smallest design file: a header, a hero, two stat cards and a list"><br><br>**The smallest design.** One page, 22 elements: the shortest file that is still a real, valid, exportable design. [`examples/design.html`](examples/design.html) |
+
+Open one the way a person looks at a design:
 
 ```sh
 node design.mjs serve examples/alarm.html
 ```
 
-## Commands
+## Get started
 
-```sh
-node design.mjs new      design.html --name home --title Landing
-node design.mjs validate design.html --json
-node design.mjs format   design.html --check
-node design.mjs ls       design.html --pages
-node design.mjs show     design.html home__title
-node design.mjs add      design.html --html-file card.html --in home__root
-node design.mjs set      design.html home__title --style 'font-size:40px'
-node design.mjs move     design.html home__card --index 0
-node design.mjs rename   design.html home__card product
-node design.mjs migrate  design.html
-node design.mjs remove   design.html home__note
-node design.mjs export   design.html --all -o dist
-node design.mjs import   pen some.pen -o design.html
-node design.mjs serve    design.html
-```
-
-`serve` prints a tokenised URL and opens the canvas. The canvas and the CLI
-write through the same funnel, so a drag and a `set` cannot disagree.
-
-The canvas is three columns: the layer tree on the left — every page with its
-elements nested under it, opening closed, with expand-all and collapse-all in the
-header and picking an element on the canvas opening the path down to it — the
-design in the middle, and the selected element's own properties on the right,
-grouped into sections and edited with the control its grammar asks for.
-Hovering shows the container the pointer is standing on, solid, and that
-container's direct children, dashed — a click selects the container, a
-double-click steps into the dashed box under the pointer, and Escape walks back
-up one rung. Every page carries its name in a pill
-above its top-left corner, and that name is chrome rather than part of the
-drawing: it keeps its own size and its own few pixels of air at every zoom, so it
-reads the same at 10% as at 100%. Either side folds away with the
-button on the canvas edge or `⌘\` (the tree) and `⇧⌘\` (the inspector), and
-either edge drags to resize. None of that is document state: the panels remember
-themselves in the browser and never write a byte to the design file.
-
-Exit codes: `0` success, `1` refused or invalid, `2` unreadable or bad arguments.
-
-### The write funnel
-
-Every write goes through the same path, whether it comes from a command or from
-the canvas:
-
-1. read the file again — another writer may have changed it
-2. validate it, so a pre-existing error is not blamed on this edit
-3. compile the change into ops
-4. apply the ops
-5. validate again, and refuse unless the edit introduces **no new error**
-6. normalize only the changed nodes, then write atomically
-7. print a receipt
-
-Step 5 is what makes a broken file repairable. A file may already have errors;
-an edit may fix them; an edit may not add another one.
-
-### The receipt
-
-The model cannot see the file, so the receipt is what it has. Every declaration
-is either consumed or reported:
-
-```
-$ node design.mjs add design.html --html-file card.html --in home__root
-added:      home__cta, home__cta-label  (2 elements)
-normalized: #fff → #ffffff
-normalized: 12px 12px 12px 12px → 12px
-normalized: rgba(0,0,0,0.6) → #00000099
-dropped:    cursor:pointer — The format describes appearance, not interaction. A cursor is behavior.
-applied 1 op, revision a161db2c (0 errors, 0 warnings)
-```
-
-A refusal is a result, not a failure, and it says what to write instead:
-
-```
-REFUSED  display: grid is not a value of display.
-  Accepted: flex | block | none
-design.html was not changed.
-```
-
-## Tests
-
-```sh
-npm test                # node --test
-npm run images:check    # needs the network: every catalogue URL still resolves
-```
-
-What the suite pins, in order of what breaks first if it fails:
-
-| Suite | Invariant |
-|---|---|
-| `byte-fidelity` | Parse then serialize returns the same bytes, for hand-written files, real files, comments, unknown tags and `<svg>` geometry |
-| `table` | One table drives validation, normalization and hints; every property has a value grammar |
-| `validate` | Every element is either valid or gets a diagnostic that names a fix |
-| `normalize` | Normalization is idempotent and never touches a canonical file |
-| `ops`, `fragment` | Ops are invertible; a fragment is compiled, checked and refused with a named reason |
-| `cli` | Exit codes 0/1/2 are stable across success and refusal paths |
-| `images` | Every catalogue row is a unique, copyable URL with what the photo shows and who took it |
-
-## Measured today
-
-| Metric | Threshold | Measured |
-|---|---|---|
-| First-response legibility (20 real snippets) | ≥ 80% | **20/20 = 100%** |
-| Silent drops | 0 | 0 |
-| Serialization round trip | byte exact | byte exact, 11 fixtures including a 73 KB generated design |
-| Normalization | idempotent | idempotent |
-| `.pen` import | 0 errors, empty `unmapped` | **0 errors, `unmapped` empty** |
-| `.pen` import ledger | every loss named | 1 loss in 1541 source nodes (`perCornerRadius`) |
-| pen's own export | the same picture | text line boxes and the arrow's four corners within 0.1px, `viewBox` and font identical |
-| Tests | — | 695 pass, 0 fail |
-
-The `.pen` acceptance case is a real 705 KB file with 26 artboards and 1541
-source nodes. It imports to 2197 elements in about 100 ms: 239 references are
-inlined, and 140 of them carried field-level patches that are applied during the
-import. The ledger counts emitted elements, so the 26 artboards are not in that
-number and the copies are. The result validates and is already canonical:
-`examples/miniprogram.html` carries 2223 `data-id`s (the 2197 elements and the 26
-pages) and 3066 tags in all, the rest being `<svg>` geometry and wrappers that
-are not design nodes. One node in that file has four different corner radii,
-which this format does not have a spelling for, and the ledger says so by name.
-
-The import is measured against pen's own export, not against itself. The welcome
-document pen ships — one 1000×1458 artboard, two text lines, one rotated arrow —
-was exported from pen.dev as HTML and imported here, and the two renderings were
-measured in the same browser: the text's two line boxes agree to 0.05px
-(224.00/551 against 224.05/550.91, and 101.39/796.20 against 101.42/796.16), the
-font is the same Noto Sans face pen's export links (`measureText` 599 against
-598.9), and the arrow's four drawn corners land within 0.1px of where pen's
-`transform: rotate(45deg)` puts them. That measurement is why the reader measures
-a glyph's own box for its `viewBox`, draws a stroked outline as a stroke rather
-than a `border` on its `<svg>`, bakes a rotation into the outline, keeps an
-authored line break as `white-space: pre-line`, and asks for `Noto Sans` instead
-of assuming the machine has it.
-
-The legibility metric means: the first response is always usable, whether it
-accepts the snippet or refuses it with a code, a target and a fix. The 20
-snippets are the ones a model actually writes: `display:grid`, `position:fixed`,
-`rgba()`, `#fff`, a one-sided `margin`, a missing `alt`, a wrong `data-type` for
-the tag, a duplicate id, a `font` shorthand, a `<svg>` written by hand.
-
-**10 are refused by name. The other 10 compile, and 9 of those report what they
-rewrote or dropped** — `#fff` becoming `#ffffff`, a four-value `padding`
-collapsing, a `cursor` or a `z-index` landing in `dropped`. One is already
-clean. A crash, a silent drop, or a refusal that names nothing fails the metric.
-It does not claim that 100% of designs are accepted; it claims that no first
-response is a dead end. `evals/evals.json` states per snippet what that response
-has to contain, and `test/evals.test.mjs` checks it.
-
-## Install
-
-The prompt above uses the skill for the current session. To have it in every
-session, either let the skills CLI install it for every agent it knows, or link
-the checkout in yourself.
-
-### With the skills CLI
+The one-liner at the top works for the current session. To install it once for
+every session:
 
 ```sh
 npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justskill-design" -g -y
 ```
 
 That copies the skill into `~/.agents/skills/justskill-design` and links it into
-the agent directories the CLI manages; `npx skills update` moves it forward.
+the agent directories the CLI manages; `npx skills update` keeps it current.
 
-### With one symlink
+## Technical details
 
-```sh
-git clone https://github.com/justskill-ai/justskill-design.git ~/Developer/justskill-design
-node ~/Developer/justskill-design/scripts/install.mjs
-```
+The README stops here on purpose. The format, the commands, the canvas, the
+write path and the test numbers are documented where they belong:
 
-The repository is the skill, so this install is one symlink into the skills
-directory your agent already reads: nothing is compiled and nothing keeps
-running. It links the checkout into `~/.agents/skills/justskill-design` and
-`~/.claude/skills/justskill-design`, so any agent that reads those directories
-(Claude Code included) picks it up. The link is a symlink: edit the checkout and
-the installed skill follows. `--uninstall` removes both links, and `--dry-run`
-prints what it would do.
+| Document | What it answers |
+|---|---|
+| `SKILL.md` | What the agent reads on every trigger: when to use this, the format, the refusals, the writing rules. |
+| `docs/paradigm.md` | The longer argument: software as a skill, design software after the app, and the nine-stage loop. |
+| `docs/how-it-works.md` | Why the design file is HTML, the format in one screen, every command, the canvas, the write funnel, the receipt, the scope, and installing from the checkout. |
+| `docs/quality.md` | What the test suite pins, and the measurements taken today. |
+| `docs/format-v3.md` | The frozen contract: element model, canonical form, diagnostic codes, module boundaries. |
+| `references/styling.md` | Every allowed property and its value grammar. |
+| `references/schema.md` | The element contract, generated from the format table. |
+| `references/images.md` | The verified photo catalogue. |
+| `references/product-flow.md` | The stage-by-stage playbook. |
 
-## Scope
-
-Not a general HTML and CSS tool. It supports a closed set: flexbox layout,
-absolute positioning, a fixed property whitelist, images, inline SVG glyphs, and
-one run of text per text element. No grid, no `position:fixed`, no transforms beyond a rotation, no
-animation, no responsive breakpoints, no rich text. The reasons are in
-`docs/plan.md`, and the value grammar for every allowed property is in
-`references/styling.md`.
+The three product documents have Chinese editions in [`docs/zh/`](docs/zh/README.md);
+`docs/format-v3.md` and the generated `references/` stay English on purpose.
 
 ## Credits
+
+`examples/dsh-media-desk.html` recreates the interface of
+[dsh-media-desk](https://github.com/woniuniuniu/dsh-media-desk), a DeepSeek
+Harness plugin for media workflows. That design was made with this project, and
+is included here as a real-world case.
 
 `test/fixtures/real/open-design-components.html` is a copy of a fixture from
 [OpenDesign](https://github.com/nexu-io/open-design) (Apache-2.0), kept as a

@@ -97,9 +97,12 @@ function routeSectionOf(text) {
 
 /** The `[number, name]` rows of a table whose first two columns are `# | Stage`. */
 function stageRowsIn(text) {
-  return [...text.matchAll(/^\| (\d+) \| ([^|]+?) \|/gm)].map((match) => ({
+  // Markdown emphasis in a cell is presentation, not part of the name: the READMEs
+  // bold the stages the skill owns (4-8) so the scope reads at a glance, while
+  // SKILL.md keeps plain text. Strip the markers before the names are compared.
+  return [...text.matchAll(/^\| \*{0,2}(\d+)\*{0,2} \| ([^|]+?) \|/gm)].map((match) => ({
     number: Number(match[1]),
-    name: match[2].trim(),
+    name: match[2].replace(/\*\*/g, "").trim(),
   }));
 }
 
@@ -177,39 +180,38 @@ test("the route table and the playbook name the same nine stages in the same ord
   }
 });
 
-test("both READMEs carry the route the always-read table does", () => {
-  // The READMEs are a second and a third copy of the route, and the user-facing
-  // one: the first place drift shows. The English stage names are the same words
-  // as SKILL.md's; the Chinese ones are translations, so there the numbers and
-  // the order are compared, not the words.
+test("the paradigm essay carries the route the always-read table does", () => {
+  // The route lives in two places a person reads: the always-read table in
+  // SKILL.md and the essay in docs/paradigm.md. The READMEs are product pages and
+  // link to the essay rather than restating the table, so the essay is the copy
+  // that can drift — and it is compared here, stage name by stage name.
   const skillStages = stageRowsIn(routeSectionOf(read(SKILL_FILE)));
-  const english = stageRowsIn(sectionOf("README.md", "## From an idea to running code", "## A skill, not a product"));
+  const essay = stageRowsIn(
+    sectionOf("docs/paradigm.md", "## In practice: the loop", "## What this costs"),
+  );
   assert.equal(
-    english.length,
+    essay.length,
     STAGE_COUNT,
-    `README.md's route table must list ${STAGE_COUNT} stages; found ${english.length}`,
+    `docs/paradigm.md's route table must list ${STAGE_COUNT} stages; found ${essay.length}`,
   );
   for (let i = 0; i < STAGE_COUNT; i += 1) {
-    assert.equal(english[i].number, i + 1, `README.md's route table row ${i + 1} is numbered ${english[i].number}`);
+    assert.equal(essay[i].number, i + 1, `docs/paradigm.md's route table row ${i + 1} is numbered ${essay[i].number}`);
     assert.equal(
-      english[i].name,
+      essay[i].name,
       skillStages[i].name,
-      `README.md's stage ${i + 1} is "${english[i].name}" while ${SKILL_FILE} says "${skillStages[i].name}"`,
+      `docs/paradigm.md's stage ${i + 1} is "${essay[i].name}" while ${SKILL_FILE} says "${skillStages[i].name}"`,
     );
   }
 
-  const chinese = stageRowsIn(sectionOf("README.zh-CN.md", "## 从一个想法到能跑的代码", "## 是 skill，不是产品"));
-  assert.equal(
-    chinese.length,
-    STAGE_COUNT,
-    `README.zh-CN.md's route table must list ${STAGE_COUNT} stages; found ${chinese.length}`,
-  );
-  assert.deepEqual(
-    chinese.map((stage) => stage.number),
-    Array.from({ length: STAGE_COUNT }, (_, i) => i + 1),
-    "README.zh-CN.md's route table is out of order",
-  );
-  for (const stage of chinese) assert.ok(stage.name.length > 0, `README.zh-CN.md's stage ${stage.number} has no name`);
+  // If the essay moved or was unlinked, the user-facing route would be gone while
+  // every other check still passed.
+  for (const name of ["README.md", "README.zh-CN.md"]) {
+    assert.match(
+      read(name),
+      /docs\/paradigm\.md/,
+      `${name} does not link to docs/paradigm.md, so the route is unreachable from the product page`,
+    );
+  }
 });
 
 test("the playbook quotes the copy handshake canvas/app.mjs actually emits", () => {
