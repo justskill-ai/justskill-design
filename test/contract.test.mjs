@@ -47,7 +47,17 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
  */
 
 /** Where a command name may appear. `test/` and `evals/` talk about verbs, not to them. */
-const DOC_ROOTS = ["SKILL.md", "README.md", "docs", "references", "examples", "lib", "canvas", "scripts"];
+const DOC_ROOTS = [
+  "SKILL.md",
+  "README.md",
+  "README.en.md",
+  "docs",
+  "references",
+  "examples",
+  "lib",
+  "canvas",
+  "scripts",
+];
 
 function filesUnder(target, extensions = /\.(md|mjs|html|json)$/) {
   const full = join(ROOT, target);

@@ -36,7 +36,13 @@ const read = (name) => readFileSync(join(ROOT, name), "utf8");
  * playbook; those two have their own guards, and the generated three are compared
  * in `test/references.test.mjs`.
  */
-const HAND_WRITTEN = ["SKILL.md", "README.md", "docs/format-v3.md", "references/product-flow.md"];
+const HAND_WRITTEN = [
+  "SKILL.md",
+  "README.md",
+  "README.en.md",
+  "docs/format-v3.md",
+  "references/product-flow.md",
+];
 
 test("no hand-written document says margin itself is refused", () => {
   for (const name of HAND_WRITTEN) {
@@ -58,7 +64,7 @@ test("no receipt example drops a margin declaration", () => {
   // `margin` is a property now, so a receipt can never carry this line. An
   // example that shows it teaches the model to expect a refusal that will not
   // come, and to rewrite a declaration that was already fine.
-  for (const name of ["SKILL.md", "README.md"]) {
+  for (const name of ["SKILL.md", "README.md", "README.en.md"]) {
     assert.doesNotMatch(
       read(name),
       /^dropped:\s+margin:/m,

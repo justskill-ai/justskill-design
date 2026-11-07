@@ -205,7 +205,7 @@ test("the paradigm essay carries the route the always-read table does", () => {
 
   // If the essay moved or was unlinked, the user-facing route would be gone while
   // every other check still passed.
-  for (const name of ["README.md", "README.zh-CN.md"]) {
+  for (const name of ["README.md", "README.en.md"]) {
     assert.match(
       read(name),
       /docs\/paradigm\.md/,
