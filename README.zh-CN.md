@@ -112,7 +112,9 @@ npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justs
 ```
 
 它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的
-agent 目录；`npx skills update` 负责更新。
+agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`SKILL.md`、
+`references/`、`design.mjs`、`lib/`、`canvas/`）；演示视频和截图是给人看的，复制安装
+的话可以删掉腾出约 5 MB——agent 会主动提出。
 
 ## 技术细节
 
@@ -122,13 +124,13 @@ README 到这里就停了，是有意的。格式、命令、画布、写入路�
 |---|---|
 | `SKILL.md` | agent 每次被触发时读的内容：什么时候用、格式、拒绝规则、写作规则。 |
 | `docs/zh/paradigm.md` | 更长的论证：软件 Skill 化、app 之后的设计软件、可进化性，以及九阶段循环。 |
-| `docs/zh/how-it-works.md` | 为什么设计文件是 HTML、一屏看懂格式、所有命令、画布、写入漏斗、回执、范围，以及从 checkout 安装。 |
+| `docs/zh/how-it-works.md` | 为什么设计文件是 HTML、一屏看懂格式、所有命令、画布、写入漏斗、回执、范围，运行时到底需要什么，以及从 checkout 安装。 |
 | `docs/zh/quality.md` | 测试套件固定了哪些不变量，以及今天量到的数据。 |
 | `docs/format-v3.md` | 冻结的契约：元素模型、规范形式、诊断码、模块边界。 |
 | `references/styling.md` | 每个允许的属性及其取值语法。 |
 | `references/schema.md` | 元素契约，由格式表生成。 |
 | `references/images.md` | 经过校验的图片清单。 |
-| `references/product-flow.md` | 分阶段剧本。 |
+| `references/product-flow.md` | 软件开发的分阶段剧本：从想法到代码。 |
 
 `docs/format-v3.md` 和 `references/*.md` 保持英文（冻结的契约、生成的文件）；其余中文文档见 [docs/zh/](docs/zh/README.md)。
 
@@ -136,7 +138,7 @@ README 到这里就停了，是有意的。格式、命令、画布、写入路�
 
 `examples/dsh-media-desk.html` 复刻的是
 [dsh-media-desk](https://github.com/woniuniuniu/dsh-media-desk) 的界面——一个
-DeepSeek Harness 的自媒体工作台插件。那份设计稿就是用本项目做的，这里作为真实案例收录。
+DeepSeek Harness 的自媒体工作台插件。
 
 `test/fixtures/real/open-design-components.html` 是 [OpenDesign](https://github.com/nexu-io/open-design)（Apache-2.0）里一个 fixture 的副本，保留作为真实世界的解析用例。
 

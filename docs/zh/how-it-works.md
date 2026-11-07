@@ -144,6 +144,18 @@ node ~/Developer/justskill-design/scripts/install.mjs
 
 仓库就是 skill，所以这次安装就是一条 symlink，指向 agent 本来就会读取的 skills 目录。它把 checkout 链接到 `~/.agents/skills/justskill-design` 和 `~/.claude/skills/justskill-design`，所以任何读取这些目录的 agent（包括 Claude Code）都能拿到它；改 checkout 就是更新。`--uninstall` 删除两条链接，`--dry-run` 打印它准备做什么。
 
+## 运行时到底需要什么
+
+skill 本身很小：`SKILL.md`、`references/`、`design.mjs`、`lib/`、`canvas/`，大约 1 MB。仓库里还带着一些没有任何命令会读取的媒体文件：演示 GIF（约 3.3 MB）、演示 MP4（约 0.8 MB），以及截图（约 1 MB，包括案例墙）。
+
+如果 skill 是复制进 skills 目录的（而不是 symlink 到 checkout），安装后可以删掉这些，腾出约 5 MB，`validate`、`set`、`serve`、`export` 都不受影响：
+
+```sh
+rm -rf docs/*.gif docs/*.mp4 docs/*.png
+```
+
+其余都是文本，保留：文档、示例、测试和 README 都很小，而且值得读。保留 `LICENSE` 和 `package.json`。如果 checkout 本身被 symlink 进 skills 目录，不要删——那就是仓库本身，安装是跟着它走的。
+
 ## 质量
 
 测试套件固定了哪些不变量、今天量到的数据，见 [quality.md](quality.md)。

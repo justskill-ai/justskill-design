@@ -150,7 +150,10 @@ npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justs
 ```
 
 That copies the skill into `~/.agents/skills/justskill-design` and links it into
-the agent directories the CLI manages; `npx skills update` keeps it current.
+the agent directories the CLI manages; `npx skills update` keeps it current. The
+skill needs about 1 MB (`SKILL.md`, `references/`, `design.mjs`, `lib/`,
+`canvas/`); the demo video and screenshots are for people, and a copied install
+can drop them to free about 5 MB — the agent will offer to.
 
 ## Technical details
 
@@ -161,13 +164,13 @@ write path and the test numbers are documented where they belong:
 |---|---|
 | `SKILL.md` | What the agent reads on every trigger: when to use this, the format, the refusals, the writing rules. |
 | `docs/paradigm.md` | The longer argument: software as a skill, design software after the app, evolvability, and the nine-stage loop. |
-| `docs/how-it-works.md` | Why the design file is HTML, the format in one screen, every command, the canvas, the write funnel, the receipt, the scope, and installing from the checkout. |
+| `docs/how-it-works.md` | Why the design file is HTML, the format in one screen, every command, the canvas, the write funnel, the receipt, the scope, what runs at run time, and installing from the checkout. |
 | `docs/quality.md` | What the test suite pins, and the measurements taken today. |
 | `docs/format-v3.md` | The frozen contract: element model, canonical form, diagnostic codes, module boundaries. |
 | `references/styling.md` | Every allowed property and its value grammar. |
 | `references/schema.md` | The element contract, generated from the format table. |
 | `references/images.md` | The verified photo catalogue. |
-| `references/product-flow.md` | The stage-by-stage playbook. |
+| `references/product-flow.md` | The software-development playbook, stage by stage: from idea to code. |
 
 The three product documents have Chinese editions in [`docs/zh/`](docs/zh/README.md);
 `docs/format-v3.md` and the generated `references/` stay English on purpose.
@@ -176,8 +179,7 @@ The three product documents have Chinese editions in [`docs/zh/`](docs/zh/README
 
 `examples/dsh-media-desk.html` recreates the interface of
 [dsh-media-desk](https://github.com/woniuniuniu/dsh-media-desk), a DeepSeek
-Harness plugin for media workflows. That design was made with this project, and
-is included here as a real-world case.
+Harness plugin for media workflows.
 
 `test/fixtures/real/open-design-components.html` is a copy of a fixture from
 [OpenDesign](https://github.com/nexu-io/open-design) (Apache-2.0), kept as a

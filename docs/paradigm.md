@@ -1,9 +1,11 @@
 # Design software after the app
 
-中文版：[docs/zh/paradigm.md](zh/paradigm.md)
+*By [西瓜飞船](https://xhslink.cn/o/42rk3ZEEuzY)*
 
 *Notes on software as a skill — and on what a design tool becomes when the agent
 does the drawing.*
+
+中文版：[docs/zh/paradigm.md](zh/paradigm.md)
 
 ## The loop kept breaking in the same place
 

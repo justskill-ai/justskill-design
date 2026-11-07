@@ -1,5 +1,7 @@
 # App 之后的设计软件
 
+*作者：[西瓜飞船](https://xhslink.cn/o/42rk3ZEEuzY)*
+
 *关于「软件即 skill」的笔记——以及当 agent 开始画图，设计工具会变成什么。*
 
 英文原文：[docs/paradigm.md](../paradigm.md)

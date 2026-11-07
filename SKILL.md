@@ -406,3 +406,25 @@ things follow, and they are the ones to tell the user:
   inside a loop (`pen/ref-cycle`) or nested more than 16 deep (`pen/ref-depth`).
 - Children on a reference node are not part of the master's subtree, so they are
   counted in `lost.refChildren` and not written.
+
+## What the skill needs at run time
+
+The skill runs from `SKILL.md`, `references/`, `design.mjs`, `lib/` and
+`canvas/` — about 1 MB. The repository also carries media that no command reads:
+
+| Media only | What it is | Size |
+|---|---|---|
+| `docs/justskill-demo.gif`, `docs/justskill-demo.mp4` | the README demo | ~4 MB |
+| `docs/*.png` | the screenshots, including the case wall | ~1 MB |
+
+If the skill was copied into the skills directory (not symlinked to a checkout),
+the user can remove those and free about 5 MB; nothing in `validate`, `set`,
+`serve` or `export` changes, and every other file is text:
+
+```sh
+rm -rf docs/*.gif docs/*.mp4 docs/*.png
+```
+
+Ask before removing anything, and never prune a symlinked checkout — that is
+the user's repository. Everything else stays: the docs, examples, tests and
+READMEs are text, small, and worth reading. Keep `LICENSE` and `package.json`.

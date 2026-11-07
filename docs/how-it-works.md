@@ -182,6 +182,26 @@ directory your agent already reads. It links the checkout into
 any agent that reads those directories picks it up; editing the checkout is the
 update. `--uninstall` removes both links, and `--dry-run` prints what it would do.
 
+## What the skill needs at run time
+
+The skill itself is small: `SKILL.md`, `references/`, `design.mjs`, `lib/` and
+`canvas/`, about 1 MB. The repository also carries media that no command reads:
+the demo GIF (~3.3 MB), the demo MP4 (~0.8 MB), and the screenshots (~1 MB),
+including the case wall.
+
+If the skill was copied into a skills directory rather than symlinked to this
+checkout, those can be removed after install, freeing about 5 MB with no change
+to `validate`, `set`, `serve` or `export`:
+
+```sh
+rm -rf docs/*.gif docs/*.mp4 docs/*.png
+```
+
+Everything else is text and stays: the docs, examples, tests and READMEs are
+small and worth reading. Keep `LICENSE` and `package.json`. Do not prune a
+checkout that is symlinked into the skills directory — that is the repository
+itself, and the install is following it.
+
 ## Quality
 
 What the suite pins, and what today's measurements say, is in
