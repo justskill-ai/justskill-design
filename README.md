@@ -74,36 +74,52 @@ the change as one operation and shows the receipt.
 demand and put down when the work is done — 随用随开. No install, no account, no
 cloud copy, no version of the tool drifting away from the design it produced.
 
+**Evolvable.** The tool is source, not a binary. An agent can read the CLI, the
+format and the canvas, then change them for this project — something no app can
+offer. One base, endless variants: that is the new meaning of AI-native here.
+
 **The design is an artifact, not a session.** It lives in your repository, next
 to the code, and the validated file is the spec that code is reviewed against.
+
+**Open source by nature.** The tool is a directory, the artifact is a file, and
+there is nothing to rent — no seat, no cloud, no format to lock. So it is MIT,
+free, and fully open source. Giving the tool away is not a sacrifice: it is how
+the artifact comes to belong to everyone.
 
 I wrote the longer argument — what design software becomes when it stops being an
 app — in [Design software after the app](docs/paradigm.md).
 
-### How it compares
+### How it compares with other design tools
 
 The question is not which tool has more features. It is where the design lives,
 who can edit it, and whether the machine that wrote it can be told it is wrong.
 
-| | JustSkill Design | Figma · Penpot · Sketch | AI app builders (v0, Lovable, Bolt) | Agent writing HTML/CSS by hand |
-|---|---|---|---|---|
-| **The design is** | one self-contained HTML file with inline styles and `data-id` on every element | a document in that tool's format, inside that tool (app or cloud) | a running app; the design is a side effect of the code | the same kind of HTML file, with no structure the tool understands |
-| **How the agent works on it** | reads and writes the file itself, through the CLI or the canvas | through a plugin, Dev Mode/MCP server, or screenshots of the canvas | prompt in, code out; the design is regenerated rather than edited | writes the file directly |
-| **Can it be refused before you look?** | yes — closed property set, canonical form, diagnostics that name the fix | no; the design language accepts what the canvas accepts | usually no; the browser is the first check | no |
-| **Lives in git, diffs like code** | yes, one file, readable diffs | not as a file you commit; visual history only | code yes, design intent no | yes, usually noisy |
-| **How a human reviews it** | local canvas: layer tree, inspector, zoom, page names | the app itself, with comments and live multiplayer | browse the built app | open the file in a browser |
-| **Setup** | a skill directory; no account, no server, no install | account + app, often an MCP server for agent access | account + cloud project | nothing |
-| **Weak at** | no grid, no fixed positioning, no animation, no components, no realtime co-editing | machine-checkable output and textual diffs | reviewing a design before it is code, keeping a durable spec | no validation; silent breakage; drift between screens |
+| | JustSkill Design | Figma · Penpot · Sketch | Pencil (pen.dev) | AI app builders (v0, Lovable, Bolt) | Agent writing HTML/CSS by hand |
+|---|---|---|---|---|---|
+| **The design is** | one self-contained HTML file with inline styles and `data-id` on every element | a document in that tool's format, inside that tool (app or cloud) | a `.pen` file — an open JSON schema agents can read, drawn in its app | a running app; the design is a side effect of the code | the same kind of HTML file, with no structure the tool understands |
+| **How the agent works on it** | reads and writes the file itself, through the CLI or the canvas | through a plugin, Dev Mode/MCP server, or screenshots of the canvas | an on-canvas agent, MCP, or the CLI; it is agent-first by design | prompt in, code out; the design is regenerated rather than edited | writes the file directly |
+| **Can it be refused before you look?** | yes — closed property set, canonical form, diagnostics that name the fix | no; the design language accepts what the canvas accepts | the schema is open and there is a CLI, but the format is not built around refusing a bad declaration; you still find out on the canvas | usually no; the browser is the first check | no |
+| **Lives in git, diffs like code** | yes, one file, readable diffs | not as a file you commit; visual history only | the `.pen` file commits, but the diff is a design document's JSON, not a page's markup | code yes, design intent no | yes, usually noisy |
+| **How a human reviews it** | local canvas: layer tree, inspector, zoom, page names | the app itself, with comments and live multiplayer | the app: canvas, layers, components, effects, share link | browse the built app | open the file in a browser |
+| **Setup** | a skill directory; no account, no server, no install | account + app, often an MCP server for agent access | app + account, then MCP or CLI for agents | account + cloud project | nothing |
+| **Evolvable** | yes — the tool is source in your repo: an agent can read it and change the CLI, the format or the canvas for this project | plugins and APIs around a closed core; the app itself is not yours to change | the `.pen` schema is open, but the editor is not in your repo; you extend it through MCP and the CLI, not by forking it | you get the generated app, not the builder; the tool is not yours | fully yours, but there is no tool to evolve — you would be writing one |
+
+[Pencil](https://www.pen.dev) is the nearest neighbour: it also treats the file as the
+interface and lets agents write the document. The difference is where the
+artifact lands — its `.pen` file is a design document for its app, while this
+project's artifact is an HTML file that opens anywhere. The two meet in the
+middle: `node design.mjs import pen` turns a `.pen` file into this format, which
+is how the 26-artboard example was made.
 
 Where this is the wrong tool:
 
-- You want components, variants, prototyping or live multiplayer review. Figma
-  and Penpot are better at being a design tool.
+- You want components, variants, prototyping, shaders or live multiplayer review.
+  Figma, Penpot and Pencil are better at being a design tool.
 - You want a running app without a design step. An AI app builder is the right
   shape.
-- The screen needs CSS this format does not allow — grid, fixed positioning,
-  animation, rich text, responsive breakpoints. The scope is deliberate; see
-  `docs/how-it-works.md#scope`.
+- The screen needs the full CSS toolbox — motion, effects, a component system,
+  responsive breakpoints — rather than a set of app screens. The scope is
+  deliberate; see `docs/how-it-works.md#scope`.
 - You do not work with an AI agent. This is a skill for an agent, not a
   standalone editor.
 
@@ -144,7 +160,7 @@ write path and the test numbers are documented where they belong:
 | Document | What it answers |
 |---|---|
 | `SKILL.md` | What the agent reads on every trigger: when to use this, the format, the refusals, the writing rules. |
-| `docs/paradigm.md` | The longer argument: software as a skill, design software after the app, and the nine-stage loop. |
+| `docs/paradigm.md` | The longer argument: software as a skill, design software after the app, evolvability, and the nine-stage loop. |
 | `docs/how-it-works.md` | Why the design file is HTML, the format in one screen, every command, the canvas, the write funnel, the receipt, the scope, and installing from the checkout. |
 | `docs/quality.md` | What the test suite pins, and the measurements taken today. |
 | `docs/format-v3.md` | The frozen contract: element model, canonical form, diagnostic codes, module boundaries. |

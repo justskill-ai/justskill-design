@@ -85,6 +85,27 @@ not start, a session that expired, a package that resolved to something else, a
 build older than its source. What is left is an HTML file you can open, diff and
 commit, and a command set that will not let it be wrong in silence.
 
+## The tool is source, not a binary
+
+An app hands you a feature set. A skill hands you the tool: the CLI, the format,
+the canvas and the validator are files in a directory, and the agent that runs
+them can also read them. That changes what customisation means. In an app, a need
+the vendor did not anticipate becomes a plugin, a feature request or a
+workaround. Here it becomes a diff: the agent reads the command that needs to be
+different and changes it, for this project, today.
+
+That is not a small convenience. It is the difference between a tool and a
+material. Every project that uses this skill can end up with a slightly
+different one — a token naming rule, an extra validator, a canvas that shows the
+things this team cares about — and all of those variants still share the same
+format, so files stay portable between them. One base, endless variants.
+
+This is what I mean by AI-native, beyond "a model writes the markup": the
+frontier is not only that agents can use software, it is that software can be
+read, forked and changed by the agent that uses it. A binary can be used; a
+source can be grown. When the tool is source, the tool stops being the
+bottleneck of what it can become.
+
 ## What stays human
 
 A fully agent-driven tool can still be a tool that overrides you. I did not want
