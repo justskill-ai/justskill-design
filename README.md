@@ -36,9 +36,9 @@ Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "
 
 **3. 评审、确认。** agent 一边设计一边打开画布。选中一个元素，按 ⌘C，把复制出来的指针粘贴回对话，说要改什么；agent 一次只应用一个操作。页面都对了就确认，它会在你的技术栈里把设计实现成代码。
 
-![justSkill 动起来的样子：把一段提示词复制给 agent，agent 设计页面，然后你打开画布检查确认](docs/justskill-demo.gif)
+![justSkill 动起来的样子：把一段提示词复制给 agent，agent 设计页面，然后你打开画布检查确认](docs/justskill-demo-zh.gif)
 
-[看完整的 24 秒演示（MP4）](docs/justskill-demo.mp4)
+[看完整的 24 秒演示（MP4）](docs/justskill-demo-zh.mp4)
 
 ## 你的仓库里有什么
 
@@ -118,7 +118,7 @@ npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justs
 它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的
 agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`SKILL.md`、
 `references/`、`design.mjs`、`lib/`、`canvas/`）；演示视频和截图是给人看的，复制安装
-的话可以删掉腾出约 5 MB——agent 会主动提出。
+的话可以删掉腾出约 9 MB——agent 会主动提出。
 
 ## 技术细节
 

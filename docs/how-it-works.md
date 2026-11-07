@@ -186,11 +186,11 @@ update. `--uninstall` removes both links, and `--dry-run` prints what it would d
 
 The skill itself is small: `SKILL.md`, `references/`, `design.mjs`, `lib/` and
 `canvas/`, about 1 MB. The repository also carries media that no command reads:
-the demo GIF (~3.3 MB), the demo MP4 (~0.8 MB), and the screenshots (~1 MB),
-including the case wall.
+the two demo GIFs (~2.8 MB each, one per README language), the two demo MP4s
+(~1.2 MB each), and the screenshots (~1 MB), including the case wall.
 
 If the skill was copied into a skills directory rather than symlinked to this
-checkout, those can be removed after install, freeing about 5 MB with no change
+checkout, those can be removed after install, freeing about 9 MB with no change
 to `validate`, `set`, `serve` or `export`:
 
 ```sh
