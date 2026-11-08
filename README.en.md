@@ -177,6 +177,13 @@ Install from npm:
 dsh plugin --profile web add justskill-design
 ```
 
+> If your package manager enables `minimumReleaseAge` (recent defaults wait 24 hours
+> before resolving a new release), pin the version:
+>
+> ```sh
+> dsh plugin --profile web add justskill-design@3.2.0
+> ```
+
 Or straight from GitHub (no npm needed):
 
 ```sh

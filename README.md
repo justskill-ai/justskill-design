@@ -137,6 +137,12 @@ agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`
 dsh plugin --profile web add justskill-design
 ```
 
+> 如果 pnpm 启用了 `minimumReleaseAge`（新版默认会对刚发布的版本等待 24 小时），包管理器可能暂时解析到旧版本；这时固定版本：
+>
+> ```sh
+> dsh plugin --profile web add justskill-design@3.2.0
+> ```
+
 也可以直接从 GitHub 安装（不需要 npm）：
 
 ```sh
