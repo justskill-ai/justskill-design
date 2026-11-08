@@ -169,6 +169,7 @@ This repository is also a DSH (DeepSeek Harness) plugin. Installing it:
   opens a **Canvas tab in the right sidebar**: chat on the left, live canvas on the right
 - the agent opens or focuses that tab by calling the `justskill_canvas` tool; in DSH it
   does not run `serve` or open a browser
+- with no file selected, the Canvas tab lists the **current workspace** design files; picking one opens it in that tab
 
 From a checkout, link the repository:
 

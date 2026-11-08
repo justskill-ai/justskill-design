@@ -169,6 +169,10 @@ test("the client bundle loads through the ModuleLoader factory and registers bot
   assert.match(client, /Do NOT run `node design\.mjs serve`/);
   assert.match(client, /canvas request watcher/);
   assert.match(client, /pending\/clear/);
+  assert.match(client, /function CanvasPicker/);
+  assert.match(client, /jsk-picker/);
+  assert.match(client, /function readSessionWorkspace/);
+  assert.match(client, /setTabFile/);
   // Regression: the icon helper must pop a trailing numeric size instead of
   // passing the first child as `width` (rendered `[object Object]`).
   assert.match(client, /typeof args\[args\.length - 1\] === 'number'/);

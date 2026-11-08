@@ -122,6 +122,66 @@ window.__ModuleLoader__.load({
       }
     }
 
+    // The Canvas tab keeps the file it picked in module state, keyed by the tab
+    // id, so the body and its tab title agree without rewriting the tab's
+    // navigation params. A workbench-opened tab still gets its file from
+    // `navigation.params`; a tab opened from the right-sidebar guide starts with
+    // the workspace picker and switches to the picked file here.
+    const tabFiles = new Map();
+    const tabFileListeners = new Set();
+
+    function setTabFile(tabId, file) {
+      if (typeof tabId !== 'string' || tabId === '') return;
+      if (typeof file === 'string' && file !== '') tabFiles.set(tabId, file);
+      else tabFiles.delete(tabId);
+      for (const listener of tabFileListeners) listener();
+    }
+
+    function useTabFile(tabId) {
+      const [, force] = useState(0);
+      useEffect(() => {
+        if (typeof tabId !== 'string' || tabId === '') return undefined;
+        const listener = () => force((value) => value + 1);
+        tabFileListeners.add(listener);
+        return () => tabFileListeners.delete(listener);
+      }, [tabId]);
+      return typeof tabId === 'string' && tabId !== '' ? tabFiles.get(tabId) : undefined;
+    }
+
+    function readSessionWorkspace(sessionId) {
+      const sessions = runtime === null ? undefined : runtime.get('sessions');
+      const workspaces = runtime === null ? undefined : runtime.get('workspaces');
+      const session = sessionId && sessions && sessions.list
+        ? sessions.list.getSnapshot()?.byId?.[sessionId]
+        : undefined;
+      const cwd = session && typeof session.cwd === 'string' ? session.cwd : undefined;
+      const items = workspaces && workspaces.list
+        ? (workspaces.list.getSnapshot()?.items ?? [])
+        : [];
+      const matched = items.find((item) => Array.isArray(item.sessionIds) && item.sessionIds.includes(sessionId))
+        ?? items.find((item) => cwd !== undefined && item.path === cwd);
+      if (matched !== undefined) {
+        return {
+          id: matched.workspaceId,
+          path: matched.path,
+          title: matched.title || basename(matched.path),
+        };
+      }
+      if (typeof cwd === 'string' && cwd !== '') {
+        return { id: cwd, path: cwd, title: basename(cwd) };
+      }
+      return null;
+    }
+
+    function openWorkbench() {
+      try {
+        runtime?.get('layout')?.selectPanel?.(PANEL_ID);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
     /* ------------------------------------------------------------------ *
      * Icons
      * ------------------------------------------------------------------ */
@@ -448,17 +508,91 @@ window.__ModuleLoader__.load({
      * Canvas right-sidebar tab
      * ------------------------------------------------------------------ */
 
+    function CanvasPicker({ sessionId, onPick }) {
+      const [state, setState] = useState({ phase: 'loading' });
+      const [ticket, setTicket] = useState(0);
+      const workspace = useMemo(() => readSessionWorkspace(sessionId), [sessionId]);
+
+      useEffect(() => {
+        if (workspace === null) {
+          setState({ phase: 'no-workspace' });
+          return undefined;
+        }
+        let cancelled = false;
+        setState({ phase: 'loading' });
+        post('scan', {
+          workspaces: [{ id: workspace.id, path: workspace.path, title: workspace.title }],
+        }).then(
+          (value) => {
+            if (cancelled) return;
+            const entry = Array.isArray(value.workspaces) ? value.workspaces[0] : undefined;
+            setState({ phase: 'ready', files: entry && Array.isArray(entry.files) ? entry.files : [], incomplete: entry?.incomplete === true });
+          },
+          (cause) => {
+            if (!cancelled) setState({ phase: 'error', message: errorText(cause) });
+          },
+        );
+        return () => {
+          cancelled = true;
+        };
+      }, [workspace?.id, workspace?.path, ticket]);
+
+      const canOpenWorkbench = typeof openWorkbench === 'function';
+      return h('div', { className: 'jsk-picker' },
+        h('div', { className: 'jsk-picker-head' },
+          h('div', { className: 'jsk-picker-heading' },
+            h('div', { className: 'jsk-picker-title' }, workspace === null ? '当前工作区' : workspace.title),
+            h('div', { className: 'jsk-picker-sub' }, workspace === null ? '无法确定当前会话的工作区' : workspace.path)),
+          canOpenWorkbench ? h('button', {
+            type: 'button',
+            className: 'jsk-picker-workbench',
+            title: '打开 JustSkill Design 工作台',
+            onClick: () => openWorkbench(),
+          }, icon.logo(14), '工作台') : null),
+        state.phase === 'loading' ? h('div', { className: 'jsk-picker-state' }, h('span', { className: 'jsk-spinner' }), '正在读取当前工作区的设计文件…') : null,
+        state.phase === 'error' ? h('div', { className: 'jsk-picker-state' },
+          h('strong', null, '读取失败'),
+          h('span', null, state.message),
+          h('button', { type: 'button', className: 'jsk-button', onClick: () => setTicket((value) => value + 1) }, '重试')) : null,
+        state.phase === 'no-workspace' ? h('div', { className: 'jsk-picker-state' },
+          h('strong', null, '找不到当前工作区'),
+          h('span', null, '这个标签页里没有会话工作区信息；请从 JustSkill Design 工作台点一个设计文件。')) : null,
+        state.phase === 'ready' && state.files.length === 0 ? h('div', { className: 'jsk-picker-state' },
+          h('strong', null, '这个工作区还没有设计文件'),
+          h('span', null, '用 justSkill 新建一个 design.html，再回到这里选择它。')) : null,
+        state.phase === 'ready' && state.files.length > 0 ? h('div', { className: 'jsk-picker-list' },
+          state.incomplete ? h('div', { className: 'jsk-picker-note' }, '部分目录扫描超时，列表可能不完整') : null,
+          state.files.map((file) => h('button', {
+            type: 'button',
+            key: file.path,
+            className: 'jsk-pick',
+            title: file.path,
+            onClick: () => onPick(file.path),
+          },
+          h(MiniThumb, { seed: file.path.length }),
+          h('span', { className: 'jsk-pick-main' },
+            h('span', { className: 'jsk-pick-name' }, file.name),
+            h('span', { className: 'jsk-pick-meta' },
+              typeof file.pages === 'number' ? h('span', { className: 'jsk-pill' }, `${file.pages} 页`) : null,
+              h('span', null, formatSize(file.size)),
+              h('span', null, formatTime(file.mtime)))),
+          h('span', { className: 'jsk-pick-go' }, icon.arrow(14))))) : null);
+    }
+
     function CanvasBody(props) {
       const info = readTabInfo(props);
-      const file = info && info.tab && info.tab.navigation && info.tab.navigation.params
+      const tabId = info && info.tab ? info.tab.id : undefined;
+      const paramsFile = info && info.tab && info.tab.navigation && info.tab.navigation.params
         ? info.tab.navigation.params.file
         : undefined;
-      const [state, setState] = useState({ phase: file ? 'loading' : 'missing' });
+      const storedFile = useTabFile(tabId);
+      const file = typeof storedFile === 'string' && storedFile !== '' ? storedFile : paramsFile;
+      const [state, setState] = useState({ phase: file ? 'loading' : 'pick' });
       const [ticket, setTicket] = useState(0);
 
       useEffect(() => {
         if (typeof file !== 'string' || file === '') {
-          setState({ phase: 'missing' });
+          setState({ phase: 'pick' });
           return undefined;
         }
         let cancelled = false;
@@ -478,19 +612,35 @@ window.__ModuleLoader__.load({
         };
       }, [file, ticket]);
 
-      if (state.phase === 'ready') {
-        return h('iframe', {
-          className: 'jsk-frame',
-          src: state.url,
-          title: `justSkill canvas — ${basename(file)}`,
-          referrerPolicy: 'no-referrer',
+      useEffect(() => () => {
+        if (typeof tabId === 'string' && tabId !== '') tabFiles.delete(tabId);
+      }, [tabId]);
+
+      if (typeof file !== 'string' || file === '') {
+        return h(CanvasPicker, {
+          sessionId: props.sessionId,
+          onPick: (picked) => setTabFile(tabId, picked),
         });
+      }
+
+      if (state.phase === 'ready') {
+        const fromPicker = !(typeof paramsFile === 'string' && paramsFile !== '') && storedFile === file;
+        return h(React.Fragment, null,
+          h('iframe', {
+            className: 'jsk-frame',
+            src: state.url,
+            title: `JustSkill Design canvas — ${basename(file)}`,
+            referrerPolicy: 'no-referrer',
+          }),
+          fromPicker ? h('button', {
+            type: 'button',
+            className: 'jsk-switch',
+            title: '换一个设计文件',
+            onClick: () => setTabFile(tabId, undefined),
+          }, icon.folder(13), '设计文件') : null);
       }
       return h('div', { className: 'jsk-canvas-state' },
         state.phase === 'loading' ? h(React.Fragment, null, h('span', { className: 'jsk-spinner' }), '正在打开画布…') : null,
-        state.phase === 'missing' ? h(React.Fragment, null,
-          h('strong', null, '没有要打开的设计文件'),
-          h('span', null, '从 JustSkill Design 工作台点击一个设计文件，画布会开在这里。')) : null,
         state.phase === 'error' ? h(React.Fragment, null,
           h('strong', null, '画布打开失败'),
           h('span', null, state.message),
@@ -499,9 +649,12 @@ window.__ModuleLoader__.load({
 
     function CanvasTitle(props) {
       const info = readTabInfo(props);
-      const file = info && info.tab && info.tab.navigation && info.tab.navigation.params
+      const tabId = info && info.tab ? info.tab.id : undefined;
+      const paramsFile = info && info.tab && info.tab.navigation && info.tab.navigation.params
         ? info.tab.navigation.params.file
         : undefined;
+      const storedFile = useTabFile(tabId);
+      const file = typeof storedFile === 'string' && storedFile !== '' ? storedFile : paramsFile;
       return h('span', { className: 'jsk-tab-title' }, icon.canvas(14), h('span', null, typeof file === 'string' && file !== '' ? basename(file) : 'Canvas'));
     }
 
@@ -586,6 +739,29 @@ window.__ModuleLoader__.load({
 .jsk-frame{display:block;width:100%;height:100%;border:0;background:#f1efec}
 .jsk-canvas-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:24px;color:var(--dsw-alias-label-secondary,#68707d);font-size:12.5px;text-align:center;background:var(--dsw-alias-bg-layer-1,#fbfbfc)}
 .jsk-canvas-state strong{color:var(--dsw-alias-label-primary,#3c4452);font-size:13.5px;font-weight:600}
+.jsk-canvas-state strong{color:var(--dsw-alias-label-primary,#3c4452);font-size:13.5px;font-weight:600}
+.jsk-picker{height:100%;display:flex;flex-direction:column;min-height:0;background:var(--dsw-alias-bg-layer-1,#fbfbfc);color:var(--dsw-alias-label-primary,#1b1f26);font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Segoe UI",sans-serif}
+.jsk-picker *{box-sizing:border-box}
+.jsk-picker-head{flex:none;display:flex;align-items:center;gap:8px;padding:12px 12px 10px;border-bottom:1px solid var(--dsw-alias-border-l2,#eceef2)}
+.jsk-picker-heading{min-width:0;flex:1}
+.jsk-picker-title{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jsk-picker-sub{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.jsk-picker-workbench{flex:none;display:inline-flex;align-items:center;gap:5px;height:27px;padding:0 8px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:7px;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-secondary,#4d5563);font:inherit;font-size:11px;cursor:pointer;white-space:nowrap}
+.jsk-picker-workbench:hover{background:var(--dsw-alias-interactive-bg-hover,#f3f4f7)}
+.jsk-picker-list{flex:1;min-height:0;overflow:auto;padding:6px}
+.jsk-picker-note{margin:2px 6px 6px;padding:5px 7px;border-radius:6px;background:#fdf3e3;color:#a06a12;font-size:10.5px}
+.jsk-picker-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary,#68707d);font-size:12px}
+.jsk-picker-state strong{color:var(--dsw-alias-label-primary,#3c4452);font-size:13px;font-weight:600}
+.jsk-pick{width:100%;display:flex;align-items:center;gap:9px;padding:7px 8px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap}
+.jsk-pick:hover{background:var(--dsw-alias-interactive-bg-hover,#f6f7f9)}
+.jsk-pick .jsk-thumb{width:42px;height:34px;flex:0 0 42px}
+.jsk-pick-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.jsk-pick-name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.jsk-pick-meta{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--dsw-alias-label-secondary,#68707d);overflow:hidden;white-space:nowrap}
+.jsk-pick-go{flex:none;color:var(--dsw-alias-label-tertiary,#9aa2af);display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:var(--dsw-alias-bg-layer-2,#f5f6f8)}
+.jsk-pick:hover .jsk-pick-go{background:var(--dsw-alias-brand-primary,#4f6bfe);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.jsk-switch{position:absolute;right:10px;bottom:10px;z-index:3;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);color:var(--dsw-alias-label-secondary,#4d5563);font:inherit;font-size:11px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.jsk-switch:hover{background:var(--dsw-alias-bg-layer-1,#fff)}
 `;
 
     /* ------------------------------------------------------------------ *
