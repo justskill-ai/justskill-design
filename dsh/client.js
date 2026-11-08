@@ -779,7 +779,7 @@ window.__ModuleLoader__.load({
           name: 'sidebar.panellist',
           id: PANEL_ID,
           order: 50,
-          label: () => 'JustSkill',
+          label: () => 'JustSkill Design 工作台',
         }, PanelIcon));
 
         ctx.slots.inject('main', () => ctx.slots.register({

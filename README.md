@@ -126,7 +126,7 @@ agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`
 这个仓库同时是一个 DSH（DeepSeek Harness）插件。装上以后：
 
 - **skill 自动注册**进 DSH，不用再软链到 `~/.agents/skills`
-- 左侧栏多一个 **JustSkill**：打开「JustSkill Design 工作台」，按工作区列出所有设计文件
+- 左侧栏多一个 **JustSkill Design 工作台**：按工作区列出所有设计文件
 - 点一个设计文件：在它所属的工作区**新建会话**，自动切换到该会话，并在**右侧栏**打开 Canvas tab；聊天在左、画布在右，agent 的修改实时刷新
 - Agent 要打开画布时会调用 `justskill_canvas` 工具，在右侧栏打开/聚焦 Canvas tab；DSH 下不会再跑 `serve` 或弹浏览器
 - 右栏 Canvas tab 没有指定文件时，会列出**当前工作区**的设计文件，点一个就在该 tab 内打开

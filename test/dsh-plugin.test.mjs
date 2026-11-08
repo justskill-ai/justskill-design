@@ -230,6 +230,8 @@ test("the client apply registers the workbench panel and the Canvas tab in the r
   const names = registrations.map((entry) => entry.name);
   assert.equal(names.includes("sidebar.panellist"), true);
   assert.equal(names.includes("main"), true);
+  const panel = registrations.find((entry) => entry.name === "sidebar.panellist");
+  assert.equal(panel.label(), "JustSkill Design 工作台");
   assert.equal(names.includes("sidebar.right.pane.tab"), true);
   assert.equal(names.includes("sidebar.right.pane.tab.title"), true);
   assert.equal(tabs.length, 1);

@@ -164,7 +164,7 @@ can drop them to free about 5 MB — the agent will offer to.
 This repository is also a DSH (DeepSeek Harness) plugin. Installing it:
 
 - registers the skill in DSH automatically — no symlink into `~/.agents/skills`
-- adds **JustSkill** to the left sidebar: a workbench listing design files across workspaces
+- adds **JustSkill Design workbench** to the left sidebar: a workbench listing design files across workspaces
 - clicking a design file creates a **new session in that file's workspace**, opens it, and
   opens a **Canvas tab in the right sidebar**: chat on the left, live canvas on the right
 - the agent opens or focuses that tab by calling the `justskill_canvas` tool; in DSH it
