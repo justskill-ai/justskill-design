@@ -4,6 +4,8 @@
 
 [English](README.en.md) · 简体中文
 
+[你的仓库里有什么](#你的仓库里有什么) · [一种软件新范式](#一种软件新范式) · [能设计到什么程度](#能设计到什么程度) · [开始用](#开始用) · [在 DeepSeek Harness 里用](#在-deepseek-harness-里用) · [技术细节](#技术细节) · [致谢](#致谢)
+
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -12,8 +14,6 @@
 **设计软件新范式。**
 
 没有 MCP，没有 APP，没有账号，没有云端。协作发生在 git 里——只有一个 Skill 和一张 HTML。
-
-[你的仓库里有什么](#你的仓库里有什么) · [一种软件新范式](#一种软件新范式) · [能设计到什么程度](#能设计到什么程度) · [开始用](#开始用) · [在 DeepSeek Harness 里用](#在-deepseek-harness-里用) · [技术细节](#技术细节) · [致谢](#致谢)
 
 **它是什么。** 一个活在代码仓库里、而不是活在设计软件里的设计工具。你的 agent 运行这个 skill，设计页面，最后留下一张 HTML 文件；你在本地画布上评审、确认，校验通过的文件就是写代码时的规格。<br>
 你不画图——agent 画，你判断。
