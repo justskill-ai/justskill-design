@@ -29,6 +29,7 @@ const CACHE_TTL_MS = 15_000;
 const SCAN_BUDGET_MS = 6_000;
 const WORKSPACE_BUDGET_MS = 2_500;
 const MAX_WORKSPACES = 64;
+const PENDING_TTL_MS = 60_000;
 
 /** Successful JSON response; no store, the panel re-reads deliberately. */
 function ok(value) {
@@ -144,6 +145,17 @@ export function apply(ctx) {
   const pool = new CanvasPool();
   ctx.effect(() => () => pool.closeAll(), "justskill-design: canvas servers");
 
+  // Session-scoped handoff from the Host tool to the browser watcher. The tool
+  // cannot touch the right-sidebar UI, so it leaves a request the client claims
+  // and clears after the tab is open.
+  const pending = new Map();
+  const purgePending = () => {
+    const now = Date.now();
+    for (const [sessionId, entry] of pending) {
+      if (now - entry.at > PENDING_TTL_MS) pending.delete(sessionId);
+    }
+  };
+
   const cache = new Map();
 
   ctx.inject(["connection"], (scope) => {
@@ -241,5 +253,102 @@ export function apply(ctx) {
       pool.close(file);
       return ok({ closed: true });
     }, "justskill-design: canvas close route");
+
+    route("/api/justskill-design/pending", async (request) => {
+      const body = await readJson(request);
+      if (body === null) return fail(400, "bad-request", "body must be a JSON object");
+      if (typeof body.sessionId !== "string" || body.sessionId === "") {
+        return fail(400, "bad-request", "sessionId must be a non-empty string");
+      }
+      purgePending();
+      const entry = pending.get(body.sessionId);
+      return ok({ pending: entry === undefined ? null : { file: entry.file } });
+    }, "justskill-design: pending canvas route");
+
+    route("/api/justskill-design/pending/clear", async (request) => {
+      const body = await readJson(request);
+      if (body === null) return fail(400, "bad-request", "body must be a JSON object");
+      if (typeof body.sessionId !== "string" || body.sessionId === "") {
+        return fail(400, "bad-request", "sessionId must be a non-empty string");
+      }
+      purgePending();
+      const entry = pending.get(body.sessionId);
+      if (entry !== undefined && (typeof body.file !== "string" || body.file === "" || body.file === entry.file)) {
+        pending.delete(body.sessionId);
+      }
+      return ok({ cleared: true });
+    }, "justskill-design: pending canvas clear route");
+  });
+
+  ctx.inject(["tools"], (scope) => {
+    const tools = scope.get("tools");
+    if (tools === undefined || typeof tools.register !== "function") return;
+
+    scope.effect(() => tools.register({
+      name: "justskill_canvas",
+      description:
+        "Open the justSkill design canvas in the DSH right-sidebar Canvas tab. Use this " +
+        "whenever the user asks to open, show or focus the design canvas, and before " +
+        "designing page by page. Never run `node design.mjs serve` in DeepSeek Harness; " +
+        "the canvas is the right-sidebar tab.",
+      parameters: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          file: {
+            type: "string",
+            description: "Absolute path to the design file. Defaults to design.html in the session workspace.",
+          },
+        },
+      },
+      output: {
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            requested: { type: "boolean" },
+            file: { type: "string" },
+          },
+          required: ["requested", "file"],
+        },
+        render(_args, value) {
+          return [{ type: "text", text: `justskill_canvas → ${value.file}` }];
+        },
+      },
+      timeoutMs: 15_000,
+      isConcurrencySafe() {
+        return false;
+      },
+      async execute(args, exec) {
+        const agent = exec === undefined ? undefined : exec.agent;
+        const sessionId = agent === undefined ? undefined : agent.id;
+        const cwd = agent === undefined ? undefined : agent.session?.header?.cwd;
+        if (typeof sessionId !== "string" || sessionId === "") {
+          throw new Error("justskill_canvas: no calling session");
+        }
+        if (typeof cwd !== "string" || cwd === "") {
+          throw new Error("justskill_canvas: no session workspace");
+        }
+        const requested = args !== null && typeof args === "object" && typeof args.file === "string"
+          ? args.file
+          : "";
+        const candidate = requested === ""
+          ? resolve(cwd, "design.html")
+          : isAbsolute(requested) ? requested : resolve(cwd, requested);
+        let file;
+        try {
+          file = await realpath(candidate);
+        } catch {
+          throw new Error(`justskill_canvas: no such file: ${candidate}`);
+        }
+        const meta = await readDesignFile(file);
+        if (meta === null) {
+          throw new Error(`justskill_canvas: ${file} has no design-schema marker`);
+        }
+        purgePending();
+        pending.set(sessionId, { file, at: Date.now() });
+        return { requested: true, file };
+      },
+    }), "justskill-design: canvas tool");
   });
 }

@@ -567,7 +567,7 @@ async function loadDocument({ keepCamera = false } = {}) {
   state.text = fileResponse.payload;
   state.revision = fileResponse.revision ?? stateResponse.payload?.revision ?? "";
 
-  document.title = `${state.file} — justSkill`;
+  document.title = `${state.file} — JustSkill Design`;
 
   mountAll();
   if (!keepCamera) fitAll();
@@ -2210,7 +2210,30 @@ function capturePointer(element, pointerId) {
   }
 }
 
+/**
+ * A press on the canvas must also give this document keyboard focus.
+ *
+ * The selection path calls `preventDefault()` on `pointerdown`, which suppresses
+ * the browser's normal focus change. That is invisible in a normal browser tab
+ * (the tab already owns the keyboard), but this page is also embedded in a DSH
+ * right-sidebar iframe: without taking focus, ⌘C goes to the host page and the
+ * canvas never hears it, so the pointer is never copied.
+ */
+function claimKeyboardFocus() {
+  try {
+    window.focus();
+  } catch {
+    /* an embedding shell may refuse; the parent is the fallback path */
+  }
+  try {
+    document.body?.focus({ preventScroll: true });
+  } catch {
+    /* focus is best effort; a non-focusable body just keeps the old target */
+  }
+}
+
 ui.viewport.addEventListener("pointerdown", (event) => {
+  claimKeyboardFocus();
   const target = event.target;
   // The panel toggles sit on the canvas but they are not the canvas. Without
   // this the click falls through to "nothing was hit", which clears the

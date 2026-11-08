@@ -17,6 +17,7 @@ function designDocument(title = "Home") {
 
 function fakeHarness() {
   const skills = [];
+  const tools = [];
   const routes = new Map();
   const disposers = [];
   const connection = {
@@ -24,6 +25,15 @@ function fakeHarness() {
       register(route) {
         routes.set(route.path, route);
         return () => routes.delete(route.path);
+      },
+    },
+  };
+  const services = {
+    connection,
+    tools: {
+      register(definition) {
+        tools.push(definition);
+        return () => {};
       },
     },
   };
@@ -41,9 +51,10 @@ function fakeHarness() {
       return () => {};
     },
     inject(names, callback) {
-      assert.equal(names.includes("connection"), true);
+      assert.equal(Array.isArray(names), true);
+      assert.equal(names.length > 0, true);
       callback({
-        get: (name) => (name === "connection" ? connection : undefined),
+        get: (name) => services[name],
         effect(fn) {
           const dispose = fn();
           if (typeof dispose === "function") disposers.push(dispose);
@@ -52,7 +63,7 @@ function fakeHarness() {
       });
     },
   };
-  return { ctx, skills, routes, disposers };
+  return { ctx, skills, tools, routes, disposers };
 }
 
 function request(path, payload) {
@@ -78,6 +89,47 @@ test("the host half registers the skill and both Host routes on the connection s
   assert.equal(harness.routes.has("/api/justskill-design/scan"), true);
   assert.equal(harness.routes.has("/api/justskill-design/canvas"), true);
   assert.equal(harness.routes.has("/api/justskill-design/canvas/close"), true);
+  assert.equal(harness.routes.has("/api/justskill-design/pending"), true);
+  assert.equal(harness.routes.has("/api/justskill-design/pending/clear"), true);
+  assert.equal(harness.tools.length, 1);
+  assert.equal(harness.tools[0].name, "justskill_canvas");
+});
+
+test("the canvas tool queues a session-scoped request and the pending routes claim it", async (t) => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), "justskill-tool-")));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = join(root, "design.html");
+  await writeFile(file, designDocument("Home"));
+  await writeFile(join(root, "plain.html"), "<html><body>plain</body></html>");
+
+  const harness = fakeHarness();
+  apply(harness.ctx);
+  const tool = harness.tools[0];
+  assert.equal(tool.name, "justskill_canvas");
+  assert.match(tool.description, /right-sidebar Canvas tab/);
+  assert.match(tool.description, /Never run `node design\.mjs serve`/);
+
+  const exec = { agent: { id: "session-tool", session: { header: { cwd: root } } } };
+  const value = await tool.execute({ file: "design.html" }, exec);
+  assert.deepEqual(value, { requested: true, file });
+  assert.match(tool.output.render([], value)[0].text, /justskill_canvas/);
+
+  const pending = harness.routes.get("/api/justskill-design/pending");
+  const claimed = await pending.fetch(request("/api/justskill-design/pending", { sessionId: "session-tool" }));
+  assert.equal(claimed.status, 200);
+  assert.deepEqual((await claimed.json()).value, { pending: { file } });
+
+  const other = await pending.fetch(request("/api/justskill-design/pending", { sessionId: "session-other" }));
+  assert.deepEqual((await other.json()).value, { pending: null });
+
+  const clear = harness.routes.get("/api/justskill-design/pending/clear");
+  const cleared = await clear.fetch(request("/api/justskill-design/pending/clear", { sessionId: "session-tool", file }));
+  assert.equal(cleared.status, 200);
+  const empty = await pending.fetch(request("/api/justskill-design/pending", { sessionId: "session-tool" }));
+  assert.deepEqual((await empty.json()).value, { pending: null });
+
+  await assert.rejects(() => tool.execute({ file: "missing.html" }, exec), /no such file/);
+  await assert.rejects(() => tool.execute({ file: "plain.html" }, exec), /design-schema/);
 });
 
 test("the scan route returns workspace-grouped design files and ignores other HTML", async (t) => {
@@ -135,7 +187,7 @@ test("the canvas route starts a loopback canvas, and the close route stops it", 
 
   const page = await fetch(body.value.url);
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /justSkill canvas/);
+  assert.match(await page.text(), /JustSkill Design canvas/);
 
   const close = harness.routes.get("/api/justskill-design/canvas/close");
   const closed = await close.fetch(request("/api/justskill-design/canvas/close", { file }));

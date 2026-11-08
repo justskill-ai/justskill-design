@@ -50,7 +50,7 @@ this route: do the work, and do not start the route around it.
 | 3 | Feature confirmation | Ask for a clear yes, and what is missing or must-have. Fold the answer back into the breakdown. | The user confirms the scope, or tells you to decide. |
 | 4 | Design takeover | Say you are taking over the screens, and propose the page list and one visual direction. Create the design file and its tokens — or open the existing file when the product already has one. | The page list and the direction are stated. |
 | 5 | Design first | State the order once — in the same message as the feature confirmation is fine: screens first, your approval, then code. | The user agrees, or has already given you the order. |
-| 6 | Canvas | Start `serve` in the background, give the user the URL, then design page by page. Every `add` and `set` appears in the open canvas as you go. | The first screen is on the canvas. |
+| 6 | Canvas | Open the canvas: if a `justskill_canvas` tool is available, call it with the design file and never start a server yourself. Otherwise start `serve` in the background and give the user the URL. Then design page by page; every `add` and `set` appears in the open canvas as you go. | The first screen is on the canvas. |
 | 7 | UI adjustment | Teach the handshake once: select an element, press `⌘C`, paste the copied pointer back with the change. Apply it with `set`, `move`, `add`, `remove` or `tokens`. | The user stops asking for changes. |
 | 8 | Page sign-off | Run `validate`, walk the checklist — every planned screen, its states, the copy, the images, the tokens — and ask for approval. | The user approves the screens. |
 | 9 | Code | Treat the validated file as the spec, then implement the screens in the user's stack. | The running product matches the approved screens. |
@@ -266,6 +266,10 @@ most refusals.
 ```sh
 node design.mjs serve design.html
 ```
+
+In DeepSeek Harness with the JustSkill Design plugin, the canvas is the session's
+right-sidebar **Canvas** tab. Call the `justskill_canvas` tool with the design file
+instead of running `serve`; the plugin opens or focuses the tab.
 
 Prints a URL and opens it. The service stays in the foreground for as long as the
 canvas is open, so start it as a background process when you want to keep

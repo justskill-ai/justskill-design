@@ -114,6 +114,14 @@ test("readSkill strips frontmatter and keeps the package root as the resource ba
   assert.deepEqual(skill.resourceBase, { kind: "directory", path: ROOT });
 });
 
+test("SKILL.md describes the tool-first canvas step with a serve fallback", () => {
+  const source = readFileSync(join(ROOT, "SKILL.md"), "utf8");
+  assert.match(source, /\| 6 \| Canvas \| Open the canvas: if a `justskill_canvas` tool is available/);
+  assert.match(source, /never start a server yourself/);
+  assert.match(source, /Otherwise start `serve` in the background/);
+  assert.match(source, /right-sidebar \*\*Canvas\*\* tab/);
+});
+
 test("package.json declares the DSH bundle and client and ships every runtime file", () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   assert.equal(pkg.name, "justskill-design");
@@ -158,6 +166,12 @@ test("the client bundle loads through the ModuleLoader factory and registers bot
   assert.match(client, /sidebar\.panellist/);
   assert.match(client, /sidebarRightTabs/);
   assert.match(client, /embed=1/);
+  assert.match(client, /Do NOT run `node design\.mjs serve`/);
+  assert.match(client, /canvas request watcher/);
+  assert.match(client, /pending\/clear/);
+  // Regression: the icon helper must pop a trailing numeric size instead of
+  // passing the first child as `width` (rendered `[object Object]`).
+  assert.match(client, /typeof args\[args\.length - 1\] === 'number'/);
 });
 
 test("the client apply registers the workbench panel and the Canvas tab in the right sidebar", () => {
@@ -213,4 +227,11 @@ test("the canvas has an opt-in embed mode and it leaves normal tabs alone", () =
   assert.match(app, /panels\.right\.open = false/);
   assert.match(css, /body\[data-embed\]/);
   assert.match(css, /#export-all/);
+  // Selection calls preventDefault on pointerdown, which suppresses the
+  // browser's focus change; an embedded canvas must take keyboard focus itself
+  // or ⌘C is handled by the host page instead of the canvas.
+  const html = readFileSync(join(ROOT, "canvas/index.html"), "utf8");
+  assert.match(html, /<body tabindex="-1">/);
+  assert.match(app, /function claimKeyboardFocus\(\)/);
+  assert.match(app, /window\.focus\(\)/);
 });

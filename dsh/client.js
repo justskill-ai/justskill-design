@@ -126,17 +126,24 @@ window.__ModuleLoader__.load({
      * Icons
      * ------------------------------------------------------------------ */
 
-    const svg = (children, size = 16) => h('svg', {
-      width: size,
-      height: size,
-      viewBox: '0 0 20 20',
-      fill: 'none',
-      stroke: 'currentColor',
-      strokeWidth: 1.7,
-      strokeLinecap: 'round',
-      strokeLinejoin: 'round',
-      'aria-hidden': 'true',
-    }, children);
+    // Icons are written as `svg(child, child, size)`. The size is optional and
+    // last, so the helper pulls it off the argument list instead of mistaking the
+    // first child for it (which rendered `width="[object Object]"` and showed a
+    // giant clipped glyph in the right-sidebar tab title).
+    const svg = (...args) => {
+      const size = typeof args[args.length - 1] === 'number' ? args.pop() : 16;
+      return h('svg', {
+        width: size,
+        height: size,
+        viewBox: '0 0 20 20',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth: 1.7,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+        'aria-hidden': 'true',
+      }, ...args);
+    };
 
     const icon = {
       logo: (size = 22) => h('svg', { width: size, height: size, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
@@ -293,7 +300,9 @@ window.__ModuleLoader__.load({
             '',
             `Use justSkill tools. Current file ${file.uri}`,
             '',
-            '画布已开在右侧栏，请等待我的调整要求。',
+            'The canvas is already open in the right-sidebar Canvas tab.',
+            'Do NOT run `node design.mjs serve` and do NOT open a browser for the canvas.',
+            'Wait for my adjustment request.',
           ].join('\n');
 
           const prompting = typeof sessions.using === 'function'
@@ -636,6 +645,49 @@ window.__ModuleLoader__.load({
             key: TAB_ID,
           }, CanvasTitle));
         });
+
+        // Host tool → browser handoff. `justskill_canvas` leaves a session-scoped
+        // request in the Host; this watcher is the only thing that can turn it
+        // into a right-sidebar tab. It is deliberately not tied to the workbench
+        // page, so it also works from an ordinary chat session.
+        ctx.effect(() => {
+          let stopped = false;
+          let busy = false;
+
+          const tick = async () => {
+            if (stopped || busy) return;
+            const sidebarRight = runtime === null ? undefined : runtime.get('sidebarRight');
+            if (sidebarRight === undefined || typeof sidebarRight.openTab !== 'function') return;
+            let sessionId;
+            try {
+              sessionId = sidebarRight.mounted?.getSnapshot?.();
+            } catch {
+              return;
+            }
+            if (typeof sessionId !== 'string' || sessionId === '') return;
+
+            busy = true;
+            try {
+              const value = await post('pending', { sessionId });
+              const file = value && value.pending ? value.pending.file : undefined;
+              if (typeof file !== 'string' || file === '') return;
+              await openCanvasTab(sidebarRight, file);
+              if (stopped) return;
+              await post('pending/clear', { sessionId, file }).catch(() => {});
+            } catch {
+              // The sidebar store may not be minted yet; the next tick retries.
+            } finally {
+              busy = false;
+            }
+          };
+
+          const timer = setInterval(() => { void tick(); }, 1500);
+          void tick();
+          return () => {
+            stopped = true;
+            clearInterval(timer);
+          };
+        }, 'justskill-design: canvas request watcher');
       },
     };
   },
