@@ -25,11 +25,14 @@ What the suite pins, in order of what breaks first if it fails:
 | `cli` | Exit codes 0/1/2 are stable across success and refusal paths |
 | `images` | Every catalogue row is a unique, copyable URL with what the photo shows and who took it |
 
-Two more guards keep the documents honest: `test/product-flow.test.mjs` compares
-the nine-stage route in `SKILL.md`, `references/product-flow.md` and
+Three more guards keep the documents honest: `test/product-flow.test.mjs`
+compares the nine-stage route in `SKILL.md`, `references/product-flow.md` and
 `docs/paradigm.md`, and checks both READMEs link to the essay;
 `test/skill-doc.test.mjs` compares the property count and the margin rules in the
-hand-written documents against `lib/table.mjs`.
+hand-written documents against `lib/table.mjs`; `test/readme-anchors.test.mjs`
+resolves every in-page link back to the heading that should produce its anchor,
+and keeps the two README hero rows pointing at the same sections in the same
+order.
 
 ## Measured today
 

@@ -23,7 +23,7 @@ npm run images:check    # 需要网络：确认图片清单里每个 URL 仍然�
 | `cli` | 退出码 0/1/2 在成功和拒绝路径上都稳定 |
 | `images` | 图片清单的每一行都是唯一、可复制的 URL，写明了拍的是什么、谁拍的 |
 
-另外两个守卫让文档保持诚实：`test/product-flow.test.mjs` 比对 `SKILL.md`、`references/product-flow.md` 和 `docs/paradigm.md` 里的九阶段路线，并检查两个 README 都链接到这篇长文；`test/skill-doc.test.mjs` 把属性数量和 margin 规则拿 `lib/table.mjs` 对照。
+另外三个守卫让文档保持诚实：`test/product-flow.test.mjs` 比对 `SKILL.md`、`references/product-flow.md` 和 `docs/paradigm.md` 里的九阶段路线，并检查两个 README 都链接到这篇长文；`test/skill-doc.test.mjs` 把属性数量和 margin 规则拿 `lib/table.mjs` 对照；`test/readme-anchors.test.mjs` 把每个页内锚点解析回它指向的标题，并确认两个 README 的首行导航指向同一批小节、顺序一致。
 
 ## 今天量到的数据
 
