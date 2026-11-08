@@ -121,6 +121,27 @@ agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`
 `references/`、`design.mjs`、`lib/`、`canvas/`）；演示视频和截图是给人看的，复制安装
 的话可以删掉腾出约 10 MB——agent 会主动提出。
 
+## 在 DeepSeek Harness 里用
+
+这个仓库同时是一个 DSH（DeepSeek Harness）插件。装上以后：
+
+- **skill 自动注册**进 DSH，不用再软链到 `~/.agents/skills`
+- 左侧栏多一个 **JustSkill**：打开「JustSkill Design 工作台」，按工作区列出所有设计文件
+- 点一个设计文件：在它所属的工作区**新建会话**，自动切换到该会话，并在**右侧栏**打开 Canvas tab；聊天在左、画布在右，agent 的修改实时刷新
+
+从仓库 checkout 安装：
+
+```sh
+dsh plugin --profile web add link:"/path/to/justskill-design"
+```
+
+发布到 npm 后也可以直接 `dsh plugin --profile web add justskill-design`。
+
+然后在 DSH 的 Plugins 页启用并重启。Desktop 用同一个包，在桌面端的插件页安装即可；
+不想装插件也可以继续用上面的 `npx skills add`——skill 和插件是同一份代码。
+
+![JustSkill Design 工作台：左侧栏入口打开中央文件浏览器，按工作区列出设计文件](docs/dsh-workbench.png)
+
 ## 技术细节
 
 README 到这里就停了，是有意的。格式、命令、画布、写入路径和测试数据，都写在它们该在的地方：

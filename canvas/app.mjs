@@ -39,6 +39,16 @@ import {
 const TOKEN = new URLSearchParams(location.search).get("t") ?? "";
 
 /**
+ * Embedded mode. The DSH plugin iframes the canvas in a narrow right-sidebar
+ * tab; there, the layer tree and the inspector are chrome the reader does not
+ * need, and the bar has to fit a fraction of the width. The mode changes only
+ * presentation: the file, the ops and ⌘C keep working exactly as they do in a
+ * normal browser tab. It is opt-in with `?embed=1`, so opening the URL by hand
+ * is unchanged.
+ */
+const EMBED = new URLSearchParams(location.search).get("embed") === "1";
+
+/**
  * One call to the service.
  *
  * The response object comes back with the payload, because the revision lives in
@@ -435,7 +445,12 @@ function applyPanels() {
 const BAR_FIT_STEPS = ["full", "tight", "narrow", "mini", "micro"];
 function applyBarFit() {
   const rightTrack = panels.right.open ? panels.right.width + PANEL_GUTTER : 0;
-  const room = window.innerWidth - leftTrackWidth() - rightTrack - 24; // the bar's two 12px insets
+  // A closed panel leaves a 36px tab slot on its side (see `--edge-*` in
+  // applyPanels); the bar is inset by it, so the room for the pills is smaller
+  // than the window minus the panel tracks. Counting only the tracks made a
+  // closed pair look roomier than it is and let the bar overflow in embed mode.
+  const edge = (panels.left.open ? 0 : 36) + (panels.right.open ? 0 : 36);
+  const room = window.innerWidth - leftTrackWidth() - rightTrack - edge - 24; // the bar's two 12px insets
   for (const fit of BAR_FIT_STEPS) {
     ui.bar.dataset.fit = fit;
     const needed = ui.barLeft.getBoundingClientRect().width + ui.barRight.getBoundingClientRect().width + 12;
@@ -2783,7 +2798,43 @@ window.addEventListener("error", (event) => {
  * with no pages.
  */
 wirePanels();
+
+/**
+ * Enter embedded presentation after the first document load: fold both panels,
+ * then fit the pages into the remaining width. The fold goes through the same
+ * geometry path a click uses, so the camera stays on the design instead of
+ * sliding with the closed panel; it deliberately skips `savePanels()` so the
+ * reader's normal browser preferences are not overwritten by an embed.
+ */
+function enterEmbed() {
+  document.body.dataset.embed = "1";
+  withPanelGeometry(() => {
+    panels.left.open = false;
+    panels.right.open = false;
+  });
+  const refit = () => {
+    applyBarFit();
+    fitAll();
+  };
+  refit();
+  // The right-sidebar tab can still be widening when the iframe's `load`
+  // settles (the panel expands as the tab opens). A fit measured against that
+  // intermediate width leaves the pages at a needlessly tiny zoom, so fit
+  // again after the first frame and once more after the expansion settles.
+  requestAnimationFrame(() => requestAnimationFrame(refit));
+  setTimeout(refit, 500);
+}
+
 loadDocument()
+  .then(() => {
+    if (EMBED) {
+      try {
+        enterEmbed();
+      } catch (error) {
+        console.error("embed mode failed:", error);
+      }
+    }
+  })
   .then(subscribe)
   .catch(async (error) => {
     ui.revision.textContent = "load failed";

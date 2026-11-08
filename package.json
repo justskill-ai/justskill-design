@@ -1,12 +1,57 @@
 {
   "name": "justskill-design",
-  "version": "3.1.0",
-  "private": true,
+  "version": "3.2.0",
+  "private": false,
   "type": "module",
-  "description": "Design web pages as a validated HTML file with inline CSS. Agent edits by CLI, human edits on a local canvas, both write the same file.",
+  "description": "Design web pages as a validated HTML file with inline CSS. Agent edits by CLI, human edits on a local canvas, both write the same file. Also ships a DeepSeek Harness plugin.",
   "license": "MIT",
+  "main": "./dsh/index.js",
+  "exports": {
+    ".": "./dsh/index.js",
+    "./client": "./dsh/client.js",
+    "./design.mjs": "./design.mjs",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "justskill": "./design.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "design.mjs",
+    "lib",
+    "canvas",
+    "references",
+    "scripts/install.mjs",
+    "dsh",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE",
+    "README.en.md",
+    "docs/dsh-workbench.png"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "keywords": [
+    "justskill",
+    "design",
+    "html",
+    "css",
+    "canvas",
+    "agent-skills",
+    "claude-code",
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness"
+  ],
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "dsh": ">=0.2.1-rc.3 <0.3.0-0"
   },
   "scripts": {
     "test": "node --test",

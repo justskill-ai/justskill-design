@@ -159,6 +159,29 @@ skill needs about 1 MB (`SKILL.md`, `references/`, `design.mjs`, `lib/`,
 `canvas/`); the demo video and screenshots are for people, and a copied install
 can drop them to free about 5 MB — the agent will offer to.
 
+## Use it inside DeepSeek Harness
+
+This repository is also a DSH (DeepSeek Harness) plugin. Installing it:
+
+- registers the skill in DSH automatically — no symlink into `~/.agents/skills`
+- adds **JustSkill** to the left sidebar: a workbench listing design files across workspaces
+- clicking a design file creates a **new session in that file's workspace**, opens it, and
+  opens a **Canvas tab in the right sidebar**: chat on the left, live canvas on the right
+
+From a checkout, link the repository:
+
+```sh
+dsh plugin --profile web add link:"/path/to/justskill-design"
+```
+
+Once it is published to npm, `dsh plugin --profile web add justskill-design` works too.
+
+Then enable it on the DSH Plugins page and restart. Desktop uses the same package
+from its own plugin page. The plain `npx skills add` route above still works — the
+skill and the plugin are one piece of code.
+
+![The JustSkill Design workbench: a left-sidebar entry opens a design-file browser grouped by workspace](docs/dsh-workbench.png)
+
 ## Technical details
 
 The README stops here on purpose. The format, the commands, the canvas, the

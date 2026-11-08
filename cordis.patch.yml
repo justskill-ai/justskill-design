@@ -1,0 +1,8 @@
+# Bundle layer contributed by justskill-design.
+#
+# The row loads this package's main entry (`dsh/index.js`) as a plain Cordis
+# host plugin. The `dsh.client` declaration in package.json makes the Web app
+# load `dsh/client.js` as the browser half.
+- insert:
+    - id: justskill-design
+      name: 'justskill-design'
