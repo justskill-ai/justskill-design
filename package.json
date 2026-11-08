@@ -47,7 +47,8 @@
     "claude-code",
     "dsh",
     "dsh-plugin",
-    "deepseek-harness"
+    "deepseek-harness",
+    "skill"
   ],
   "engines": {
     "node": ">=18",
@@ -59,5 +60,13 @@
     "references:check": "node scripts/gen-references.mjs --check",
     "images:check": "node scripts/check-images.mjs",
     "install:skill": "node scripts/install.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/justskill-ai/justskill-design.git"
+  },
+  "homepage": "https://github.com/justskill-ai/justskill-design#readme",
+  "bugs": {
+    "url": "https://github.com/justskill-ai/justskill-design/issues"
   }
 }

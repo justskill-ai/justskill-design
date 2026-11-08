@@ -131,13 +131,23 @@ agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`
 - Agent 要打开画布时会调用 `justskill_canvas` 工具，在右侧栏打开/聚焦 Canvas tab；DSH 下不会再跑 `serve` 或弹浏览器
 - 右栏 Canvas tab 没有指定文件时，会列出**当前工作区**的设计文件，点一个就在该 tab 内打开
 
-从仓库 checkout 安装：
+推荐从 npm 安装：
+
+```sh
+dsh plugin --profile web add justskill-design
+```
+
+也可以直接从 GitHub 安装（不需要 npm）：
+
+```sh
+dsh plugin --profile web add github:justskill-ai/justskill-design
+```
+
+本地开发用 checkout：
 
 ```sh
 dsh plugin --profile web add link:"/path/to/justskill-design"
 ```
-
-发布到 npm 后也可以直接 `dsh plugin --profile web add justskill-design`。
 
 然后在 DSH 的 Plugins 页启用并重启。Desktop 用同一个包，在桌面端的插件页安装即可；
 不想装插件也可以继续用上面的 `npx skills add`——skill 和插件是同一份代码。

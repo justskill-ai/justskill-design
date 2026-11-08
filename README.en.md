@@ -171,13 +171,23 @@ This repository is also a DSH (DeepSeek Harness) plugin. Installing it:
   does not run `serve` or open a browser
 - with no file selected, the Canvas tab lists the **current workspace** design files; picking one opens it in that tab
 
-From a checkout, link the repository:
+Install from npm:
+
+```sh
+dsh plugin --profile web add justskill-design
+```
+
+Or straight from GitHub (no npm needed):
+
+```sh
+dsh plugin --profile web add github:justskill-ai/justskill-design
+```
+
+For local development, link the checkout:
 
 ```sh
 dsh plugin --profile web add link:"/path/to/justskill-design"
 ```
-
-Once it is published to npm, `dsh plugin --profile web add justskill-design` works too.
 
 Then enable it on the DSH Plugins page and restart. Desktop uses the same package
 from its own plugin page. The plain `npx skills add` route above still works — the
