@@ -14,6 +14,8 @@ English · [简体中文](README.md)
 No MCP server. No app. No account. No cloud. Collaboration happens in git —
 there is one Skill, and one HTML file.
 
+[What lives in your repo](#what-lives-in-your-repo) · [A new software paradigm](#a-new-software-paradigm) · [What it can design](#what-it-can-design) · [Get started](#get-started) · [Use it inside DeepSeek Harness](#use-it-inside-deepseek-harness) · [Technical details](#technical-details) · [Credits](#credits)
+
 **What it is.** A design tool that lives in your repository, not in a design app.
 Your agent runs the skill, designs the screens, and leaves one HTML file behind.
 You review those screens on a local canvas, approve them, and the validated file
