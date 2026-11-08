@@ -171,6 +171,8 @@ test("the client bundle loads through the ModuleLoader factory and registers bot
   assert.match(client, /pending\/clear/);
   assert.match(client, /function CanvasPicker/);
   assert.match(client, /jsk-picker/);
+  assert.match(client, /function renderFileCard/);
+  assert.match(client, /jsk-grid/);
   assert.match(client, /function readSessionWorkspace/);
   assert.match(client, /setTabFile/);
   // Regression: the icon helper must pop a trailing numeric size instead of
