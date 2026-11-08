@@ -219,18 +219,6 @@ window.__ModuleLoader__.load({
       alert: (size = 15) => svg(h('circle', { cx: 10, cy: 10, r: 6.4 }), h('path', { d: 'M10 8.6v4.4M10 6v.1' }), size),
     };
 
-    function MiniThumb({ seed = 0 }) {
-      const tone = ['jsk-mini-a', 'jsk-mini-b', 'jsk-mini-c'][seed % 3];
-      return h('span', { className: 'jsk-thumb' },
-        h('span', { className: `jsk-mini ${tone}` }),
-        h('span', { className: 'jsk-mini' }),
-        h('span', { className: 'jsk-mini jsk-mini-warm' }));
-    }
-
-    /* ------------------------------------------------------------------ *
-     * 工作台 page
-     * ------------------------------------------------------------------ */
-
     function renderFileCard(file, workspace, busy, activate) {
       const recent = typeof file.mtime === 'number' && Date.now() - file.mtime < 5 * 60_000;
       return h('button', {
@@ -540,18 +528,17 @@ window.__ModuleLoader__.load({
         };
       }, [workspace?.id, workspace?.path, ticket]);
 
-      const canOpenWorkbench = typeof openWorkbench === 'function';
       return h('div', { className: 'jsk-picker' },
         h('div', { className: 'jsk-picker-head' },
           h('div', { className: 'jsk-picker-heading' },
             h('div', { className: 'jsk-picker-title' }, workspace === null ? '当前工作区' : workspace.title),
             h('div', { className: 'jsk-picker-sub' }, workspace === null ? '无法确定当前会话的工作区' : workspace.path)),
-          canOpenWorkbench ? h('button', {
+          h('button', {
             type: 'button',
             className: 'jsk-picker-workbench',
             title: '打开 JustSkill Design 工作台',
             onClick: () => openWorkbench(),
-          }, icon.logo(14), '工作台') : null),
+          }, icon.logo(14), '工作台')),
         state.phase === 'loading' ? h('div', { className: 'jsk-picker-state' }, h('span', { className: 'jsk-spinner' }), '正在读取当前工作区的设计文件…') : null,
         state.phase === 'error' ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '读取失败'),
@@ -568,18 +555,21 @@ window.__ModuleLoader__.load({
           state.files.map((file) => h('button', {
             type: 'button',
             key: file.path,
-            className: 'jsk-pick',
+            className: 'jsk-pick-card',
             title: file.path,
             onClick: () => onPick(file.path),
           },
-          h(MiniThumb, { seed: file.path.length }),
-          h('span', { className: 'jsk-pick-main' },
-            h('span', { className: 'jsk-pick-name' }, file.name),
-            h('span', { className: 'jsk-pick-meta' },
-              typeof file.pages === 'number' ? h('span', { className: 'jsk-pill' }, `${file.pages} 页`) : null,
-              h('span', null, formatSize(file.size)),
-              h('span', null, formatTime(file.mtime)))),
-          h('span', { className: 'jsk-pick-go' }, icon.arrow(14))))) : null);
+          h('span', { className: 'jsk-pick-thumb' },
+            h('span', { className: 'jsk-card-screens' },
+              h('span', { className: 'jsk-card-mini jsk-mini-a' }),
+              h('span', { className: 'jsk-card-mini' }),
+              h('span', { className: 'jsk-card-mini jsk-mini-warm' })),
+            h('span', { className: 'jsk-pick-arrow' }, icon.arrow(12))),
+          h('span', { className: 'jsk-pick-name' }, file.name),
+          h('span', { className: 'jsk-pick-meta' },
+            typeof file.pages === 'number' ? h('span', { className: 'jsk-pill' }, `${file.pages} 页`) : null,
+            h('span', null, formatSize(file.size))),
+          h('span', { className: 'jsk-pick-time' }, formatTime(file.mtime))))) : null);
     }
 
     function CanvasBody(props) {
@@ -706,11 +696,6 @@ window.__ModuleLoader__.load({
 .jsk-count{margin-left:auto;color:var(--dsw-alias-label-secondary,#68707d);background:var(--dsw-alias-bg-layer-2,#f4f5f8);border-radius:6px;padding:2px 7px;font-size:11.5px;white-space:nowrap;flex:none}
 .jsk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(208px,1fr));gap:12px;padding:12px}
 .jsk-row-empty{padding:14px;color:var(--dsw-alias-label-tertiary,#9aa2af);font-size:12px;grid-column:1/-1}
-.jsk-thumb{width:42px;height:34px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2,#eaecf1);background:var(--dsw-alias-bg-layer-2,#f6f7fa);display:flex;gap:3px;align-items:center;justify-content:center;padding:4px;flex:0 0 42px;overflow:hidden}
-.jsk-mini{width:9px;height:24px;border-radius:3px;background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#e1e5ec);position:relative;overflow:hidden}
-.jsk-mini:after{content:"";position:absolute;left:1px;right:1px;top:2px;height:4px;border-radius:1px;background:#d9deea}
-.jsk-mini.jsk-mini-a:after{background:#c7d2ff}
-.jsk-mini.jsk-mini-warm:after{background:#f3d9b8}
 .jsk-pill{color:var(--dsw-alias-label-secondary,#7a8290);background:var(--dsw-alias-bg-layer-2,#f4f5f8);border-radius:5px;padding:1px 5px;font-size:10.5px}
 .jsk-card{display:flex;flex-direction:column;gap:9px;min-width:0;padding:10px;border:1px solid var(--dsw-alias-border-l2,#eaecf1);border-radius:11px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease}
 .jsk-card:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 45%,var(--dsw-alias-border-l2,#eaecf1));box-shadow:0 8px 22px -14px rgba(16,24,40,.28);transform:translateY(-1px)}
@@ -754,18 +739,21 @@ window.__ModuleLoader__.load({
 .jsk-picker-sub{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .jsk-picker-workbench{flex:none;display:inline-flex;align-items:center;gap:5px;height:27px;padding:0 8px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:7px;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-secondary,#4d5563);font:inherit;font-size:11px;cursor:pointer;white-space:nowrap}
 .jsk-picker-workbench:hover{background:var(--dsw-alias-interactive-bg-hover,#f3f4f7)}
-.jsk-picker-list{flex:1;min-height:0;overflow:auto;padding:6px}
-.jsk-picker-note{margin:2px 6px 6px;padding:5px 7px;border-radius:6px;background:#fdf3e3;color:#a06a12;font-size:10.5px}
+.jsk-picker-list{flex:1;min-height:0;overflow:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
+.jsk-picker-note{grid-column:1/-1;margin:0 0 2px;padding:5px 7px;border-radius:6px;background:#fdf3e3;color:#a06a12;font-size:10.5px}
 .jsk-picker-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary,#68707d);font-size:12px}
 .jsk-picker-state strong{color:var(--dsw-alias-label-primary,#3c4452);font-size:13px;font-weight:600}
-.jsk-pick{width:100%;display:flex;align-items:center;gap:9px;padding:7px 8px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:nowrap}
-.jsk-pick:hover{background:var(--dsw-alias-interactive-bg-hover,#f6f7f9)}
-.jsk-pick .jsk-thumb{width:42px;height:34px;flex:0 0 42px}
-.jsk-pick-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.jsk-pick-name{font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis}
-.jsk-pick-meta{display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--dsw-alias-label-secondary,#68707d);overflow:hidden;white-space:nowrap}
-.jsk-pick-go{flex:none;color:var(--dsw-alias-label-tertiary,#9aa2af);display:grid;place-items:center;width:24px;height:24px;border-radius:6px;background:var(--dsw-alias-bg-layer-2,#f5f6f8)}
-.jsk-pick:hover .jsk-pick-go{background:var(--dsw-alias-brand-primary,#4f6bfe);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.jsk-pick-card{display:flex;flex-direction:column;gap:5px;min-width:0;padding:8px;border:1px solid var(--dsw-alias-border-l2,#eaecf1);border-radius:9px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease}
+.jsk-pick-card:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 45%,var(--dsw-alias-border-l2,#eaecf1));box-shadow:0 6px 18px -12px rgba(16,24,40,.26);transform:translateY(-1px)}
+.jsk-pick-thumb{position:relative;display:flex;align-items:center;justify-content:center;height:84px;border-radius:7px;border:1px solid var(--dsw-alias-border-l2,#eef0f4);background:radial-gradient(circle at 1px 1px,#e2e6ee 1px,transparent 0) 0 0/12px 12px,linear-gradient(135deg,#f7f8fb,#f1f3f8);overflow:hidden}
+.jsk-pick-thumb .jsk-card-screens{gap:4px;transform:translateY(1px)}
+.jsk-pick-thumb .jsk-card-mini{width:20px;height:58px}
+.jsk-pick-thumb .jsk-card-mini:nth-child(2){height:66px}
+.jsk-pick-arrow{position:absolute;right:5px;bottom:5px;width:20px;height:20px;border-radius:5px;display:grid;place-items:center;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 86%,transparent);border:1px solid var(--dsw-alias-border-l2,#e7e9ee);color:var(--dsw-alias-label-secondary,#68707d)}
+.jsk-pick-card:hover .jsk-pick-arrow{background:var(--dsw-alias-brand-primary,#4f6bfe);border-color:var(--dsw-alias-brand-primary,#4f6bfe);color:#fff}
+.jsk-pick-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jsk-pick-meta{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--dsw-alias-label-secondary,#68707d);white-space:nowrap;overflow:hidden}
+.jsk-pick-time{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jsk-switch{position:absolute;right:10px;bottom:10px;z-index:3;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);color:var(--dsw-alias-label-secondary,#4d5563);font:inherit;font-size:11px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .jsk-switch:hover{background:var(--dsw-alias-bg-layer-1,#fff)}
 `;
