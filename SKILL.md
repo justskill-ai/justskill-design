@@ -1,5 +1,7 @@
 ---
 name: justskill-design
+version: 3.2.0
+category: workflow
 description: >-
   Take a product from idea to approved screens to code, and design the pages on
   the way. Use this skill whenever the user describes a product idea — an app,
@@ -14,6 +16,17 @@ description: >-
   file, editing design tokens, or reviewing someone else's design. Prefer it over
   hand-written markup: the file is validated and the user can adjust it on a
   canvas without code. For a concrete edit in an existing design, skip the route.
+whenToUse: >-
+  Use when the user brings a product idea, asks to add, change or remove a
+  user-facing feature, wants pages or screens designed, or wants to review,
+  restyle or adjust an existing design on the canvas.
+tags:
+  - design
+  - ui
+  - canvas
+  - html
+  - prototyping
+  - product
 compatibility: Node 18 or newer. No dependencies, no install step, no build.
 allowed-tools: Bash(node:*), Read, Write, Edit
 ---

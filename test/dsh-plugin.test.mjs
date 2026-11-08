@@ -112,6 +112,19 @@ test("readSkill strips frontmatter and keeps the package root as the resource ba
   assert.match(skill.content, /^# justSkill/m);
   assert.equal(skill.path, join(ROOT, "SKILL.md"));
   assert.deepEqual(skill.resourceBase, { kind: "directory", path: ROOT });
+  assert.match(skill.whenToUse, /product idea/);
+  assert.deepEqual(skill.metadata, {
+    category: "workflow",
+    tags: ["design", "ui", "canvas", "html", "prototyping", "product"],
+  });
+});
+
+test("SKILL.md exposes the frontmatter fields the Skill market requires", () => {
+  const source = readFileSync(join(ROOT, "SKILL.md"), "utf8");
+  assert.match(source, /^category: workflow$/m);
+  assert.match(source, /^whenToUse: >-$/m);
+  assert.match(source, /^tags:$/m);
+  assert.match(source, /^version: 3\.2\.0$/m);
 });
 
 test("SKILL.md describes the tool-first canvas step with a serve fallback", () => {

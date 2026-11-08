@@ -85,6 +85,8 @@ test("the host half registers the skill and both Host routes on the connection s
   assert.match(skill.content, /^# justSkill/m);
   assert.equal(skill.content.includes("---\nname:"), false);
   assert.deepEqual(skill.resourceBase, { kind: "directory", path: ROOT });
+  assert.match(skill.whenToUse, /product idea/);
+  assert.deepEqual(skill.metadata, { category: "workflow", tags: ["design", "ui", "canvas", "html", "prototyping", "product"] });
 
   assert.equal(harness.routes.has("/api/justskill-design/scan"), true);
   assert.equal(harness.routes.has("/api/justskill-design/canvas"), true);
