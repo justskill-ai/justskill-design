@@ -143,6 +143,12 @@ dsh plugin --profile web add justskill-design
 > dsh plugin --profile web add justskill-design@3.2.0
 > ```
 
+桌面端先完全退出 DSH App（⌘Q），安装后重新打开：
+
+```sh
+dsh plugin --profile desktop add justskill-design
+```
+
 也可以直接从 GitHub 安装（不需要 npm）：
 
 ```sh
