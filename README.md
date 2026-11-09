@@ -8,6 +8,7 @@
 
 [![tests](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml/badge.svg)](https://github.com/justskill-ai/justskill-design/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![skills.sh](https://skills.sh/b/justskill-ai/justskill-design)](https://www.skills.sh/justskill-ai/justskill-design/justskill-design)
 
 **Design, just a skill.**
 
