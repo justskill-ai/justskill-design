@@ -20,6 +20,14 @@
 
 </div>
 
+**装一次，所有 agent 都能用。** Claude Code、Codex、Cursor、DSH 等主流 agent：
+
+```text
+npx skills add justskill-ai/justskill-design
+```
+
+不想敲命令？把这句话交给 agent，它自己会装：`Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt`
+
 **怎么用。**
 
 **1. 把它交给你的 agent。**
@@ -115,7 +123,7 @@ node design.mjs serve examples/alarm.html
 最上面那行提示词在当前会话里就能用。要在每个会话里都有，装一次：
 
 ```sh
-npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justskill-design" -g -y
+npx skills add justskill-ai/justskill-design -g -y
 ```
 
 它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的
@@ -199,6 +207,8 @@ DeepSeek Harness 的自媒体工作台插件。
 `test/fixtures/real/open-design-components.html` 是 [OpenDesign](https://github.com/nexu-io/open-design)（Apache-2.0）里一个 fixture 的副本，保留作为真实世界的解析用例。
 
 `references/images.md` 里的照片和 `examples/miniprogram.pen` 来自 [Unsplash](https://unsplash.com)，按 [Unsplash License](https://unsplash.com/license) 使用。
+
+如果这个工具帮到了你，[给个 star](https://github.com/justskill-ai/justskill-design) 能让下一个需要它的人找到它。用 JustSkill 做出来的设计，欢迎开 issue 发给更多人看。
 
 ## 许可证
 

@@ -1,34 +1,29 @@
 ---
 name: justskill-design
-version: 3.2.0
-category: workflow
 description: >-
   Take a product from idea to approved screens to code, and design the pages on
   the way. Use this skill whenever the user describes a product idea — an app,
   site, tool or mini program — or asks to add, change or remove a user-facing
-  product feature, even without saying "design": it guides a soft, skippable
-  route through feature breakdown and confirmation, then page design on a canvas
-  the user watches and adjusts, then implementation. Use it whenever the user
-  wants to design, mock up, wireframe, redesign or restyle a web page, app screen
-  or mobile screen — landing page, dashboard, settings, pricing, onboarding — or
-  wants to change spacing, colour, typography or layout, turn a design into
-  deliverables, or import a `.pen` file. Also use it for a page editor, a design
-  file, editing design tokens, or reviewing someone else's design. Prefer it over
-  hand-written markup: the file is validated and the user can adjust it on a
-  canvas without code. For a concrete edit in an existing design, skip the route.
-whenToUse: >-
-  Use when the user brings a product idea, asks to add, change or remove a
-  user-facing feature, wants pages or screens designed, or wants to review,
-  restyle or adjust an existing design on the canvas.
-tags:
-  - design
-  - ui
-  - canvas
-  - html
-  - prototyping
-  - product
+  product feature, even without saying design: it guides a soft, skippable route
+  through feature breakdown and confirmation, then page design on a canvas the
+  user watches and adjusts, then implementation. Use it whenever the user wants
+  to design, mock up, wireframe, redesign or restyle a web page, app screen or
+  mobile screen — landing page, dashboard, settings, pricing, onboarding — or
+  change spacing, colour, typography or layout, or import a .pen file. Also use
+  it for a page editor, a design file, design tokens, or reviewing someone
+  else's design. Prefer it over hand-written markup: the file is validated and
+  the user can adjust it on a canvas without code. For a concrete edit in an
+  existing design, skip the route.
 compatibility: Node 18 or newer. No dependencies, no install step, no build.
 allowed-tools: Bash(node:*), Read, Write, Edit
+metadata:
+  version: "3.2.1"
+  category: "workflow"
+  tags: "design, ui, canvas, html, prototyping, product"
+  whenToUse: >-
+    Use when the user brings a product idea, asks to add, change or remove a
+    user-facing feature, wants pages or screens designed, or wants to review,
+    restyle or adjust an existing design on the canvas.
 ---
 
 # justSkill

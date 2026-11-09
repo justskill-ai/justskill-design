@@ -5,6 +5,12 @@
  * are all resolved relative to the package root, so a plugin install and a
  * `~/.agents/skills` symlink see exactly the same files. Only the YAML
  * frontmatter is removed: DSH expects the Markdown body, not the metadata.
+ *
+ * The frontmatter keeps the top level to the fields the Skill format allows
+ * (`name`, `description`, `license`, `compatibility`, `metadata`,
+ * `allowed-tools`). Product metadata lives under `metadata:`; an indexer that
+ * validates the format before snapshotting a skill rejects unknown top-level
+ * keys, and a rejected snapshot is what makes a skill page look empty.
  */
 
 import { readFileSync } from "node:fs";
@@ -22,11 +28,12 @@ export const SKILL_DESCRIPTION =
 
 /**
  * Read the small YAML subset this frontmatter uses: scalar values, folded
- * blocks (`>-`), and block lists. Keeping the parser here means `whenToUse`
- * stays in SKILL.md instead of becoming a second copy in JavaScript.
+ * blocks (`>-`), block lists, and the one-level `metadata:` map. Keeping the
+ * parser here means `whenToUse` stays in SKILL.md instead of becoming a second
+ * copy in JavaScript.
  *
  * @param {string} frontmatter text between the leading and trailing `---`
- * @returns {Map<string, string | string[]>}
+ * @returns {Map<string, string | string[] | Map<string, string>>}
  */
 function parseFrontmatter(frontmatter) {
   const fields = new Map();
@@ -41,6 +48,36 @@ function parseFrontmatter(frontmatter) {
     const key = match[1];
     let value = match[2].trim();
     index += 1;
+
+    // `metadata:` is the only map the format allows: everything custom goes in
+    // here as a string, so the top level stays the closed set of keys.
+    if (key === "metadata" && value === "") {
+      const map = new Map();
+      while (index < lines.length) {
+        const nested = /^[ \t]+([A-Za-z][\w-]*):(.*)$/.exec(lines[index]);
+        if (nested === null) break;
+        const nestedKey = nested[1];
+        let nestedValue = nested[2].trim();
+        index += 1;
+
+        if (nestedValue === ">" || nestedValue === ">-" || nestedValue === "|" || nestedValue === "|-") {
+          const block = [];
+          while (index < lines.length && /^[ \t]+/.test(lines[index])) {
+            block.push(lines[index].trim());
+            index += 1;
+          }
+          while (block.length > 0 && block[block.length - 1] === "") block.pop();
+          nestedValue = nestedValue.startsWith("|")
+            ? block.join("\n")
+            : block.join(" ").replace(/\s+/g, " ").trim();
+        } else {
+          nestedValue = nestedValue.replace(/^['"]|['"]$/g, "");
+        }
+        map.set(nestedKey, nestedValue);
+      }
+      fields.set(key, map);
+      continue;
+    }
 
     if (value === ">" || value === ">-" || value === "|" || value === "|-") {
       const block = [];
@@ -83,12 +120,24 @@ export function readSkill(root) {
   const content = raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").trimStart();
   if (content.trim() === "") throw new Error("SKILL.md has no body after its frontmatter");
 
-  const whenToUse = fields.get("whenToUse");
-  const category = fields.get("category");
-  const tags = fields.get("tags");
+  const metadataFields = fields.get("metadata");
+  const metadataMap = metadataFields instanceof Map ? metadataFields : new Map();
+  // Read the old top-level spelling too, so a checkout mid-migration still
+  // registers while the file keeps the closed top level the format wants.
+  const readField = (name) => metadataMap.get(name) ?? fields.get(name);
+
+  const whenToUse = readField("whenToUse");
+  const category = readField("category");
+  const tagsValue = readField("tags");
+  const tags = Array.isArray(tagsValue)
+    ? tagsValue
+    : typeof tagsValue === "string" && tagsValue.trim() !== ""
+      ? tagsValue.split(",").map((tag) => tag.trim()).filter((tag) => tag !== "")
+      : [];
+
   const metadata = {};
   if (typeof category === "string" && category !== "") metadata.category = category;
-  if (Array.isArray(tags) && tags.length > 0) metadata.tags = tags;
+  if (tags.length > 0) metadata.tags = tags;
 
   return {
     name: SKILL_NAME,

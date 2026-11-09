@@ -1,0 +1,55 @@
+# JustSkill Design
+
+> Design, just a skill. An agent skill that takes a product idea from feature
+> breakdown to approved screens to code: the agent writes one validated HTML
+> file with inline CSS, the user reviews it on a local canvas, and the approved
+> file becomes the spec the implementation is written against. No MCP server,
+> no app, no account, no cloud.
+
+## Install
+
+```sh
+npx skills add justskill-ai/justskill-design
+```
+
+Or ask the agent to install it:
+
+```text
+Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt
+```
+
+DeepSeek Harness users can install the same code as a plugin:
+
+```sh
+dsh plugin --profile web add justskill-design
+```
+
+## What it does
+
+- Takes a product idea or a user-facing feature through a soft, skippable route:
+  feature breakdown, confirmation, screens, implementation.
+- Designs on a local canvas the user watches; the agent applies one change at a
+  time and shows the receipt.
+- Writes one self-contained HTML file with inline CSS and a `data-id` on every
+  element, validated against a closed property set before the user sees it.
+  Diagnostics name the fix instead of silently dropping a bad declaration.
+- Leaves the validated file in the repository as the design artifact: it can be
+  reviewed, diffed, committed and regenerated next to the code.
+- Works with Claude Code, Codex, Cursor and any agent that supports the `skills`
+  CLI, plus DeepSeek Harness.
+
+## Use it
+
+- "I want a note-taking app: record the small things worth remembering each day,
+  and show my mood as a calendar heatmap." — start from a product idea.
+- "Read this app's design and restyle it so the UI stops looking AI-generated."
+  — restyle an existing product.
+- "Design the settings page for this tool." — a single page.
+- "Review this design and loosen the spacing." — adjust an existing design file.
+
+## Docs
+
+- [README](https://github.com/justskill-ai/justskill-design#readme)
+- [SKILL.md](https://github.com/justskill-ai/justskill-design/blob/main/SKILL.md)
+- [How it works](https://github.com/justskill-ai/justskill-design/blob/main/docs/how-it-works.md)
+- [The paradigm](https://github.com/justskill-ai/justskill-design/blob/main/docs/paradigm.md)

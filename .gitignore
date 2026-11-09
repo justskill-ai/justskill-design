@@ -5,3 +5,6 @@ test/.actual/
 .idea/
 .shots/
 .justskill-design-tmp/
+
+# Screen recordings stay out of the repository; the demos ship as compressed mp4.
+*.mov

@@ -24,6 +24,14 @@ You never draw — the agent draws, you judge.
 
 </div>
 
+**Install once, works in every mainstream agent.** Claude Code, Codex, Cursor, DSH:
+
+```text
+npx skills add justskill-ai/justskill-design
+```
+
+Prefer to let the agent do it? Hand it this line: `Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt`
+
 **How to use it.**
 
 **1. Hand it to your agent.**
@@ -152,7 +160,7 @@ The one-liner at the top works for the current session. To install it once for
 every session:
 
 ```sh
-npx skills add "https://github.com/justskill-ai/justskill-design" --skill "justskill-design" -g -y
+npx skills add justskill-ai/justskill-design -g -y
 ```
 
 That copies the skill into `~/.agents/skills/justskill-design` and links it into
@@ -243,6 +251,8 @@ real-world parse case.
 The photographs in `references/images.md` and `examples/miniprogram.pen` come
 from [Unsplash](https://unsplash.com) and are used under the
 [Unsplash License](https://unsplash.com/license).
+
+If this tool saves you time, [a star](https://github.com/justskill-ai/justskill-design) helps the next person who needs it find it. Designs made with it are welcome as issues — send them in.
 
 ## License
 

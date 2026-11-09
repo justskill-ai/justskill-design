@@ -119,12 +119,34 @@ test("readSkill strips frontmatter and keeps the package root as the resource ba
   });
 });
 
-test("SKILL.md exposes the frontmatter fields the Skill market requires", () => {
+test("SKILL.md keeps the frontmatter top level to the fields the Skill format allows", () => {
   const source = readFileSync(join(ROOT, "SKILL.md"), "utf8");
-  assert.match(source, /^category: workflow$/m);
-  assert.match(source, /^whenToUse: >-$/m);
-  assert.match(source, /^tags:$/m);
-  assert.match(source, /^version: 3\.2\.0$/m);
+  const frontmatter = source.slice(4, source.indexOf("\n---", 4));
+  assert.notEqual(frontmatter, "", "SKILL.md must open with a frontmatter block");
+  const topLevel = [...frontmatter.matchAll(/^([A-Za-z][\w-]*):/gm)].map((match) => match[1]);
+  assert.deepEqual(
+    [...topLevel].sort(),
+    ["allowed-tools", "compatibility", "description", "metadata", "name"],
+    "the Skill format closes the top level, so product metadata belongs under `metadata:`",
+  );
+
+  // The markets read these from SKILL.md, so they stay in the file — under the
+  // one key the format sets aside for custom metadata.
+  assert.match(source, /^  version: "3\.2\.1"$/m);
+  assert.match(source, /^  category: "workflow"$/m);
+  assert.match(source, /^  tags: ".*"$/m);
+  assert.match(source, /^  whenToUse: >-$/m);
+});
+
+test("the SKILL.md version tracks package.json", () => {
+  const source = readFileSync(join(ROOT, "SKILL.md"), "utf8");
+  const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  const version = pkg.version.replaceAll(".", "\\.");
+  assert.match(
+    source,
+    new RegExp(`^  version: "${version}"$`, "m"),
+    "bump metadata.version in SKILL.md whenever package.json's version changes",
+  );
 });
 
 test("SKILL.md describes the tool-first canvas step with a serve fallback", () => {
