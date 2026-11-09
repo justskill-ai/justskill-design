@@ -25,14 +25,6 @@ You never draw — the agent draws, you judge.
 
 </div>
 
-**Install once, works in every mainstream agent.** Claude Code, Codex, Cursor, DSH:
-
-```text
-npx skills add justskill-ai/justskill-design
-```
-
-Prefer to let the agent do it? Hand it this line: `Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt`
-
 **How to use it.**
 
 **1. Hand it to your agent.**
@@ -158,11 +150,13 @@ node design.mjs serve examples/alarm.html
 ## Get started
 
 The one-liner at the top works for the current session. To install it once for
-every session:
+every session — Claude Code, Codex, Cursor, DSH and the other mainstream agents:
 
 ```sh
 npx skills add justskill-ai/justskill-design -g -y
 ```
+
+Prefer to let the agent do it? Hand it this line: `Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt`
 
 That copies the skill into `~/.agents/skills/justskill-design` and links it into
 the agent directories the CLI manages; `npx skills update` keeps it current. The

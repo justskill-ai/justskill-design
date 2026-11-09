@@ -21,14 +21,6 @@
 
 </div>
 
-**装一次，所有 agent 都能用。** Claude Code、Codex、Cursor、DSH 等主流 agent：
-
-```text
-npx skills add justskill-ai/justskill-design
-```
-
-不想敲命令？把这句话交给 agent，它自己会装：`Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt`
-
 **怎么用。**
 
 **1. 把它交给你的 agent。**
@@ -121,11 +113,13 @@ node design.mjs serve examples/alarm.html
 
 ## 开始用
 
-最上面那行提示词在当前会话里就能用。要在每个会话里都有，装一次：
+最上面那行提示词在当前会话里就能用。要在每个会话里都有——装一次，Claude Code、Codex、Cursor、DSH 等主流 agent 都能用：
 
 ```sh
 npx skills add justskill-ai/justskill-design -g -y
 ```
+
+不想敲命令？把这句话交给 agent，它自己会装：`Install JustSkill Design for me by reading https://raw.githubusercontent.com/justskill-ai/justskill-design/main/llms.txt`
 
 它会把 skill 复制到 `~/.agents/skills/justskill-design`，再链接进 CLI 管理的
 agent 目录；`npx skills update` 负责更新。skill 本身只要约 1 MB（`SKILL.md`、
