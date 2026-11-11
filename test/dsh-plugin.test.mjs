@@ -79,6 +79,46 @@ test("scanWorkspace groups design files, skips ignored directories and respects 
   assert.equal(capped.incomplete, true);
 });
 
+test("a scan that runs out of budget reports an incomplete empty result", async (t) => {
+  const root = await workspaceFixture();
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const result = await scanWorkspace({ path: root }, { deadline: Date.now() - 1 });
+  assert.deepEqual(result.files, []);
+  assert.equal(result.incomplete, true);
+});
+
+test("a root design file is found before a sibling directory can spend the budget", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "justskill-dsh-bfs-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, "design.html"), designDocument("Home", 1));
+  await mkdir(join(root, "aaa"), { recursive: true });
+  await writeFile(join(root, "aaa", "nested.html"), designDocument("Nested", 1));
+
+  // Breadth-first: the root file is read before the scan descends into `aaa`,
+  // so a capped scan still returns the file the picker was opened for.
+  const capped = await scanWorkspace({ path: root }, { maxFiles: 1 });
+  assert.equal(capped.files.length, 1);
+  assert.equal(capped.files[0].name, "design.html");
+  assert.equal(capped.incomplete, true);
+});
+
+test("package stores, agent caches and the export temp directory are ignored", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "justskill-dsh-skip-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, "design.html"), designDocument("Home", 1));
+  for (const name of [".pnpm-store", ".justskill-design-tmp", ".claude", ".yarn"]) {
+    await mkdir(join(root, name), { recursive: true });
+    await writeFile(join(root, name, "design.html"), designDocument("Temp", 1));
+  }
+
+  const result = await scanWorkspace({ path: root });
+  assert.deepEqual(result.files.map((file) => file.name), ["design.html"]);
+  for (const name of [".pnpm-store", ".justskill-design-tmp", ".claude", ".yarn"]) {
+    assert.equal(SKIP_DIRS.has(name), true);
+  }
+});
+
 test("scanWorkspace never follows a symlink out of the workspace", async (t) => {
   const outside = await mkdtemp(join(tmpdir(), "justskill-outside-"));
   const root = await mkdtemp(join(tmpdir(), "justskill-inside-"));
@@ -132,7 +172,7 @@ test("SKILL.md keeps the frontmatter top level to the fields the Skill format al
 
   // The markets read these from SKILL.md, so they stay in the file — under the
   // one key the format sets aside for custom metadata.
-  assert.match(source, /^  version: "3\.2\.1"$/m);
+  assert.match(source, /^  version: "3\.2\.2"$/m);
   assert.match(source, /^  category: "workflow"$/m);
   assert.match(source, /^  tags: ".*"$/m);
   assert.match(source, /^  whenToUse: >-$/m);

@@ -149,7 +149,7 @@ dsh plugin --profile web add justskill-design
 > 如果 pnpm 启用了 `minimumReleaseAge`（新版默认会对刚发布的版本等待 24 小时），包管理器可能暂时解析到旧版本；这时固定版本：
 >
 > ```sh
-> dsh plugin --profile web add justskill-design@3.2.1
+> dsh plugin --profile web add justskill-design@3.2.2
 > ```
 
 桌面端先完全退出 DSH App（⌘Q），安装后重新打开：

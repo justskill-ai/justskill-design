@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
-import { apply } from "../dsh/index.js";
+import { apply, rememberScan } from "../dsh/index.js";
 
 const ROOT = resolve(new URL("..", import.meta.url).pathname);
 
@@ -159,6 +159,42 @@ test("the scan route returns workspace-grouped design files and ignores other HT
   assert.equal(workspace.files[0].title, "Home");
   assert.equal(workspace.files[0].pages, 1);
   assert.match(workspace.files[0].uri, /^file:\/\//);
+});
+
+test("the scan route caches complete scans and rescans when the client asks to refresh", async (t) => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), "justskill-cache-")));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, "design.html"), designDocument("Home"));
+
+  const harness = fakeHarness();
+  apply(harness.ctx);
+  const route = harness.routes.get("/api/justskill-design/scan");
+  const payload = { workspaces: [{ id: "ws-cache", path: root, title: "Demo" }] };
+
+  const first = await route.fetch(request("/api/justskill-design/scan", payload));
+  assert.equal((await first.json()).value.workspaces[0].files.length, 1);
+
+  await writeFile(join(root, "second.html"), designDocument("Second"));
+
+  const cached = await route.fetch(request("/api/justskill-design/scan", payload));
+  const cachedBody = await cached.json();
+  assert.equal(cachedBody.value.workspaces[0].files.length, 1);
+  assert.equal(cachedBody.value.workspaces[0].cached, true);
+
+  const fresh = await route.fetch(request("/api/justskill-design/scan", { ...payload, refresh: true }));
+  assert.equal((await fresh.json()).value.workspaces[0].files.length, 2);
+});
+
+test("a partial scan is not cached, so a retry rescans instead of replaying the empty list", () => {
+  const cache = new Map();
+  const complete = { path: "/workspace", files: [], incomplete: false };
+
+  assert.equal(rememberScan(cache, "/workspace", complete), true);
+  assert.equal(cache.has("/workspace"), true);
+
+  const partial = { path: "/workspace", files: [], incomplete: true };
+  assert.equal(rememberScan(cache, "/workspace", partial), false);
+  assert.equal(cache.has("/workspace"), false);
 });
 
 test("the canvas route starts a loopback canvas, and the close route stops it", async (t) => {

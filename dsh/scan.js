@@ -5,7 +5,9 @@
  * `<meta name="design-schema" content="...">`. No new marker is introduced and
  * no filename convention is required, so a file named by the user keeps
  * working. The scan is deliberately bounded: a workspace can be arbitrary
- * large, and the workbench is a picker, not an indexer.
+ * large, and the workbench is a picker, not an indexer. Because it is bounded,
+ * the traversal order is part of the contract: shallow files must be found
+ * before a large subtree can spend the whole budget.
  */
 
 import { open, readFile, readdir, stat } from "node:fs/promises";
@@ -15,10 +17,18 @@ import { pathToFileURL } from "node:url";
 /** A design file always carries this meta tag; the format owns the spelling. */
 export const DESIGN_MARKER = /<meta\b[^>]*\bname\s*=\s*["']design-schema["'][^>]*>/i;
 
-/** Directories that never contain user-facing design files. */
+/**
+ * Directories that never contain user-facing design files.
+ *
+ * The package-manager stores, agent caches and this plugin's own export temp
+ * directory are listed because a workspace root can legitimately contain them
+ * (a local `.pnpm-store`, `.claude`, `.justskill-design-tmp`) and walking them
+ * costs thousands of `readdir` calls while yielding nothing.
+ */
 export const SKIP_DIRS = new Set([
-  ".git", ".hg", ".svn", ".idea", ".vscode", ".next", ".nuxt", ".svelte-kit",
+  ".git", ".hg", ".svn", ".idea", ".vscode", ".claude", ".next", ".nuxt", ".svelte-kit",
   ".cache", ".turbo", ".parcel-cache", ".venv", ".tox", ".pytest_cache",
+  ".pnpm-store", ".pnpm", ".yarn", ".npm", ".justskill-design-tmp",
   "node_modules", "bower_components", "dist", "build", "out", "coverage",
   "vendor", "target", "bin", "obj", "Pods", "DerivedData",
 ]);
@@ -88,7 +98,16 @@ export async function readDesignFile(file) {
 }
 
 /**
- * Scan one workspace, depth-first, bounded by depth, file count and time.
+ * Scan one workspace, breadth-first, bounded by depth, file count and time.
+ *
+ * Breadth-first matters more than it looks: with depth-first traversal the
+ * visit order is whatever `readdir` returns, so one huge sibling directory (a
+ * package-manager store, a tool cache) could spend the whole budget before a
+ * `design.html` sitting at the workspace root was ever read. Visiting a
+ * directory's files before its children, and every directory at one depth
+ * before the next, keeps shallow files first even when the scan runs out of
+ * time. The result then carries `incomplete`, and the caller must tell a
+ * partial list apart from an empty workspace.
  *
  * @param {{path: string}} workspace canonical workspace directory
  * @param {{deadline?: number, maxDepth?: number, maxFiles?: number}} [options]
@@ -103,37 +122,49 @@ export async function scanWorkspace(workspace, options = {}) {
   let incomplete = false;
 
   const expired = () => Date.now() > deadline;
+  const exhausted = () => expired() || files.length >= maxFiles;
 
-  async function walk(directory, depth) {
-    if (expired() || files.length >= maxFiles) {
+  const queue = [{ directory: root, depth: 0 }];
+  for (let head = 0; head < queue.length; head += 1) {
+    if (exhausted()) {
       incomplete = true;
-      return;
+      break;
     }
+    const { directory, depth } = queue[head];
     let entries;
     try {
       entries = await readdir(directory, { withFileTypes: true });
     } catch {
-      return; // unreadable directory: skip, never fail the whole panel
+      continue; // unreadable directory: skip, never fail the whole panel
     }
+
+    const children = [];
     for (const entry of entries) {
-      if (expired() || files.length >= maxFiles) {
-        incomplete = true;
-        return;
-      }
       if (entry.isSymbolicLink()) continue;
-      const file = join(directory, entry.name);
       if (entry.isDirectory()) {
-        if (depth >= maxDepth || SKIP_DIRS.has(entry.name)) continue;
-        await walk(file, depth + 1);
+        if (depth < maxDepth && !SKIP_DIRS.has(entry.name)) children.push(entry.name);
         continue;
       }
       if (!entry.isFile() || !HTML.test(entry.name)) continue;
-      const meta = await readDesignFile(file);
+      if (exhausted()) {
+        incomplete = true;
+        break;
+      }
+      const meta = await readDesignFile(join(directory, entry.name));
       if (meta !== null) files.push(meta);
     }
+
+    if (incomplete) break;
+    for (const name of children) {
+      if (exhausted()) {
+        incomplete = true;
+        break;
+      }
+      queue.push({ directory: join(directory, name), depth: depth + 1 });
+    }
+    if (incomplete) break;
   }
 
-  await walk(root, 0);
   files.sort((left, right) => right.mtime - left.mtime);
   return { path: root, files, incomplete };
 }

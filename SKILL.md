@@ -17,7 +17,7 @@ description: >-
 compatibility: Node 18 or newer. No dependencies, no install step, no build.
 allowed-tools: Bash(node:*), Read, Write, Edit
 metadata:
-  version: "3.2.1"
+  version: "3.2.2"
   category: "workflow"
   tags: "design, ui, canvas, html, prototyping, product"
   whenToUse: >-

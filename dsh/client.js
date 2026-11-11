@@ -431,7 +431,7 @@ window.__ModuleLoader__.load({
           h('i', { className: 'jsk-sep' }),
           h('span', null, '最近更新 ', h('b', null, totals.newest === 0 ? '—' : formatTime(totals.newest))),
           h('span', { className: 'jsk-stats-right' }, '上次扫描 ', formatTime(state.scannedAt || Date.now())),
-          state.incomplete ? h('span', { className: 'jsk-badge-warn' }, '部分工作区超时') : null),
+          state.incomplete ? h('span', { className: 'jsk-badge-warn' }, '部分工作区扫描未完成') : null),
         h('div', { className: 'jsk-list' },
           state.phase === 'loading' ? h('div', { className: 'jsk-empty' }, h('span', { className: 'jsk-spinner' }), '正在扫描工作区…') : null,
           state.phase === 'empty' ? h('div', { className: 'jsk-empty' },
@@ -451,8 +451,12 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'jsk-ws-path' }, workspace.path),
                 h('span', { className: 'jsk-count' }, `${workspace.files.length} 个文件`)),
               isCollapsed ? null : h('div', { className: 'jsk-grid' },
+                workspace.incomplete === true && workspace.files.length > 0
+                  ? h('div', { className: 'jsk-picker-note' }, '扫描未完成，列表可能不完整')
+                  : null,
                 workspace.files.length === 0
-                  ? h('div', { className: 'jsk-row-empty' }, '这个工作区里还没有设计文件')
+                  ? h('div', { className: 'jsk-row-empty' },
+                    workspace.incomplete === true ? '扫描未完成，暂时没扫到设计文件' : '这个工作区里还没有设计文件')
                   : workspace.files.map((file) => renderFileCard(file, workspace, busy, activate))));
           }),
         ),
@@ -502,22 +506,44 @@ window.__ModuleLoader__.load({
     function CanvasPicker({ sessionId, onPick }) {
       const [state, setState] = useState({ phase: 'loading' });
       const [ticket, setTicket] = useState(0);
+      const retried = useRef(false);
+      const scanned = useRef(null);
       const workspace = useMemo(() => readSessionWorkspace(sessionId), [sessionId]);
+
+      const retry = useCallback(() => {
+        setTicket((value) => value + 1);
+      }, []);
 
       useEffect(() => {
         if (workspace === null) {
           setState({ phase: 'no-workspace' });
           return undefined;
         }
+        if (scanned.current !== workspace.path) {
+          scanned.current = workspace.path;
+          retried.current = false;
+        }
         let cancelled = false;
         setState({ phase: 'loading' });
+        // `refresh` skips the Host's 15s cache: this picker mounts on demand,
+        // and a cached partial scan would make a retry show the same empty list.
         post('scan', {
           workspaces: [{ id: workspace.id, path: workspace.path, title: workspace.title }],
+          refresh: true,
         }).then(
           (value) => {
             if (cancelled) return;
             const entry = Array.isArray(value.workspaces) ? value.workspaces[0] : undefined;
-            setState({ phase: 'ready', files: entry && Array.isArray(entry.files) ? entry.files : [], incomplete: entry?.incomplete === true });
+            const files = entry && Array.isArray(entry.files) ? entry.files : [];
+            const incomplete = entry?.incomplete === true;
+            // One automatic retry per workspace: the first scan after a cold
+            // start is the one most likely to run out of budget.
+            if (incomplete && files.length === 0 && !retried.current) {
+              retried.current = true;
+              setTicket((current) => current + 1);
+              return;
+            }
+            setState({ phase: 'ready', files, incomplete });
           },
           (cause) => {
             if (!cancelled) setState({ phase: 'error', message: errorText(cause) });
@@ -526,7 +552,7 @@ window.__ModuleLoader__.load({
         return () => {
           cancelled = true;
         };
-      }, [workspace?.id, workspace?.path, ticket]);
+      }, [workspace, ticket]);
 
       return h('div', { className: 'jsk-picker' },
         h('div', { className: 'jsk-picker-head' },
@@ -543,15 +569,21 @@ window.__ModuleLoader__.load({
         state.phase === 'error' ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '读取失败'),
           h('span', null, state.message),
-          h('button', { type: 'button', className: 'jsk-button', onClick: () => setTicket((value) => value + 1) }, '重试')) : null,
+          h('button', { type: 'button', className: 'jsk-button', onClick: retry }, '重试')) : null,
         state.phase === 'no-workspace' ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '找不到当前工作区'),
           h('span', null, '这个标签页里没有会话工作区信息；请从 JustSkill Design 工作台点一个设计文件。')) : null,
-        state.phase === 'ready' && state.files.length === 0 ? h('div', { className: 'jsk-picker-state' },
+        state.phase === 'ready' && state.files.length === 0 && state.incomplete ? h('div', { className: 'jsk-picker-state' },
+          h('strong', null, '扫描未完成，暂时没扫到设计文件'),
+          h('span', null, '工作区较大，这次只扫了一部分。可以重试，或从左侧 JustSkill Design 工作台打开文件。'),
+          h('button', { type: 'button', className: 'jsk-button', onClick: retry }, '重试')) : null,
+        state.phase === 'ready' && state.files.length === 0 && !state.incomplete ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '这个工作区还没有设计文件'),
           h('span', null, '用 justSkill 新建一个 design.html，再回到这里选择它。')) : null,
         state.phase === 'ready' && state.files.length > 0 ? h('div', { className: 'jsk-picker-list' },
-          state.incomplete ? h('div', { className: 'jsk-picker-note' }, '部分目录扫描超时，列表可能不完整') : null,
+          state.incomplete ? h('div', { className: 'jsk-picker-note' },
+            '扫描未完成（超时或文件过多），列表可能不完整 ',
+            h('button', { type: 'button', className: 'jsk-link', onClick: retry }, '重新扫描')) : null,
           state.files.map((file) => h('button', {
             type: 'button',
             key: file.path,

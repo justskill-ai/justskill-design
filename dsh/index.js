@@ -55,6 +55,26 @@ async function readJson(request) {
   }
 }
 
+/**
+ * Cache one finished scan. A partial scan is deliberately never cached: the
+ * client retries after a timeout, and a cached truncated list would make that
+ * retry return the same empty list for the whole TTL. Returning false means
+ * "nothing was cached, the next request must rescan".
+ *
+ * @param {Map<string, {at: number, value: object}>} cache
+ * @param {string} path canonical workspace path
+ * @param {{incomplete?: boolean}} value scan result
+ * @returns {boolean}
+ */
+export function rememberScan(cache, path, value) {
+  if (value === null || value === undefined || value.incomplete === true) {
+    cache.delete(path);
+    return false;
+  }
+  cache.set(path, { at: Date.now(), value });
+  return true;
+}
+
 /** Canonicalize one workspace directory; returns null when it is not one. */
 async function canonicalWorkspace(entry) {
   if (entry === null || typeof entry !== "object") return null;
@@ -199,7 +219,7 @@ export function apply(ctx) {
         }
         const local = Math.min(Date.now() + WORKSPACE_BUDGET_MS, deadline);
         const value = await scanWorkspace(workspace, { deadline: local });
-        cache.set(workspace.path, { at: Date.now(), value });
+        rememberScan(cache, workspace.path, value);
         results.push({ ...workspace, ...value });
       }
 
