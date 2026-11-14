@@ -886,6 +886,7 @@ window.__ModuleLoader__.load({
 .jsk-button:hover{background:var(--dsw-alias-interactive-bg-hover,#f3f4f7)}
 .jsk-button:disabled{opacity:.55;cursor:default}
 .jsk-button-primary{background:var(--dsw-alias-brand-primary,#4f6bfe);border-color:var(--dsw-alias-brand-primary,#4f6bfe);color:var(--dsw-alias-label-primary-foreground,#fff);box-shadow:0 2px 6px rgba(79,107,254,.22)}
+.jsk-button-primary:hover{background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 88%,#000);border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 88%,#000)}
 .jsk-error,.jsk-notice{margin-top:14px;display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:9px;font-size:12.5px}
 .jsk-error{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#c0392b) 7%,transparent);border:1px solid color-mix(in srgb,var(--dsw-alias-state-error-primary,#c0392b) 24%,transparent);color:var(--dsw-alias-state-error-primary,#a33)}
 .jsk-notice{background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 7%,transparent);border:1px solid color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 24%,transparent);color:var(--dsw-alias-label-secondary,#4d5563)}
