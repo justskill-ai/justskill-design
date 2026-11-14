@@ -68,6 +68,52 @@ window.__ModuleLoader__.load({
       return body.value;
     }
 
+    /**
+     * POST a JSON body and consume the response as NDJSON, one callback per
+     * event. The Host streams scan results, so the picker can list a file the
+     * moment it is found instead of waiting for the whole workspace.
+     */
+    async function postStream(path, payload, onEvent, signal) {
+      const response = await fetch(new URL(`api/${ROUTE}/${path}`, document.baseURI), {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+        cache: 'no-store',
+        signal,
+      });
+      if (!response.ok || response.body === null) {
+        let message = `request failed (${response.status})`;
+        try {
+          const body = await response.json();
+          if (body !== null && body.error !== undefined && typeof body.error.message === 'string') {
+            message = body.error.message;
+          }
+        } catch {
+          /* keep the status-based message */
+        }
+        const error = new Error(message);
+        error.code = `http-${response.status}`;
+        throw error;
+      }
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let newline = buffer.indexOf('\n');
+        while (newline >= 0) {
+          const line = buffer.slice(0, newline).trim();
+          buffer = buffer.slice(newline + 1);
+          if (line !== '') onEvent(JSON.parse(line));
+          newline = buffer.indexOf('\n');
+        }
+      }
+      const rest = buffer.trim();
+      if (rest !== '') onEvent(JSON.parse(rest));
+    }
+
     function formatSize(bytes) {
       if (typeof bytes !== 'number' || !Number.isFinite(bytes)) return '';
       if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -255,42 +301,99 @@ window.__ModuleLoader__.load({
       const [query, setQuery] = useState('');
       const [collapsed, setCollapsed] = useState(() => new Set());
       const [busy, setBusy] = useState(null);
-      const request = useRef(0);
+      const controller = useRef(null);
 
-      const load = useCallback(async (refresh) => {
+      const load = useCallback(() => {
+        if (controller.current !== null) controller.current.abort();
         if (workspaces.length === 0) {
+          controller.current = null;
           setState({ phase: 'empty', workspaces: [], scannedAt: 0, incomplete: false });
           return;
         }
-        const ticket = ++request.current;
-        setState((current) => ({ ...current, phase: current.workspaces.length === 0 ? 'loading' : 'refreshing' }));
-        try {
-          const value = await post('scan', {
-            workspaces: workspaces.map((item) => ({ id: item.id, path: item.path, title: item.title })),
-            refresh: refresh === true,
-          });
-          if (ticket !== request.current) return;
-          setError(null);
-          setState({
-            phase: 'ready',
-            workspaces: Array.isArray(value.workspaces) ? value.workspaces : [],
-            scannedAt: value.scannedAt || Date.now(),
-            incomplete: value.incomplete === true,
-          });
-        } catch (cause) {
-          if (ticket !== request.current) return;
+        const abort = new AbortController();
+        controller.current = abort;
+        const entries = new Map();
+        const snapshot = () => [...entries.values()];
+        setError(null);
+        setState({ phase: 'loading', workspaces: [], scannedAt: 0, incomplete: false });
+
+        postStream('scan/stream', {
+          workspaces: workspaces.map((item) => ({ id: item.id, path: item.path, title: item.title })),
+        }, (event) => {
+          if (abort.signal.aborted) return;
+          if (event.type === 'start') {
+            for (const workspace of event.workspaces) {
+              entries.set(workspace.id, { ...workspace, files: [], incomplete: false, done: false });
+            }
+            setState((current) => ({ ...current, phase: 'scanning', workspaces: snapshot() }));
+            return;
+          }
+          if (event.type === 'files') {
+            const workspace = entries.get(event.workspace);
+            if (workspace !== undefined) workspace.files.push(...event.files);
+            setState((current) => ({ ...current, phase: 'scanning', workspaces: snapshot() }));
+            return;
+          }
+          if (event.type === 'workspace-done') {
+            const workspace = entries.get(event.workspace);
+            if (workspace !== undefined) {
+              workspace.incomplete = event.incomplete === true;
+              workspace.done = true;
+              workspace.files.sort((left, right) => right.mtime - left.mtime);
+            }
+            setState((current) => ({ ...current, workspaces: snapshot() }));
+            return;
+          }
+          if (event.type === 'done') {
+            for (const workspace of entries.values()) {
+              workspace.files.sort((left, right) => right.mtime - left.mtime);
+            }
+            setState({
+              phase: 'ready',
+              workspaces: snapshot(),
+              scannedAt: event.scannedAt || Date.now(),
+              incomplete: event.incomplete === true,
+            });
+            return;
+          }
+          if (event.type === 'error') {
+            throw new Error(String(event.message));
+          }
+        }, abort.signal).then(() => {
+          // Settle if the stream ended without a final `done` event, so the
+          // panel never sits in "扫描中" forever.
+          if (abort.signal.aborted) return;
+          for (const workspace of entries.values()) {
+            workspace.files.sort((left, right) => right.mtime - left.mtime);
+            workspace.done = true;
+          }
+          setState((current) => (current.phase === 'loading' || current.phase === 'scanning'
+            ? {
+              phase: 'ready',
+              workspaces: snapshot(),
+              scannedAt: Date.now(),
+              incomplete: [...entries.values()].some((workspace) => workspace.incomplete === true),
+            }
+            : current));
+        }).catch((cause) => {
+          if (abort.signal.aborted) return;
           setError(errorText(cause));
           setState((current) => ({ ...current, phase: current.workspaces.length === 0 ? 'error' : 'ready' }));
-        }
+        });
       }, [workspaces]);
 
       useEffect(() => {
-        load(false);
+        load();
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [workspaceKey]);
 
+      useEffect(() => () => {
+        if (controller.current !== null) controller.current.abort();
+      }, []);
+
       const groups = useMemo(() => {
         const needle = query.trim().toLowerCase();
+        const streaming = state.phase === 'loading' || state.phase === 'scanning';
         return state.workspaces
           .map((workspace) => {
             const workspaceMatches = needle === '' || `${workspace.title} ${workspace.path}`.toLowerCase().includes(needle);
@@ -299,8 +402,8 @@ window.__ModuleLoader__.load({
               .map((file) => ({ ...file, workspaceId: workspace.id, workspaceTitle: workspace.title }));
             return { ...workspace, files };
           })
-          .filter((workspace) => workspace.files.length > 0);
-      }, [state.workspaces, query]);
+          .filter((workspace) => workspace.files.length > 0 || (streaming && needle === ''));
+      }, [state.workspaces, state.phase, query]);
 
       const totals = useMemo(() => {
         let files = 0;
@@ -407,9 +510,8 @@ window.__ModuleLoader__.load({
             h('button', {
               type: 'button',
               className: 'jsk-button jsk-button-primary',
-              disabled: state.phase === 'loading' || state.phase === 'refreshing',
-              onClick: () => load(true),
-            }, icon.refresh(), state.phase === 'refreshing' ? '扫描中…' : '刷新'))),
+              onClick: () => load(),
+            }, icon.refresh(), state.phase === 'loading' || state.phase === 'scanning' ? '重新扫描' : '刷新'))),
         error !== null ? h('div', { className: 'jsk-error' }, icon.alert(), h('span', null, error)) : null,
         notice !== null ? h('div', { className: 'jsk-notice' },
           h('span', null, '已新建会话并打开画布：', h('b', null, basename(notice.file))),
@@ -430,7 +532,9 @@ window.__ModuleLoader__.load({
           h('span', null, h('b', null, totals.files), ' 个设计文件'),
           h('i', { className: 'jsk-sep' }),
           h('span', null, '最近更新 ', h('b', null, totals.newest === 0 ? '—' : formatTime(totals.newest))),
-          h('span', { className: 'jsk-stats-right' }, '上次扫描 ', formatTime(state.scannedAt || Date.now())),
+          h('span', { className: 'jsk-stats-right' },
+            state.phase === 'loading' || state.phase === 'scanning' ? '扫描中…' : `上次扫描 ${formatTime(state.scannedAt || Date.now())}`),
+          state.phase === 'scanning' ? h('span', { className: 'jsk-badge-live' }, `扫描中 · 已找到 ${totals.files} 个`) : null,
           state.incomplete ? h('span', { className: 'jsk-badge-warn' }, '部分工作区扫描未完成') : null),
         h('div', { className: 'jsk-list' },
           state.phase === 'loading' ? h('div', { className: 'jsk-empty' }, h('span', { className: 'jsk-spinner' }), '正在扫描工作区…') : null,
@@ -449,14 +553,19 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'jsk-ws-badge' }, (workspace.title || '?').slice(0, 1)),
                 h('span', { className: 'jsk-ws-name' }, workspace.title || basename(workspace.path)),
                 h('span', { className: 'jsk-ws-path' }, workspace.path),
-                h('span', { className: 'jsk-count' }, `${workspace.files.length} 个文件`)),
+                h('span', { className: 'jsk-count' }, `${workspace.files.length} 个文件${workspace.done === false ? '…' : ''}`)),
               isCollapsed ? null : h('div', { className: 'jsk-grid' },
-                workspace.incomplete === true && workspace.files.length > 0
-                  ? h('div', { className: 'jsk-picker-note' }, '扫描未完成，列表可能不完整')
+                workspace.done === false && workspace.files.length > 0
+                  ? h('div', { className: 'jsk-picker-status' }, h('span', { className: 'jsk-spinner' }), '扫描中，列表还会继续增加…')
+                  : null,
+                workspace.done !== false && workspace.incomplete === true && workspace.files.length > 0
+                  ? h('div', { className: 'jsk-picker-note' }, '扫描达到时间上限，列表可能不完整')
                   : null,
                 workspace.files.length === 0
                   ? h('div', { className: 'jsk-row-empty' },
-                    workspace.incomplete === true ? '扫描未完成，暂时没扫到设计文件' : '这个工作区里还没有设计文件')
+                    workspace.done === false
+                      ? '正在扫描…'
+                      : workspace.incomplete === true ? '扫描达到时间上限，暂时没扫到设计文件' : '这个工作区里还没有设计文件')
                   : workspace.files.map((file) => renderFileCard(file, workspace, busy, activate))));
           }),
         ),
@@ -504,55 +613,79 @@ window.__ModuleLoader__.load({
      * ------------------------------------------------------------------ */
 
     function CanvasPicker({ sessionId, onPick }) {
-      const [state, setState] = useState({ phase: 'loading' });
+      const [state, setState] = useState({ phase: 'scanning', files: [], incomplete: false, stopped: false });
       const [ticket, setTicket] = useState(0);
-      const retried = useRef(false);
-      const scanned = useRef(null);
       const workspace = useMemo(() => readSessionWorkspace(sessionId), [sessionId]);
+      const controller = useRef(null);
 
       const retry = useCallback(() => {
         setTicket((value) => value + 1);
       }, []);
 
+      const stop = useCallback(() => {
+        const current = controller.current;
+        if (current !== null) current.abort();
+      }, []);
+
       useEffect(() => {
         if (workspace === null) {
-          setState({ phase: 'no-workspace' });
+          setState({ phase: 'no-workspace', files: [], incomplete: false, stopped: false });
           return undefined;
         }
-        if (scanned.current !== workspace.path) {
-          scanned.current = workspace.path;
-          retried.current = false;
-        }
-        let cancelled = false;
-        setState({ phase: 'loading' });
-        // `refresh` skips the Host's 15s cache: this picker mounts on demand,
-        // and a cached partial scan would make a retry show the same empty list.
-        post('scan', {
+        const abort = new AbortController();
+        controller.current = abort;
+        const collected = [];
+        let disposed = false;
+        setState({ phase: 'scanning', files: [], incomplete: false, stopped: false });
+
+        // The Host streams the scan: each batch is rendered as it arrives, so
+        // the first design file shows up long before the workspace is done.
+        postStream('scan/stream', {
           workspaces: [{ id: workspace.id, path: workspace.path, title: workspace.title }],
-          refresh: true,
-        }).then(
-          (value) => {
-            if (cancelled) return;
-            const entry = Array.isArray(value.workspaces) ? value.workspaces[0] : undefined;
-            const files = entry && Array.isArray(entry.files) ? entry.files : [];
-            const incomplete = entry?.incomplete === true;
-            // One automatic retry per workspace: the first scan after a cold
-            // start is the one most likely to run out of budget.
-            if (incomplete && files.length === 0 && !retried.current) {
-              retried.current = true;
-              setTicket((current) => current + 1);
-              return;
-            }
-            setState({ phase: 'ready', files, incomplete });
-          },
-          (cause) => {
-            if (!cancelled) setState({ phase: 'error', message: errorText(cause) });
-          },
-        );
+        }, (event) => {
+          if (disposed || abort.signal.aborted) return;
+          if (event.type === 'files') {
+            collected.push(...event.files);
+            setState({ phase: 'scanning', files: collected.slice(), incomplete: false, stopped: false });
+            return;
+          }
+          if (event.type === 'workspace-done' || event.type === 'done') {
+            const files = collected.slice().sort((left, right) => right.mtime - left.mtime);
+            setState((current) => (current.phase === 'scanning'
+              ? { phase: 'ready', files, incomplete: event.incomplete === true, stopped: false }
+              : current));
+            return;
+          }
+          if (event.type === 'error') {
+            throw new Error(String(event.message));
+          }
+        }, abort.signal).then(() => {
+          // The stream ended without a completion event (a dropped workspace,
+          // for instance): settle instead of showing a spinner forever.
+          if (disposed) return;
+          setState((current) => (current.phase === 'scanning'
+            ? { phase: 'ready', files: collected.slice().sort((left, right) => right.mtime - left.mtime), incomplete: false, stopped: false }
+            : current));
+        }).catch((cause) => {
+          if (disposed) return;
+          if (abort.signal.aborted) {
+            const files = collected.slice().sort((left, right) => right.mtime - left.mtime);
+            setState({ phase: 'ready', files, incomplete: true, stopped: true });
+            return;
+          }
+          setState({ phase: 'error', files: collected.slice(), incomplete: false, stopped: false, message: errorText(cause) });
+        });
+
         return () => {
-          cancelled = true;
+          disposed = true;
+          abort.abort();
+          if (controller.current === abort) controller.current = null;
         };
       }, [workspace, ticket]);
+
+      const files = Array.isArray(state.files) ? state.files : [];
+      const scanning = state.phase === 'scanning';
+      const reachedCap = state.phase === 'ready' && state.incomplete === true && state.stopped !== true;
 
       return h('div', { className: 'jsk-picker' },
         h('div', { className: 'jsk-picker-head' },
@@ -565,7 +698,10 @@ window.__ModuleLoader__.load({
             title: '打开 JustSkill Design 工作台',
             onClick: () => openWorkbench(),
           }, icon.logo(14), '工作台')),
-        state.phase === 'loading' ? h('div', { className: 'jsk-picker-state' }, h('span', { className: 'jsk-spinner' }), '正在读取当前工作区的设计文件…') : null,
+        scanning ? h('div', { className: 'jsk-scan-bar' },
+          h('span', { className: 'jsk-spinner' }),
+          h('span', null, files.length === 0 ? '正在扫描当前工作区的设计文件…' : `扫描中 · 已找到 ${files.length} 个，继续扫描中…`),
+          h('button', { type: 'button', className: 'jsk-link', onClick: stop }, '停止')) : null,
         state.phase === 'error' ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '读取失败'),
           h('span', null, state.message),
@@ -573,18 +709,21 @@ window.__ModuleLoader__.load({
         state.phase === 'no-workspace' ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '找不到当前工作区'),
           h('span', null, '这个标签页里没有会话工作区信息；请从 JustSkill Design 工作台点一个设计文件。')) : null,
-        state.phase === 'ready' && state.files.length === 0 && state.incomplete ? h('div', { className: 'jsk-picker-state' },
-          h('strong', null, '扫描未完成，暂时没扫到设计文件'),
-          h('span', null, '工作区较大，这次只扫了一部分。可以重试，或从左侧 JustSkill Design 工作台打开文件。'),
+        state.phase === 'ready' && state.stopped ? h('div', { className: 'jsk-picker-note' },
+          `已停止扫描，仅显示已找到的 ${files.length} 个文件 `,
+          h('button', { type: 'button', className: 'jsk-link', onClick: retry }, '重新扫描')) : null,
+        reachedCap && files.length === 0 ? h('div', { className: 'jsk-picker-state' },
+          h('strong', null, '扫描达到时间上限，暂时没扫到设计文件'),
+          h('span', null, '已扫描 10 分钟仍未扫完。可以重试，或从左侧 JustSkill Design 工作台打开文件。'),
           h('button', { type: 'button', className: 'jsk-button', onClick: retry }, '重试')) : null,
-        state.phase === 'ready' && state.files.length === 0 && !state.incomplete ? h('div', { className: 'jsk-picker-state' },
+        state.phase === 'ready' && files.length === 0 && !state.incomplete ? h('div', { className: 'jsk-picker-state' },
           h('strong', null, '这个工作区还没有设计文件'),
           h('span', null, '用 justSkill 新建一个 design.html，再回到这里选择它。')) : null,
-        state.phase === 'ready' && state.files.length > 0 ? h('div', { className: 'jsk-picker-list' },
-          state.incomplete ? h('div', { className: 'jsk-picker-note' },
-            '扫描未完成（超时或文件过多），列表可能不完整 ',
+        files.length > 0 ? h('div', { className: 'jsk-picker-list' },
+          reachedCap ? h('div', { className: 'jsk-picker-note' },
+            '扫描达到时间上限，列表可能不完整 ',
             h('button', { type: 'button', className: 'jsk-link', onClick: retry }, '重新扫描')) : null,
-          state.files.map((file) => h('button', {
+          files.map((file) => h('button', {
             type: 'button',
             key: file.path,
             className: 'jsk-pick-card',
@@ -773,6 +912,9 @@ window.__ModuleLoader__.load({
 .jsk-picker-workbench:hover{background:var(--dsw-alias-interactive-bg-hover,#f3f4f7)}
 .jsk-picker-list{flex:1;min-height:0;overflow:auto;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
 .jsk-picker-note{grid-column:1/-1;margin:0 0 2px;padding:5px 7px;border-radius:6px;background:#fdf3e3;color:#a06a12;font-size:10.5px}
+.jsk-picker-status{grid-column:1/-1;display:flex;align-items:center;gap:6px;margin:0 0 2px;padding:5px 7px;border-radius:6px;background:var(--dsw-alias-bg-layer-2,#f1f3f5);color:var(--dsw-alias-label-secondary,#5f6673);font-size:10.5px}
+.jsk-scan-bar{flex:none;display:flex;align-items:center;gap:6px;margin:8px 8px 0;padding:5px 7px;border-radius:6px;background:var(--dsw-alias-bg-layer-2,#f1f3f5);color:var(--dsw-alias-label-secondary,#5f6673);font-size:10.5px}
+.jsk-badge-live{color:var(--dsw-alias-label-secondary,#5f6673);background:var(--dsw-alias-bg-layer-2,#f1f3f5);border-radius:5px;padding:1px 6px;font-size:11px}
 .jsk-picker-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center;color:var(--dsw-alias-label-secondary,#68707d);font-size:12px}
 .jsk-picker-state strong{color:var(--dsw-alias-label-primary,#3c4452);font-size:13px;font-weight:600}
 .jsk-pick-card{display:flex;flex-direction:column;gap:5px;min-width:0;padding:8px;border:1px solid var(--dsw-alias-border-l2,#eaecf1);border-radius:9px;background:var(--dsw-alias-bg-layer-1,#fff);color:inherit;font:inherit;text-align:left;cursor:pointer;transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease}

@@ -103,6 +103,33 @@ test("a root design file is found before a sibling directory can spend the budge
   assert.equal(capped.incomplete, true);
 });
 
+test("scanWorkspace reports each file as it is found, shallow files first", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "justskill-dsh-stream-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, "design.html"), designDocument("Home", 1));
+  await mkdir(join(root, "aaa"), { recursive: true });
+  await writeFile(join(root, "aaa", "nested.html"), designDocument("Nested", 1));
+
+  const seen = [];
+  const result = await scanWorkspace({ path: root }, { onFile: (file) => seen.push(file.name) });
+  assert.deepEqual(seen, ["design.html", "nested.html"]);
+  assert.equal(result.files.length, 2);
+  assert.equal(result.incomplete, false);
+  assert.equal(result.cancelled, false);
+});
+
+test("an aborted scan stops early and reports the partial result", async (t) => {
+  const root = await workspaceFixture();
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const controller = new AbortController();
+  controller.abort();
+  const result = await scanWorkspace({ path: root }, { signal: controller.signal });
+  assert.deepEqual(result.files, []);
+  assert.equal(result.cancelled, true);
+  assert.equal(result.incomplete, true);
+});
+
 test("package stores, agent caches and the export temp directory are ignored", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "justskill-dsh-skip-"));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -172,7 +199,7 @@ test("SKILL.md keeps the frontmatter top level to the fields the Skill format al
 
   // The markets read these from SKILL.md, so they stay in the file — under the
   // one key the format sets aside for custom metadata.
-  assert.match(source, /^  version: "3\.2\.2"$/m);
+  assert.match(source, /^  version: "3\.2\.3"$/m);
   assert.match(source, /^  category: "workflow"$/m);
   assert.match(source, /^  tags: ".*"$/m);
   assert.match(source, /^  whenToUse: >-$/m);

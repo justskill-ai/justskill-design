@@ -25,9 +25,13 @@ export const name = "justskill-design";
 export const inject = ["skills"];
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const CACHE_TTL_MS = 15_000;
-const SCAN_BUDGET_MS = 6_000;
-const WORKSPACE_BUDGET_MS = 2_500;
+/**
+ * Wide safety cap for one streaming scan. The picker lists files as they are
+ * found, so this is not a latency budget: it only stops a pathological
+ * workspace (a stalled network drive, an endless generated tree) from running
+ * forever. The client can cancel earlier by closing the tab or pressing stop.
+ */
+const STREAM_BUDGET_MS = 10 * 60_000;
 const MAX_WORKSPACES = 64;
 const PENDING_TTL_MS = 60_000;
 
@@ -53,26 +57,6 @@ async function readJson(request) {
   } catch {
     return null;
   }
-}
-
-/**
- * Cache one finished scan. A partial scan is deliberately never cached: the
- * client retries after a timeout, and a cached truncated list would make that
- * retry return the same empty list for the whole TTL. Returning false means
- * "nothing was cached, the next request must rescan".
- *
- * @param {Map<string, {at: number, value: object}>} cache
- * @param {string} path canonical workspace path
- * @param {{incomplete?: boolean}} value scan result
- * @returns {boolean}
- */
-export function rememberScan(cache, path, value) {
-  if (value === null || value === undefined || value.incomplete === true) {
-    cache.delete(path);
-    return false;
-  }
-  cache.set(path, { at: Date.now(), value });
-  return true;
 }
 
 /** Canonicalize one workspace directory; returns null when it is not one. */
@@ -176,8 +160,6 @@ export function apply(ctx) {
     }
   };
 
-  const cache = new Map();
-
   ctx.inject(["connection"], (scope) => {
     const connection = scope.get("connection");
     if (connection === undefined || typeof connection.fetch?.register !== "function") {
@@ -194,7 +176,11 @@ export function apply(ctx) {
       }), label);
     };
 
-    route("/api/justskill-design/scan", async (request) => {
+    // One scan, streamed as NDJSON: the browser renders each batch as it
+    // arrives, so a big workspace shows its first files immediately instead of
+    // waiting for the whole traversal. `incomplete` only means the wide safety
+    // cap (or the file-count cap) stopped the walk; the client says so.
+    route("/api/justskill-design/scan/stream", async (request) => {
       const body = await readJson(request);
       if (body === null) return fail(400, "bad-request", "body must be a JSON object");
       if (!Array.isArray(body.workspaces)) return fail(400, "bad-request", "workspaces must be an array");
@@ -208,27 +194,100 @@ export function apply(ctx) {
         if (workspace !== null) valid.push(workspace);
       }
 
-      const refresh = body.refresh === true;
-      const deadline = Date.now() + SCAN_BUDGET_MS;
-      const results = [];
-      for (const workspace of valid) {
-        const cached = cache.get(workspace.path);
-        if (!refresh && cached !== undefined && Date.now() - cached.at < CACHE_TTL_MS) {
-          results.push({ ...workspace, ...cached.value, cached: true });
-          continue;
-        }
-        const local = Math.min(Date.now() + WORKSPACE_BUDGET_MS, deadline);
-        const value = await scanWorkspace(workspace, { deadline: local });
-        rememberScan(cache, workspace.path, value);
-        results.push({ ...workspace, ...value });
+      const encoder = new TextEncoder();
+      const abort = new AbortController();
+      const relayAbort = () => { abort.abort(); };
+      const requestSignal = request.signal;
+      if (requestSignal !== undefined) {
+        requestSignal.addEventListener("abort", relayAbort, { once: true });
+        if (requestSignal.aborted) abort.abort();
       }
 
-      return ok({
-        workspaces: results,
-        scannedAt: Date.now(),
-        incomplete: results.some((entry) => entry.incomplete === true),
+      const stream = new ReadableStream({
+        start(controller) {
+          let closed = false;
+          const send = (event) => {
+            if (closed) return false;
+            try {
+              controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+              return true;
+            } catch {
+              closed = true;
+              return false;
+            }
+          };
+          const finish = () => {
+            if (closed) return;
+            closed = true;
+            try {
+              controller.close();
+            } catch {
+              /* already closed */
+            }
+          };
+
+          const run = async () => {
+            const deadline = Date.now() + STREAM_BUDGET_MS;
+            let incomplete = false;
+            try {
+              send({
+                type: "start",
+                workspaces: valid.map(({ id, path, title }) => ({ id, path, title })),
+              });
+              for (const workspace of valid) {
+                if (abort.signal.aborted) break;
+                let batch = [];
+                let flushedAt = Date.now();
+                const flush = () => {
+                  if (batch.length === 0) return;
+                  send({ type: "files", workspace: workspace.id, files: batch });
+                  batch = [];
+                  flushedAt = Date.now();
+                };
+                const result = await scanWorkspace(workspace, {
+                  deadline,
+                  signal: abort.signal,
+                  onFile(file) {
+                    batch.push(file);
+                    if (batch.length >= 25 || Date.now() - flushedAt >= 150) flush();
+                  },
+                });
+                flush();
+                if (abort.signal.aborted) break;
+                incomplete = incomplete || result.incomplete === true;
+                send({
+                  type: "workspace-done",
+                  workspace: workspace.id,
+                  count: result.files.length,
+                  incomplete: result.incomplete === true,
+                  cancelled: result.cancelled === true,
+                });
+              }
+              if (!abort.signal.aborted) {
+                send({ type: "done", scannedAt: Date.now(), incomplete });
+              }
+            } catch (error) {
+              send({ type: "error", message: error instanceof Error ? error.message : String(error) });
+            } finally {
+              if (requestSignal !== undefined) requestSignal.removeEventListener("abort", relayAbort);
+              finish();
+            }
+          };
+
+          void run();
+        },
+        cancel() {
+          abort.abort();
+        },
       });
-    }, "justskill-design: workspace scan route");
+
+      return new Response(stream, {
+        headers: {
+          "content-type": "application/x-ndjson; charset=utf-8",
+          "cache-control": "no-store",
+        },
+      });
+    }, "justskill-design: streaming workspace scan route");
 
     route("/api/justskill-design/canvas", async (request) => {
       const body = await readJson(request);

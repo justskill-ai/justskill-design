@@ -1,6 +1,6 @@
 {
   "name": "justskill-design",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "private": false,
   "type": "module",
   "description": "Design web pages as a validated HTML file with inline CSS. Agent edits by CLI, human edits on a local canvas, both write the same file. Also ships a DeepSeek Harness plugin.",

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
-import { apply, rememberScan } from "../dsh/index.js";
+import { apply } from "../dsh/index.js";
 
 const ROOT = resolve(new URL("..", import.meta.url).pathname);
 
@@ -88,7 +88,7 @@ test("the host half registers the skill and both Host routes on the connection s
   assert.match(skill.whenToUse, /product idea/);
   assert.deepEqual(skill.metadata, { category: "workflow", tags: ["design", "ui", "canvas", "html", "prototyping", "product"] });
 
-  assert.equal(harness.routes.has("/api/justskill-design/scan"), true);
+  assert.equal(harness.routes.has("/api/justskill-design/scan/stream"), true);
   assert.equal(harness.routes.has("/api/justskill-design/canvas"), true);
   assert.equal(harness.routes.has("/api/justskill-design/canvas/close"), true);
   assert.equal(harness.routes.has("/api/justskill-design/pending"), true);
@@ -134,7 +134,11 @@ test("the canvas tool queues a session-scoped request and the pending routes cla
   await assert.rejects(() => tool.execute({ file: "plain.html" }, exec), /design-schema/);
 });
 
-test("the scan route returns workspace-grouped design files and ignores other HTML", async (t) => {
+function readEvents(text) {
+  return text.split("\n").filter((line) => line.trim() !== "").map((line) => JSON.parse(line));
+}
+
+test("the streaming scan route sends start, files, workspace-done and done as NDJSON", async (t) => {
   const root = await realpath(await mkdtemp(join(tmpdir(), "justskill-host-")));
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(join(root, "design.html"), designDocument("Home"));
@@ -142,59 +146,28 @@ test("the scan route returns workspace-grouped design files and ignores other HT
 
   const harness = fakeHarness();
   apply(harness.ctx);
-  const route = harness.routes.get("/api/justskill-design/scan");
-  const response = await route.fetch(request("/api/justskill-design/scan", {
+  const route = harness.routes.get("/api/justskill-design/scan/stream");
+  const response = await route.fetch(request("/api/justskill-design/scan/stream", {
     workspaces: [{ id: "ws-1", path: root, title: "Demo" }],
   }));
   assert.equal(response.status, 200);
-  const body = await response.json();
-  assert.equal(body.ok, true);
-  assert.equal(body.value.workspaces.length, 1);
-  const workspace = body.value.workspaces[0];
-  assert.equal(workspace.id, "ws-1");
-  assert.equal(workspace.title, "Demo");
-  assert.equal(workspace.path, root);
-  assert.equal(workspace.files.length, 1);
-  assert.equal(workspace.files[0].name, "design.html");
-  assert.equal(workspace.files[0].title, "Home");
-  assert.equal(workspace.files[0].pages, 1);
-  assert.match(workspace.files[0].uri, /^file:\/\//);
-});
+  assert.match(response.headers.get("content-type") ?? "", /^application\/x-ndjson/);
 
-test("the scan route caches complete scans and rescans when the client asks to refresh", async (t) => {
-  const root = await realpath(await mkdtemp(join(tmpdir(), "justskill-cache-")));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  await writeFile(join(root, "design.html"), designDocument("Home"));
+  const events = readEvents(await response.text());
+  assert.deepEqual(events.map((event) => event.type), ["start", "files", "workspace-done", "done"]);
 
-  const harness = fakeHarness();
-  apply(harness.ctx);
-  const route = harness.routes.get("/api/justskill-design/scan");
-  const payload = { workspaces: [{ id: "ws-cache", path: root, title: "Demo" }] };
-
-  const first = await route.fetch(request("/api/justskill-design/scan", payload));
-  assert.equal((await first.json()).value.workspaces[0].files.length, 1);
-
-  await writeFile(join(root, "second.html"), designDocument("Second"));
-
-  const cached = await route.fetch(request("/api/justskill-design/scan", payload));
-  const cachedBody = await cached.json();
-  assert.equal(cachedBody.value.workspaces[0].files.length, 1);
-  assert.equal(cachedBody.value.workspaces[0].cached, true);
-
-  const fresh = await route.fetch(request("/api/justskill-design/scan", { ...payload, refresh: true }));
-  assert.equal((await fresh.json()).value.workspaces[0].files.length, 2);
-});
-
-test("a partial scan is not cached, so a retry rescans instead of replaying the empty list", () => {
-  const cache = new Map();
-  const complete = { path: "/workspace", files: [], incomplete: false };
-
-  assert.equal(rememberScan(cache, "/workspace", complete), true);
-  assert.equal(cache.has("/workspace"), true);
-
-  const partial = { path: "/workspace", files: [], incomplete: true };
-  assert.equal(rememberScan(cache, "/workspace", partial), false);
-  assert.equal(cache.has("/workspace"), false);
+  const [start, files, workspaceDone, done] = events;
+  assert.deepEqual(start.workspaces, [{ id: "ws-1", path: root, title: "Demo" }]);
+  assert.equal(files.workspace, "ws-1");
+  assert.equal(files.files.length, 1);
+  assert.equal(files.files[0].name, "design.html");
+  assert.equal(files.files[0].title, "Home");
+  assert.equal(files.files[0].pages, 1);
+  assert.match(files.files[0].uri, /^file:\/\//);
+  assert.equal(workspaceDone.workspace, "ws-1");
+  assert.equal(workspaceDone.count, 1);
+  assert.equal(workspaceDone.incomplete, false);
+  assert.equal(done.incomplete, false);
 });
 
 test("the canvas route starts a loopback canvas, and the close route stops it", async (t) => {
@@ -250,16 +223,16 @@ test("the canvas route refuses a file that is not a design", async (t) => {
   assert.equal(body.error.code, "not-a-design-file");
 });
 
-test("the scan route validates its body and limits the number of workspaces", async () => {
+test("the streaming scan route validates its body and limits the number of workspaces", async () => {
   const harness = fakeHarness();
   apply(harness.ctx);
-  const route = harness.routes.get("/api/justskill-design/scan");
+  const route = harness.routes.get("/api/justskill-design/scan/stream");
 
-  const bad = await route.fetch(request("/api/justskill-design/scan", { workspaces: "nope" }));
+  const bad = await route.fetch(request("/api/justskill-design/scan/stream", { workspaces: "nope" }));
   assert.equal(bad.status, 400);
 
   const workspaces = Array.from({ length: 65 }, (_, index) => ({ id: `w${index}`, path: `/tmp/w${index}` }));
-  const tooMany = await route.fetch(request("/api/justskill-design/scan", { workspaces }));
+  const tooMany = await route.fetch(request("/api/justskill-design/scan/stream", { workspaces }));
   assert.equal(tooMany.status, 400);
   assert.equal((await tooMany.json()).error.code, "too-many-workspaces");
 });
