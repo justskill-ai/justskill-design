@@ -26,6 +26,22 @@ window.__ModuleLoader__.load({
     const TAB_KIND = 'justskill-canvas';
     const SKILL = 'justskill-design';
 
+    /**
+     * First message queued into a session created from the workbench "新建"
+     * button: it starts the justSkill route in an empty workspace and keeps the
+     * agent from creating the file before the idea is confirmed.
+     */
+    const NEW_DESIGN_PROMPT = [
+      `/${SKILL}`,
+      '',
+      '在这个工作区新建一个设计。',
+      '',
+      '请先按 justSkill 的流程来：用一两句话确认我要做什么、给谁用（不清楚就问我 2-3 个关键问题），',
+      '然后给出最小方案（1-5 个页面、每页的任务、需要的空/加载/错误状态），等我确认。',
+      '确认后再创建 design.html（node design.mjs new design.html --name home），',
+      '并用 justskill_canvas 打开画布；不要运行 design.mjs serve，也不要自己打开浏览器。',
+    ].join('\n');
+
     let runtime = null;
 
     /* ------------------------------------------------------------------ *
@@ -264,6 +280,7 @@ window.__ModuleLoader__.load({
       arrow: (size = 15) => svg(h('path', { d: 'M5 10h10M11 6l4 4-4 4' }), size),
       alert: (size = 15) => svg(h('circle', { cx: 10, cy: 10, r: 6.4 }), h('path', { d: 'M10 8.6v4.4M10 6v.1' }), size),
       stop: (size = 15) => svg(h('rect', { x: 6, y: 6, width: 8, height: 8, rx: 2, fill: 'currentColor', stroke: 'none' }), size),
+      plus: (size = 15) => svg(h('path', { d: 'M10 4.5v11M4.5 10h11' }), size),
     };
 
     function renderFileCard(file, workspace, busy, activate) {
@@ -302,13 +319,37 @@ window.__ModuleLoader__.load({
       const [query, setQuery] = useState('');
       const [collapsed, setCollapsed] = useState(() => new Set());
       const [busy, setBusy] = useState(null);
+      const [pickerOpen, setPickerOpen] = useState(false);
+      const [pickerQuery, setPickerQuery] = useState('');
+      const [creating, setCreating] = useState(null);
+      const [createError, setCreateError] = useState(null);
       const controller = useRef(null);
       const stopping = useRef(false);
+      const pickerInput = useRef(null);
+      const newButton = useRef(null);
 
       const stop = useCallback(() => {
         stopping.current = true;
         if (controller.current !== null) controller.current.abort();
       }, []);
+
+      const closePicker = useCallback(() => {
+        setPickerOpen(false);
+        setCreateError(null);
+      }, []);
+
+      useEffect(() => {
+        if (!pickerOpen) return undefined;
+        pickerInput.current?.focus?.();
+        const onKeyDown = (event) => {
+          if (event.key === 'Escape') {
+            closePicker();
+            newButton.current?.focus?.();
+          }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+      }, [pickerOpen, closePicker]);
 
       const load = useCallback(() => {
         if (controller.current !== null) controller.current.abort();
@@ -501,7 +542,7 @@ window.__ModuleLoader__.load({
           const mounted = await waitForMounted(sidebarRight, sessionId, 5000);
           if (!mounted) throw new Error('新会话没有切换成功，画布暂未打开');
           await openCanvasTab(sidebarRight, file.path);
-          setNotice({ sessionId, file: file.path });
+          setNotice({ sessionId, message: `已新建会话并打开画布：${basename(file.path)}` });
           prompting.catch((cause) => {
             console.error('[justskill-design] initial prompt failed:', cause);
           });
@@ -511,6 +552,63 @@ window.__ModuleLoader__.load({
           setBusy(null);
         }
       }, [busy]);
+
+      const createDesign = useCallback(async (workspace) => {
+        if (creating !== null) return;
+        setCreating(workspace.id);
+        setCreateError(null);
+        setError(null);
+        setNotice(null);
+        try {
+          const sessions = runtime === null ? undefined : runtime.get('sessions');
+          const uiWorkspace = runtime === null ? undefined : runtime.get('uiWorkspace');
+          if (sessions === undefined || typeof sessions.create !== 'function') {
+            throw new Error('DSH sessions 服务不可用，无法新建会话');
+          }
+          const sessionId = await sessions.create({ workspaceId: workspace.id });
+          try {
+            uiWorkspace?.openSession?.(sessionId);
+          } catch {
+            /* navigation is best effort; the session is the important half */
+          }
+          const prompting = typeof sessions.using === 'function'
+            ? sessions.using(sessionId, { source: SKILL }, async (reference) => {
+              const session = reference && reference.binding ? reference.binding.session : undefined;
+              if (session === undefined || typeof session.prompt !== 'function') {
+                throw new Error('无法向新会话发送新建提示词');
+              }
+              try {
+                await session.rename?.(`${workspace.title || basename(workspace.path)} · 新建设计`);
+              } catch {
+                /* a title is a convenience, never a blocker */
+              }
+              await session.prompt([{ type: 'text', text: NEW_DESIGN_PROMPT }], 'queue');
+            })
+            : Promise.reject(new Error('DSH sessions.using 不可用'));
+          await prompting;
+          setPickerOpen(false);
+          setPickerQuery('');
+          setNotice({
+            sessionId,
+            message: `已在 ${workspace.title || basename(workspace.path)} 新建会话，等待你描述设计`,
+          });
+        } catch (cause) {
+          setCreateError(errorText(cause));
+        } finally {
+          setCreating(null);
+        }
+      }, [creating]);
+
+      const pickerWorkspaces = useMemo(() => {
+        const needle = pickerQuery.trim().toLowerCase();
+        const counts = new Map();
+        for (const workspace of state.workspaces) {
+          counts.set(workspace.id, Array.isArray(workspace.files) ? workspace.files.length : undefined);
+        }
+        return workspaces
+          .filter((workspace) => needle === '' || `${workspace.title} ${workspace.path}`.toLowerCase().includes(needle))
+          .map((workspace) => ({ ...workspace, count: counts.get(workspace.id) }));
+      }, [workspaces, state.workspaces, pickerQuery]);
 
       const totalLabel = totals.files === 1 ? '1 个设计文件' : `${totals.files} 个设计文件`;
       const workspaceLabel = totals.workspaces === 1 ? '1 个工作区' : `${totals.workspaces} 个工作区`;
@@ -533,6 +631,18 @@ window.__ModuleLoader__.load({
                 spellCheck: false,
                 onChange: (event) => setQuery(event.target.value),
               })),
+            h('button', {
+              type: 'button',
+              ref: newButton,
+              className: 'jsk-button jsk-new',
+              disabled: workspaces.length === 0 || creating !== null,
+              title: workspaces.length === 0 ? '先在 DSH 左侧栏添加一个工作区' : '在某个工作区新建设计',
+              onClick: () => {
+                setPickerQuery('');
+                setCreateError(null);
+                setPickerOpen(true);
+              },
+            }, icon.plus(15), '新建'),
             scanningNow
               ? h('button', {
                 type: 'button',
@@ -546,7 +656,7 @@ window.__ModuleLoader__.load({
               }, icon.refresh(), stopped ? '重新扫描' : '刷新'))),
         error !== null ? h('div', { className: 'jsk-error' }, icon.alert(), h('span', null, error)) : null,
         notice !== null ? h('div', { className: 'jsk-notice' },
-          h('span', null, '已新建会话并打开画布：', h('b', null, basename(notice.file))),
+          h('span', null, notice.message),
           h('button', {
             type: 'button',
             className: 'jsk-link',
@@ -614,7 +724,51 @@ window.__ModuleLoader__.load({
           h('span', { className: 'jsk-arrow' }, '→'),
           h('span', { className: 'jsk-step' }, h('i', null, '2'), '该工作区自动新建会话'),
           h('span', { className: 'jsk-arrow' }, '→'),
-          h('span', { className: 'jsk-step' }, h('i', null, '3'), '右侧栏打开画布，边聊边改')));
+          h('span', { className: 'jsk-step' }, h('i', null, '3'), '右侧栏打开画布，边聊边改')),
+        pickerOpen ? h('div', { className: 'jsk-modal-backdrop', onClick: closePicker },
+          h('div', {
+            className: 'jsk-modal',
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-label': '选择工作区新建设计',
+            onClick: (event) => event.stopPropagation(),
+          },
+          h('div', { className: 'jsk-modal-head' },
+            h('p', { className: 'jsk-modal-title' }, '在哪个工作区新建设计？'),
+            h('p', { className: 'jsk-modal-sub' }, '会为该工作区新建会话，并带过去一条「新建设计」提示词。')),
+          h('label', { className: 'jsk-modal-search' },
+            icon.search(15),
+            h('input', {
+              ref: pickerInput,
+              value: pickerQuery,
+              placeholder: '搜索工作区…',
+              spellCheck: false,
+              onChange: (event) => setPickerQuery(event.target.value),
+            })),
+          h('div', { className: 'jsk-modal-list' },
+            pickerWorkspaces.length === 0
+              ? h('div', { className: 'jsk-modal-empty' }, '没有匹配的工作区')
+              : pickerWorkspaces.map((workspace) => h('button', {
+                type: 'button',
+                key: workspace.id,
+                className: 'jsk-modal-row',
+                disabled: creating !== null,
+                onClick: () => createDesign(workspace),
+              },
+              h('span', { className: 'jsk-modal-badge' }, (workspace.title || '?').slice(0, 1)),
+              h('span', { className: 'jsk-modal-info' },
+                h('span', { className: 'jsk-modal-name' }, workspace.title || basename(workspace.path)),
+                h('span', { className: 'jsk-modal-path' }, workspace.path)),
+              creating === workspace.id
+                ? h('span', { className: 'jsk-spinner' })
+                : h('span', { className: 'jsk-modal-count' },
+                  workspace.count === undefined ? '—'
+                    : workspace.count === 0 ? '还没有文件'
+                      : `${workspace.count} 个文件`)))),
+          createError !== null ? h('div', { className: 'jsk-modal-error' }, createError) : null,
+          h('div', { className: 'jsk-modal-foot' },
+            h('span', { className: 'jsk-modal-hint' }, '没有想要的工作区？在 DSH 左侧栏添加'),
+            h('button', { type: 'button', className: 'jsk-link', onClick: closePicker }, '取消')))) : null);
     }
 
     async function waitForMounted(sidebarRight, sessionId, timeoutMs) {
@@ -871,7 +1025,7 @@ window.__ModuleLoader__.load({
      * ------------------------------------------------------------------ */
 
     const CSS = `
-.jsk-page{height:100%;min-height:0;display:flex;flex-direction:column;padding:24px 32px 0;background:var(--dsw-alias-bg-layer-1,#fbfbfc);color:var(--dsw-alias-label-primary,#1b1f26);font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Segoe UI",sans-serif;box-sizing:border-box}
+.jsk-page{position:relative;height:100%;min-height:0;display:flex;flex-direction:column;padding:24px 32px 0;background:var(--dsw-alias-bg-layer-1,#fbfbfc);color:var(--dsw-alias-label-primary,#1b1f26);font:13px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Segoe UI",sans-serif;box-sizing:border-box}
 .jsk-page *{box-sizing:border-box}
 .jsk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
 .jsk-brand{display:flex;align-items:center;gap:13px;min-width:0}
@@ -935,6 +1089,27 @@ window.__ModuleLoader__.load({
 .jsk-spinner{width:14px;height:14px;border:2px solid color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 25%,transparent);border-top-color:var(--dsw-alias-brand-primary,#4f6bfe);border-radius:50%;display:inline-block;animation:jsk-spin .8s linear infinite;flex:none}
 .jsk-spinner-dark{border-color:rgba(255,255,255,.35);border-top-color:#fff;width:12px;height:12px}
 @keyframes jsk-spin{to{transform:rotate(360deg)}}
+.jsk-modal-backdrop{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(15,17,21,.28);backdrop-filter:blur(2px)}
+.jsk-modal{width:460px;max-width:100%;max-height:72%;display:flex;flex-direction:column;background:var(--dsw-alias-bg-layer-1,#fff);border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:16px;box-shadow:0 24px 60px -24px rgba(16,24,40,.38);overflow:hidden}
+.jsk-modal-head{display:flex;flex-direction:column;gap:4px;padding:18px 18px 12px}
+.jsk-modal-title{margin:0;font-size:15px;font-weight:600;line-height:1.4}
+.jsk-modal-sub{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary,#68707d)}
+.jsk-modal-search{display:flex;align-items:center;gap:8px;margin:0 18px 10px;padding:0 11px;height:35px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:9px;background:var(--dsw-alias-bg-layer-2,#f7f8fa);color:var(--dsw-alias-label-tertiary,#9aa2af)}
+.jsk-modal-search input{width:100%;border:0;outline:0;background:none;color:var(--dsw-alias-label-primary,#1b1f26);font:inherit;font-size:12.5px}
+.jsk-modal-list{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:0 8px 8px}
+.jsk-modal-row{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.jsk-modal-row:hover{background:var(--dsw-alias-interactive-bg-hover,#f4f6fa)}
+.jsk-modal-row:disabled{cursor:default;opacity:.72}
+.jsk-modal-badge{display:grid;place-items:center;width:28px;height:28px;flex:none;border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 10%,transparent);color:var(--dsw-alias-brand-primary,#4658d9);font-size:12px;font-weight:700}
+.jsk-modal-info{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1}
+.jsk-modal-name{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jsk-modal-path{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jsk-modal-count{flex:none;font-size:11px;color:var(--dsw-alias-label-secondary,#68707d);white-space:nowrap}
+.jsk-modal-empty{padding:18px;text-align:center;font-size:12px;color:var(--dsw-alias-label-secondary,#68707d)}
+.jsk-modal-error{margin:0 18px 10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--dsw-alias-state-error-primary,#c0392b) 24%,transparent);border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#c0392b) 7%,transparent);color:var(--dsw-alias-state-error-primary,#a33);font-size:12px}
+.jsk-modal-foot{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--dsw-alias-border-l2,#e7e9ee);background:var(--dsw-alias-bg-layer-2,#fbfbfc)}
+.jsk-modal-hint{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dsw-alias-label-tertiary,#9aa2af)}
+.jsk-modal-foot .jsk-link{margin-left:auto;font-size:12px}
 .jsk-panel-icon{display:grid;place-items:center;width:100%;height:100%}
 .jsk-tab-title{display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:180px}
 .jsk-tab-title>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
