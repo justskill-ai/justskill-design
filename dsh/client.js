@@ -263,6 +263,7 @@ window.__ModuleLoader__.load({
       canvas: (size = 15) => svg(h('rect', { x: 3.2, y: 4.4, width: 13.6, height: 10.4, rx: 2.2 }), h('path', { d: 'M3.2 8.1h13.6M6.6 4.4v10.4' }), size),
       arrow: (size = 15) => svg(h('path', { d: 'M5 10h10M11 6l4 4-4 4' }), size),
       alert: (size = 15) => svg(h('circle', { cx: 10, cy: 10, r: 6.4 }), h('path', { d: 'M10 8.6v4.4M10 6v.1' }), size),
+      stop: (size = 15) => svg(h('rect', { x: 6, y: 6, width: 8, height: 8, rx: 2, fill: 'currentColor', stroke: 'none' }), size),
     };
 
     function renderFileCard(file, workspace, busy, activate) {
@@ -295,19 +296,26 @@ window.__ModuleLoader__.load({
     function WorkbenchPage() {
       const workspaces = useWorkspaces();
       const workspaceKey = useMemo(() => workspaceSignature(workspaces), [workspaces]);
-      const [state, setState] = useState({ phase: 'loading', workspaces: [], scannedAt: 0, incomplete: false });
+      const [state, setState] = useState({ phase: 'loading', workspaces: [], scannedAt: 0, incomplete: false, stopped: false });
       const [error, setError] = useState(null);
       const [notice, setNotice] = useState(null);
       const [query, setQuery] = useState('');
       const [collapsed, setCollapsed] = useState(() => new Set());
       const [busy, setBusy] = useState(null);
       const controller = useRef(null);
+      const stopping = useRef(false);
+
+      const stop = useCallback(() => {
+        stopping.current = true;
+        if (controller.current !== null) controller.current.abort();
+      }, []);
 
       const load = useCallback(() => {
         if (controller.current !== null) controller.current.abort();
+        stopping.current = false;
         if (workspaces.length === 0) {
           controller.current = null;
-          setState({ phase: 'empty', workspaces: [], scannedAt: 0, incomplete: false });
+          setState({ phase: 'empty', workspaces: [], scannedAt: 0, incomplete: false, stopped: false });
           return;
         }
         const abort = new AbortController();
@@ -315,7 +323,7 @@ window.__ModuleLoader__.load({
         const entries = new Map();
         const snapshot = () => [...entries.values()];
         setError(null);
-        setState({ phase: 'loading', workspaces: [], scannedAt: 0, incomplete: false });
+        setState({ phase: 'loading', workspaces: [], scannedAt: 0, incomplete: false, stopped: false });
 
         postStream('scan/stream', {
           workspaces: workspaces.map((item) => ({ id: item.id, path: item.path, title: item.title })),
@@ -376,7 +384,23 @@ window.__ModuleLoader__.load({
             }
             : current));
         }).catch((cause) => {
-          if (abort.signal.aborted) return;
+          if (abort.signal.aborted) {
+            if (!stopping.current || controller.current !== abort) return;
+            for (const workspace of entries.values()) {
+              if (workspace.done !== true) {
+                workspace.done = true;
+                workspace.incomplete = true;
+              }
+            }
+            setState((current) => ({
+              ...current,
+              phase: 'ready',
+              stopped: true,
+              incomplete: true,
+              workspaces: snapshot(),
+            }));
+            return;
+          }
           setError(errorText(cause));
           setState((current) => ({ ...current, phase: current.workspaces.length === 0 ? 'error' : 'ready' }));
         });
@@ -490,6 +514,8 @@ window.__ModuleLoader__.load({
 
       const totalLabel = totals.files === 1 ? '1 个设计文件' : `${totals.files} 个设计文件`;
       const workspaceLabel = totals.workspaces === 1 ? '1 个工作区' : `${totals.workspaces} 个工作区`;
+      const scanningNow = state.phase === 'loading' || state.phase === 'scanning';
+      const stopped = state.stopped === true;
 
       return h('div', { className: 'jsk-page' },
         h('header', { className: 'jsk-head' },
@@ -507,11 +533,17 @@ window.__ModuleLoader__.load({
                 spellCheck: false,
                 onChange: (event) => setQuery(event.target.value),
               })),
-            h('button', {
-              type: 'button',
-              className: 'jsk-button jsk-button-primary',
-              onClick: () => load(),
-            }, icon.refresh(), state.phase === 'loading' || state.phase === 'scanning' ? '重新扫描' : '刷新'))),
+            scanningNow
+              ? h('button', {
+                type: 'button',
+                className: 'jsk-button jsk-button-primary',
+                onClick: stop,
+              }, icon.stop(15), '停止扫描')
+              : h('button', {
+                type: 'button',
+                className: 'jsk-button jsk-button-primary',
+                onClick: () => load(),
+              }, icon.refresh(), stopped ? '重新扫描' : '刷新'))),
         error !== null ? h('div', { className: 'jsk-error' }, icon.alert(), h('span', null, error)) : null,
         notice !== null ? h('div', { className: 'jsk-notice' },
           h('span', null, '已新建会话并打开画布：', h('b', null, basename(notice.file))),
@@ -526,6 +558,10 @@ window.__ModuleLoader__.load({
               }
             },
           }, '查看会话')) : null,
+        stopped ? h('div', { className: 'jsk-notice' },
+          icon.stop(14),
+          h('span', null, `已停止扫描，仅显示已找到的 ${totals.files} 个文件`),
+          h('button', { type: 'button', className: 'jsk-link', onClick: () => load() }, '重新扫描')) : null,
         h('div', { className: 'jsk-stats' },
           h('span', null, h('b', null, totals.workspaces), ' 个工作区'),
           h('i', { className: 'jsk-sep' }),
@@ -533,9 +569,9 @@ window.__ModuleLoader__.load({
           h('i', { className: 'jsk-sep' }),
           h('span', null, '最近更新 ', h('b', null, totals.newest === 0 ? '—' : formatTime(totals.newest))),
           h('span', { className: 'jsk-stats-right' },
-            state.phase === 'loading' || state.phase === 'scanning' ? '扫描中…' : `上次扫描 ${formatTime(state.scannedAt || Date.now())}`),
-          state.phase === 'scanning' ? h('span', { className: 'jsk-badge-live' }, `扫描中 · 已找到 ${totals.files} 个`) : null,
-          state.incomplete ? h('span', { className: 'jsk-badge-warn' }, '部分工作区扫描未完成') : null),
+            scanningNow ? '扫描中…' : stopped ? '已停止扫描' : `上次扫描 ${formatTime(state.scannedAt || Date.now())}`),
+          scanningNow ? h('span', { className: 'jsk-badge-live' }, `扫描中 · 已找到 ${totals.files} 个`) : null,
+          stopped ? null : state.incomplete ? h('span', { className: 'jsk-badge-warn' }, '部分工作区扫描未完成') : null),
         h('div', { className: 'jsk-list' },
           state.phase === 'loading' ? h('div', { className: 'jsk-empty' }, h('span', { className: 'jsk-spinner' }), '正在扫描工作区…') : null,
           state.phase === 'empty' ? h('div', { className: 'jsk-empty' },
@@ -543,8 +579,12 @@ window.__ModuleLoader__.load({
             h('span', null, '在 DSH 左侧栏添加一个工作区后，这里会列出其中的设计文件。')) : null,
           state.phase === 'error' ? h('div', { className: 'jsk-empty' }, h('strong', null, '扫描失败'), h('span', null, error || '请稍后重试')) : null,
           groups.length === 0 && state.phase === 'ready' ? h('div', { className: 'jsk-empty' },
-            h('strong', null, query.trim() === '' ? '没有找到设计文件' : '没有匹配的设计文件'),
-            h('span', null, query.trim() === '' ? '设计文件需要带有 <meta name="design-schema"> 标记；让 agent 用 justSkill 新建一个 design.html 试试。' : '换一个关键词，或清空搜索。')) : null,
+            h('strong', null, stopped
+              ? '已停止扫描，还没有找到设计文件'
+              : query.trim() === '' ? '没有找到设计文件' : '没有匹配的设计文件'),
+            h('span', null, stopped
+              ? '点右上角「重新扫描」可以继续。'
+              : query.trim() === '' ? '设计文件需要带有 <meta name="design-schema"> 标记；让 agent 用 justSkill 新建一个 design.html 试试。' : '换一个关键词，或清空搜索。')) : null,
           groups.map((workspace) => {
             const isCollapsed = collapsed.has(workspace.id);
             return h('section', { className: 'jsk-group', key: workspace.id },
@@ -553,19 +593,19 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'jsk-ws-badge' }, (workspace.title || '?').slice(0, 1)),
                 h('span', { className: 'jsk-ws-name' }, workspace.title || basename(workspace.path)),
                 h('span', { className: 'jsk-ws-path' }, workspace.path),
-                h('span', { className: 'jsk-count' }, `${workspace.files.length} 个文件${workspace.done === false ? '…' : ''}`)),
+                h('span', { className: 'jsk-count' }, `${workspace.files.length} 个文件${workspace.done === false && !stopped ? '…' : ''}`)),
               isCollapsed ? null : h('div', { className: 'jsk-grid' },
-                workspace.done === false && workspace.files.length > 0
+                workspace.done === false && !stopped && workspace.files.length > 0
                   ? h('div', { className: 'jsk-picker-status' }, h('span', { className: 'jsk-spinner' }), '扫描中，列表还会继续增加…')
                   : null,
-                workspace.done !== false && workspace.incomplete === true && workspace.files.length > 0
-                  ? h('div', { className: 'jsk-picker-note' }, '扫描达到时间上限，列表可能不完整')
+                workspace.incomplete === true && workspace.files.length > 0
+                  ? h('div', { className: 'jsk-picker-note' }, stopped ? '已停止扫描，列表可能不完整' : '扫描达到时间上限，列表可能不完整')
                   : null,
                 workspace.files.length === 0
                   ? h('div', { className: 'jsk-row-empty' },
-                    workspace.done === false
-                      ? '正在扫描…'
-                      : workspace.incomplete === true ? '扫描达到时间上限，暂时没扫到设计文件' : '这个工作区里还没有设计文件')
+                    stopped ? '已停止扫描'
+                      : workspace.done === false ? '正在扫描…'
+                        : workspace.incomplete === true ? '扫描达到时间上限，暂时没扫到设计文件' : '这个工作区里还没有设计文件')
                   : workspace.files.map((file) => renderFileCard(file, workspace, busy, activate))));
           }),
         ),
