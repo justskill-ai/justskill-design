@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
 import { startServer } from "../lib/node/server.mjs";
+import { checkForUpdate, readLocalVersion } from "../lib/node/update-check.mjs";
 import { readDesignFile, scanWorkspace } from "./scan.js";
 import { readSkill } from "./skill.js";
 
@@ -357,6 +358,27 @@ export function apply(ctx) {
       }
       return ok({ cleared: true });
     }, "justskill-design: pending canvas clear route");
+
+    // Local version immediately; remote check is best-effort and never throws
+    // into the workbench. The browser keeps its own 24h dismiss, separate from
+    // this process cache.
+    route("/api/justskill-design/version", async (request) => {
+      const body = await readJson(request);
+      const force = body !== null && body.force === true;
+      const local = readLocalVersion(ROOT);
+      try {
+        const check = await checkForUpdate({ root: ROOT, force });
+        return ok(check);
+      } catch {
+        return ok({
+          local,
+          latest: null,
+          source: null,
+          updateAvailable: false,
+          checkedAt: Date.now(),
+        });
+      }
+    }, "justskill-design: version / update check route");
   });
 
   ctx.inject(["tools"], (scope) => {

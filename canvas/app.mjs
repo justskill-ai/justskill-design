@@ -164,6 +164,15 @@ const ui = {
   fixText: document.getElementById("fix-textarea"),
   problemList: document.getElementById("problem-list"),
   toast: document.getElementById("toast"),
+  versionWrap: document.getElementById("version-wrap"),
+  packageVersion: document.getElementById("package-version"),
+  updateBadge: document.getElementById("update-badge"),
+  updatePop: document.getElementById("update-pop"),
+  updatePopSub: document.getElementById("update-pop-sub"),
+  updateCmdDsh: document.getElementById("update-cmd-dsh"),
+  updateCmdSkill: document.getElementById("update-cmd-skill"),
+  updateClose: document.getElementById("update-close"),
+  updateDismiss: document.getElementById("update-dismiss"),
 };
 
 let toastTimer = null;
@@ -2848,6 +2857,139 @@ function enterEmbed() {
   setTimeout(refit, 500);
 }
 
+// -- package version / update reminder --------------------------------------
+
+const UPDATE_DISMISS_KEY = "justskill-design:update-dismiss";
+const UPDATE_DISMISS_MS = 24 * 60 * 60 * 1000;
+
+const packageUpdate = {
+  local: null,
+  latest: null,
+  source: null,
+  updateAvailable: false,
+  open: false,
+};
+
+function readUpdateDismiss() {
+  try {
+    const raw = localStorage.getItem(UPDATE_DISMISS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== "object") return null;
+    if (typeof parsed.latest !== "string" || typeof parsed.until !== "number") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeUpdateDismiss(latest, until = Date.now() + UPDATE_DISMISS_MS) {
+  try {
+    localStorage.setItem(UPDATE_DISMISS_KEY, JSON.stringify({ latest, until }));
+  } catch {
+    /* private mode / quota */
+  }
+}
+
+function isUpdateDismissed(latest, now = Date.now()) {
+  const entry = readUpdateDismiss();
+  if (entry === null) return false;
+  if (entry.latest !== latest) return false;
+  return entry.until > now;
+}
+
+function updateCommands(latest) {
+  const pin = typeof latest === "string" && latest !== "" ? `@${latest}` : "";
+  return {
+    dsh: `dsh plugin --profile web add justskill-design${pin}`,
+    skill: "npx skills update",
+  };
+}
+
+function renderPackageUpdate() {
+  if (!ui.versionWrap || !ui.packageVersion) return;
+  if (typeof packageUpdate.local !== "string" || packageUpdate.local === "") {
+    ui.versionWrap.hidden = true;
+    return;
+  }
+  ui.versionWrap.hidden = false;
+  ui.packageVersion.textContent = `v${packageUpdate.local}`;
+  if (ui.updateBadge) {
+    ui.updateBadge.hidden = !packageUpdate.updateAvailable;
+    ui.updateBadge.textContent = packageUpdate.latest
+      ? `有新版 ${packageUpdate.latest}`
+      : "有新版";
+    ui.updateBadge.setAttribute("aria-expanded", packageUpdate.open ? "true" : "false");
+  }
+  if (ui.updatePop) {
+    const show = packageUpdate.updateAvailable && packageUpdate.open;
+    ui.updatePop.hidden = !show;
+    if (show) {
+      const sourceLabel = packageUpdate.source === "npm" ? "npm" : "GitHub";
+      if (ui.updatePopSub) {
+        ui.updatePopSub.textContent =
+          `当前 v${packageUpdate.local} · 最新 ${packageUpdate.latest}（${sourceLabel}）`;
+      }
+      const commands = updateCommands(packageUpdate.latest);
+      if (ui.updateCmdDsh) ui.updateCmdDsh.textContent = commands.dsh;
+      if (ui.updateCmdSkill) ui.updateCmdSkill.textContent = commands.skill;
+    }
+  }
+  applyBarFit();
+}
+
+function setPackageUpdateOpen(open) {
+  packageUpdate.open = open === true && packageUpdate.updateAvailable;
+  renderPackageUpdate();
+}
+
+function dismissPackageUpdate() {
+  if (typeof packageUpdate.latest === "string" && packageUpdate.latest !== "") {
+    writeUpdateDismiss(packageUpdate.latest);
+  }
+  packageUpdate.updateAvailable = false;
+  packageUpdate.open = false;
+  renderPackageUpdate();
+}
+
+async function initPackageUpdate() {
+  if (!ui.versionWrap) return;
+  ui.updateBadge?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setPackageUpdateOpen(!packageUpdate.open);
+  });
+  ui.updateClose?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setPackageUpdateOpen(false);
+  });
+  ui.updateDismiss?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    dismissPackageUpdate();
+  });
+  document.addEventListener("click", (event) => {
+    if (!packageUpdate.open) return;
+    if (ui.versionWrap.contains(event.target)) return;
+    setPackageUpdateOpen(false);
+  });
+
+  try {
+    const { ok, payload } = await api("version");
+    if (!ok || payload === null || typeof payload !== "object") return;
+    const local = typeof payload.local === "string" ? payload.local : null;
+    const latest = typeof payload.latest === "string" ? payload.latest : null;
+    packageUpdate.local = local;
+    packageUpdate.latest = latest;
+    packageUpdate.source = typeof payload.source === "string" ? payload.source : null;
+    packageUpdate.updateAvailable = payload.updateAvailable === true
+      && latest !== null
+      && !isUpdateDismissed(latest);
+    packageUpdate.open = false;
+    renderPackageUpdate();
+  } catch (error) {
+    console.error("package update check failed:", error);
+  }
+}
+
 loadDocument()
   .then(() => {
     if (EMBED) {
@@ -2859,6 +3001,13 @@ loadDocument()
     }
   })
   .then(subscribe)
+  .then(() => {
+    try {
+      initPackageUpdate();
+    } catch (error) {
+      console.error("package update check failed:", error);
+    }
+  })
   .catch(async (error) => {
     ui.revision.textContent = "load failed";
     toast(`Cannot load the design: ${error.message}`, "refused");

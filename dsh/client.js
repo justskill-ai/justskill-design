@@ -61,6 +61,145 @@ window.__ModuleLoader__.load({
       return parts[parts.length - 1] || String(file);
     }
 
+    /* ------------------------------------------------------------------ *
+     * Version / update reminder (matches docs/design/workbench.html)
+     * ------------------------------------------------------------------ */
+
+    const UPDATE_DISMISS_KEY = 'justskill-design:update-dismiss';
+    const UPDATE_DISMISS_MS = 24 * 60 * 60 * 1000;
+
+    function readUpdateDismiss() {
+      try {
+        const raw = localStorage.getItem(UPDATE_DISMISS_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (parsed === null || typeof parsed !== 'object') return null;
+        if (typeof parsed.latest !== 'string' || typeof parsed.until !== 'number') return null;
+        return parsed;
+      } catch {
+        return null;
+      }
+    }
+
+    function writeUpdateDismiss(latest, until = Date.now() + UPDATE_DISMISS_MS) {
+      try {
+        localStorage.setItem(UPDATE_DISMISS_KEY, JSON.stringify({ latest, until }));
+      } catch {
+        /* private mode / quota — reminder just comes back next time */
+      }
+    }
+
+    function isUpdateDismissed(latest, now = Date.now()) {
+      const entry = readUpdateDismiss();
+      if (entry === null) return false;
+      if (entry.latest !== latest) return false;
+      return entry.until > now;
+    }
+
+    function updateCommands(latest) {
+      const pin = typeof latest === 'string' && latest !== '' ? `@${latest}` : '';
+      return {
+        dsh: `dsh plugin --profile web add justskill-design${pin}`,
+        skill: 'npx skills update',
+      };
+    }
+
+    function usePackageUpdate() {
+      const [info, setInfo] = useState({
+        local: null,
+        latest: null,
+        source: null,
+        updateAvailable: false,
+        open: false,
+      });
+
+      useEffect(() => {
+        let cancelled = false;
+        (async () => {
+          try {
+            const value = await post('version', {});
+            if (cancelled || value === null || typeof value !== 'object') return;
+            const local = typeof value.local === 'string' ? value.local : null;
+            const latest = typeof value.latest === 'string' ? value.latest : null;
+            const updateAvailable = value.updateAvailable === true
+              && latest !== null
+              && !isUpdateDismissed(latest);
+            setInfo((current) => ({
+              ...current,
+              local,
+              latest,
+              source: typeof value.source === 'string' ? value.source : null,
+              updateAvailable,
+              open: updateAvailable ? current.open : false,
+            }));
+          } catch {
+            /* offline / host route missing — show nothing beyond a local version if we ever get one */
+          }
+        })();
+        return () => { cancelled = true; };
+      }, []);
+
+      const dismiss = useCallback(() => {
+        setInfo((current) => {
+          if (typeof current.latest === 'string' && current.latest !== '') {
+            writeUpdateDismiss(current.latest);
+          }
+          return { ...current, updateAvailable: false, open: false };
+        });
+      }, []);
+
+      const toggleOpen = useCallback(() => {
+        setInfo((current) => (
+          current.updateAvailable ? { ...current, open: !current.open } : current
+        ));
+      }, []);
+
+      const closeOpen = useCallback(() => {
+        setInfo((current) => ({ ...current, open: false }));
+      }, []);
+
+      return { info, dismiss, toggleOpen, closeOpen };
+    }
+
+    function VersionBadge(props) {
+      const { info, onToggle, popover } = props;
+      if (typeof info.local !== 'string' || info.local === '') return null;
+      return h('span', { className: 'jsk-version-wrap' },
+        h('span', { className: 'jsk-version' }, `v${info.local}`),
+        info.updateAvailable ? h('button', {
+          type: 'button',
+          className: 'jsk-update-badge',
+          'aria-expanded': info.open ? 'true' : 'false',
+          onClick: onToggle,
+        }, `有新版 ${info.latest}`) : null,
+        info.open ? popover : null);
+    }
+
+    function UpdatePopover(props) {
+      const { info, onDismiss, onClose, className } = props;
+      const commands = updateCommands(info.latest);
+      const sourceLabel = info.source === 'npm' ? 'npm' : 'GitHub';
+      return h('div', {
+        className: className || 'jsk-update-pop',
+        role: 'dialog',
+        'aria-label': '有新版本可用',
+      },
+        h('div', { className: 'jsk-update-pop-head' },
+          h('strong', null, '有新版本可用'),
+          h('span', null, `当前 v${info.local} · 最新 ${info.latest}（${sourceLabel}）`)),
+        h('div', { className: 'jsk-update-cmd' },
+          h('span', null, 'DSH 插件'),
+          h('code', null, commands.dsh)),
+        h('div', { className: 'jsk-update-cmd' },
+          h('span', null, 'Skill'),
+          h('code', null, commands.skill)),
+        h('div', { className: 'jsk-update-pop-foot' },
+          h('span', null, '24 小时内不再提醒'),
+          h('div', { className: 'jsk-update-pop-actions' },
+            h('button', { type: 'button', className: 'jsk-link', onClick: onClose }, '关闭'),
+            h('button', { type: 'button', className: 'jsk-button jsk-button-primary jsk-update-dismiss', onClick: onDismiss }, '知道了'))));
+    }
+
     async function post(path, payload) {
       const response = await fetch(new URL(`api/${ROUTE}/${path}`, document.baseURI), {
         method: 'POST',
@@ -323,6 +462,7 @@ window.__ModuleLoader__.load({
       const [pickerQuery, setPickerQuery] = useState('');
       const [creating, setCreating] = useState(null);
       const [createError, setCreateError] = useState(null);
+      const { info: updateInfo, dismiss: dismissUpdate, toggleOpen: toggleUpdate, closeOpen: closeUpdate } = usePackageUpdate();
       const controller = useRef(null);
       const stopping = useRef(false);
       const pickerInput = useRef(null);
@@ -619,8 +759,18 @@ window.__ModuleLoader__.load({
         h('header', { className: 'jsk-head' },
           h('div', { className: 'jsk-brand' },
             h('span', { className: 'jsk-brand-icon' }, icon.logo(24)),
-            h('div', null,
-              h('h1', null, 'JustSkill Design 工作台'),
+            h('div', { className: 'jsk-brand-text' },
+              h('div', { className: 'jsk-title-row' },
+                h('h1', null, 'JustSkill Design 工作台'),
+                h(VersionBadge, {
+                  info: updateInfo,
+                  onToggle: toggleUpdate,
+                  popover: h(UpdatePopover, {
+                    info: updateInfo,
+                    onDismiss: dismissUpdate,
+                    onClose: closeUpdate,
+                  }),
+                })),
               h('p', null, '扫描所有工作区里的设计文件，点开就在该工作区新建会话，并在右侧栏打开画布。'))),
           h('div', { className: 'jsk-actions' },
             h('label', { className: 'jsk-search' },
@@ -1030,8 +1180,25 @@ window.__ModuleLoader__.load({
 .jsk-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
 .jsk-brand{display:flex;align-items:center;gap:13px;min-width:0}
 .jsk-brand-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none;background:linear-gradient(135deg,#5a73ff,#93a2ff);box-shadow:0 6px 16px rgba(79,107,254,.22)}
+.jsk-brand-text{display:flex;flex-direction:column;gap:5px;min-width:0}
+.jsk-title-row{display:flex;align-items:center;gap:8px;min-width:0;position:relative;flex-wrap:wrap}
 .jsk-brand h1{margin:0;font-size:20px;line-height:1.25;letter-spacing:-.2px}
-.jsk-brand p{margin:5px 0 0;color:var(--dsw-alias-label-secondary,#68707d);font-size:12.5px;line-height:1.45}
+.jsk-brand p{margin:0;color:var(--dsw-alias-label-secondary,#68707d);font-size:12.5px;line-height:1.45}
+.jsk-version-wrap{display:inline-flex;align-items:center;gap:6px;position:relative;flex:none}
+.jsk-version{padding:2px 7px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:999px;background:var(--dsw-alias-bg-layer-2,#f4f5f8);color:var(--dsw-alias-label-secondary,#68707d);font-size:11px;font-weight:500;line-height:1.4;white-space:nowrap}
+.jsk-update-badge{padding:2px 8px;border:0;border-radius:999px;background:#fdf3e3;color:#a06a12;font:inherit;font-size:11px;font-weight:600;line-height:1.4;cursor:pointer;white-space:nowrap}
+.jsk-update-badge:hover{filter:brightness(.97)}
+.jsk-update-pop{position:absolute;left:0;top:calc(100% + 8px);z-index:30;display:flex;flex-direction:column;gap:12px;width:320px;padding:14px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:14px;background:var(--dsw-alias-bg-layer-1,#fff);box-shadow:0 12px 32px -12px rgba(16,24,40,.4)}
+.jsk-update-pop-head{display:flex;flex-direction:column;gap:4px}
+.jsk-update-pop-head strong{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary,#1b1f26)}
+.jsk-update-pop-head span{font-size:12px;line-height:1.5;color:var(--dsw-alias-label-secondary,#68707d)}
+.jsk-update-cmd{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid #eef0f4;border-radius:10px;background:#f7f8fa}
+.jsk-update-cmd span{font-size:11px;color:var(--dsw-alias-label-tertiary,#9aa2af)}
+.jsk-update-cmd code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-primary,#1b1f26);white-space:pre-wrap;word-break:break-all}
+.jsk-update-pop-foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.jsk-update-pop-foot>span{font-size:11px;color:var(--dsw-alias-label-tertiary,#9aa2af)}
+.jsk-update-pop-actions{display:flex;align-items:center;gap:10px}
+.jsk-update-dismiss{height:30px;padding:0 12px;font-size:12px}
 .jsk-actions{display:flex;align-items:center;gap:9px;padding-top:2px;flex:none}
 .jsk-search{width:280px;height:35px;display:flex;align-items:center;gap:8px;padding:0 11px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:9px;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-tertiary,#9aa2af)}
 .jsk-search input{width:100%;border:0;outline:0;background:none;color:var(--dsw-alias-label-primary,#1b1f26);font:inherit}

@@ -560,6 +560,25 @@ test("state: a file that does not parse or does not validate is read-only", asyn
   });
 });
 
+test("version: /api/version reports the package and never 500s on remote failure", async () => {
+  const { clearUpdateCheckCache } = await import("../lib/node/update-check.mjs");
+  clearUpdateCheckCache();
+  const file = fixture(VALID);
+  await withServer(file, async (server) => {
+    const denied = await fetch(`http://127.0.0.1:${server.port}/api/version`);
+    assert.equal(denied.status, 401);
+
+    const res = await get(server, "/api/version");
+    assert.equal(res.status, 200);
+    const body = JSON.parse(res.body);
+    assert.equal(body.ok, true);
+    assert.match(body.local, /^\d+\.\d+\.\d+/);
+    assert.equal(typeof body.updateAvailable, "boolean");
+    assert.ok(body.latest === null || typeof body.latest === "string");
+    assert.ok(body.source === null || body.source === "github" || body.source === "npm");
+  });
+});
+
 /* ---------------------------------------------------------------- *
  * 6. Undo and redo
  * ---------------------------------------------------------------- */

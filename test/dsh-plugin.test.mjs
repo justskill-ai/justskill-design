@@ -277,6 +277,23 @@ test("the client bundle loads through the ModuleLoader factory and registers bot
   assert.match(client, /jsk-grid/);
   assert.match(client, /jsk-pick-card/);
   assert.match(client, /function readSessionWorkspace/);
+  assert.match(client, /usePackageUpdate/);
+  assert.match(client, /jsk-update-badge/);
+  assert.match(client, /jsk-update-pop/);
+  assert.match(client, /post\('version'/);
+
+  const host = readFileSync(join(ROOT, "dsh/index.js"), "utf8");
+  assert.match(host, /\/api\/justskill-design\/version/);
+  assert.match(host, /checkForUpdate/);
+
+  const shell = readFileSync(join(ROOT, "canvas/index.html"), "utf8");
+  assert.match(shell, /id="package-version"/);
+  assert.match(shell, /id="update-badge"/);
+  assert.match(shell, /id="update-pop"/);
+
+  const canvas = readFileSync(join(ROOT, "canvas/app.mjs"), "utf8");
+  assert.match(canvas, /initPackageUpdate/);
+  assert.match(canvas, /api\("version"\)/);
   assert.match(client, /setTabFile/);
   // Regression: the icon helper must pop a trailing numeric size instead of
   // passing the first child as `width` (rendered `[object Object]`).
