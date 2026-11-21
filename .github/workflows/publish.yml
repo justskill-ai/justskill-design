@@ -22,6 +22,29 @@
 # Afterwards, harden the package: Settings → Publishing access → "Require
 # two-factor authentication and disallow tokens". Trusted publishers keep
 # working; token-based publishing stops.
+#
+# A release, in short:
+#
+#   npm test                                  # it also checks the version pins
+#   git commit -am "chore: release X.Y.Z"     # package.json is the authority;
+#                                             # SKILL.md and both READMEs follow
+#   git tag -a vX.Y.Z -m "X.Y.Z — <one line>"
+#   git push origin main && git push origin vX.Y.Z
+#
+# The tag must point at a commit that contains this file: GitHub reads the
+# workflow from the pushed ref, so a tag on an older commit publishes nothing.
+# A version number is never reusable — not even after `npm unpublish` — so a
+# failed release means the next number, not a retry.
+#
+# Confirm it landed; a green run only means npm accepted the request:
+#
+#   npm view justskill-design version dist-tags
+#   npm view justskill-design@X.Y.Z _npmUser gitHead dist.attestations
+#
+# `_npmUser` must be "GitHub Actions <npm-oidc-no-reply@github.com>"; a human
+# account means it was published by hand, without provenance. The version can
+# read as "Validating" on npmjs.com for a minute or two — automated review —
+# and `latest` has not moved yet.
 name: publish
 
 on:
