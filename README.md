@@ -40,6 +40,8 @@ Run `npx skills use "https://github.com/justskill-ai/justskill-design" --skill "
 
 **3. 评审、确认。** agent 一边设计一边打开画布。选中一个元素，按 ⌘C，把复制出来的指针粘贴回对话，说要改什么；agent 一次只应用一个操作。页面都对了就确认，它会在你的技术栈里把设计实现成代码。
 
+在 DSH 里，粘进输入框的那句指针会变成一颗元素引用的短块（图标 + 元素名），点一下就跳回画布上的那个元素；发给模型的仍然是完整那句指针。对话记录里显示的也是同一颗短块。
+
 ![justSkill 动起来的样子：把一段提示词复制给 agent，agent 设计页面，然后你打开画布检查确认](docs/justskill-demo-zh.gif)
 
 [看完整的 30 秒演示（MP4）](docs/justskill-demo-zh.mp4)

@@ -582,6 +582,10 @@ async function loadDocument({ keepCamera = false } = {}) {
   if (!keepCamera) fitAll();
   buildTree();
   renderChrome();
+  // The host's `@` menu and its paste recognition are only as current as this
+  // post: both writers (canvas and agent) land here, so a file the agent just
+  // edited re-publishes its elements instead of leaving the menu stale.
+  postElements();
 }
 
 /**
@@ -2625,6 +2629,11 @@ function fileUriOf(absolute) {
  * is only read by Lexical editors — Cursor's chat input is one — which paste it
  * as a file chip instead of the raw sentence. A custom type can only be written
  * from the `copy` event; `navigator.clipboard.write` refuses it.
+ *
+ * The DSH composer reads this same string: it recognises the sentence and turns
+ * the paste into one atomic reference chip whose model form is this very text
+ * (`dsh/client.js`). So the clipboard keeps one honest, portable format and the
+ * chip is made on the receiving side.
  */
 document.addEventListener("copy", (event) => {
   if (!state.selection || !state.path) return;
@@ -2653,6 +2662,83 @@ document.addEventListener("copy", (event) => {
   }));
   event.preventDefault();
   toast(`Copied ${name} for the agent`);
+});
+
+// -- host bridge (the DSH right-sidebar tab) ---------------------------------
+
+/**
+ * The host frames this canvas and cannot read the file or look inside the page
+ * shadow roots. Everything its composer needs is therefore posted up from here:
+ * which elements exist (the `@` menu and the recognised names), which one is
+ * selected, and — in the other direction — which one a clicked chip names.
+ *
+ * Embed only. A standalone canvas has no host, and a top-level page posting to
+ * `window.parent` would only be talking to itself.
+ */
+function postToHost(event, payload) {
+  if (!EMBED) return;
+  try {
+    window.parent.postMessage({ type: "jsk-canvas", event, ...payload }, "*");
+  } catch {
+    /* a detached frame has no parent to hear it */
+  }
+}
+
+/** Every selectable element in the file, page by page, in document order. */
+function elementRows() {
+  const rows = [];
+  for (const page of state.model?.pages ?? []) {
+    const pageId = page.id;
+    const pageName = page.name || pageId;
+    for (const row of pageTree(page.node)) {
+      if (typeof row.id !== "string" || row.id === "") continue;
+      rows.push({
+        id: row.id,
+        name: row.name || row.id,
+        tag: row.tag,
+        type: row.type || row.tag,
+        // What the row says next to its name in the host's menu: a named
+        // element would repeat itself, so the snippet is the useful half.
+        text: typeof row.text === "string" ? row.text.slice(0, 48) : "",
+        pageId,
+        pageName,
+      });
+    }
+  }
+  return rows;
+}
+
+function postElements() {
+  postToHost("elements", {
+    file: state.file,
+    path: state.path,
+    revision: state.revision,
+    elements: elementRows(),
+  });
+}
+
+/**
+ * Select the element a host chip names and bring it into view.
+ *
+ * The page is derived rather than taken from the message: a chip carries the
+ * element id alone (that is also its clipboard text), and the id is enough to
+ * find the page unless the same id appears twice — in which case the current
+ * selection's page is the better guess, exactly as the copy handshake does.
+ */
+function selectFromHost(id) {
+  if (typeof id !== "string" || id === "") return;
+  if (!findNode(id)) {
+    toast(`This canvas has no element ${id}`, "refused");
+    return;
+  }
+  const pageId = state.selectionPage ?? pathNodesOf(id)[0]?.id;
+  select(id, { pageId, reveal: true, expand: true });
+}
+
+window.addEventListener("message", (event) => {
+  const data = event.data;
+  if (data === null || typeof data !== "object" || data.type !== "jsk-canvas") return;
+  if (data.command === "select") selectFromHost(data.id);
 });
 
 // -- top bar actions ---------------------------------------------------------

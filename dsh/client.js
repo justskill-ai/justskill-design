@@ -415,6 +415,7 @@ window.__ModuleLoader__.load({
       refresh: (size = 15) => svg(h('path', { d: 'M15.6 8.2A6 6 0 1 0 16 11.4' }), h('path', { d: 'M16 4.6v3.9h-3.9' }), size),
       chevron: (size = 13) => svg(h('path', { d: 'M6 8l4 4 4-4' }), size),
       folder: (size = 13) => svg(h('path', { d: 'M3.6 5.6h4l1.6 2h6v7H3.6z' }), size),
+      doc: (size = 14) => svg(h('path', { d: 'M5.4 3.4h6.2l3 3v10.2H5.4z' }), h('path', { d: 'M11.6 3.4v3h3' }), size),
       canvas: (size = 15) => svg(h('rect', { x: 3.2, y: 4.4, width: 13.6, height: 10.4, rx: 2.2 }), h('path', { d: 'M3.2 8.1h13.6M6.6 4.4v10.4' }), size),
       arrow: (size = 15) => svg(h('path', { d: 'M5 10h10M11 6l4 4-4 4' }), size),
       alert: (size = 15) => svg(h('circle', { cx: 10, cy: 10, r: 6.4 }), h('path', { d: 'M10 8.6v4.4M10 6v.1' }), size),
@@ -1124,6 +1125,16 @@ window.__ModuleLoader__.load({
         if (typeof tabId === 'string' && tabId !== '') tabFiles.delete(tabId);
       }, [tabId]);
 
+      // The chip route addresses this exact tab: it is the one that can be
+      // pointed at another file, and the one whose iframe receives the select.
+      useEffect(() => {
+        if (typeof tabId !== 'string' || tabId === '') return undefined;
+        canvasTabId = tabId;
+        return () => {
+          if (canvasTabId === tabId) canvasTabId = undefined;
+        };
+      }, [tabId]);
+
       if (typeof file !== 'string' || file === '') {
         return h(CanvasPicker, {
           sessionId: props.sessionId,
@@ -1139,6 +1150,9 @@ window.__ModuleLoader__.load({
             src: state.url,
             title: `JustSkill Design canvas — ${basename(file)}`,
             referrerPolicy: 'no-referrer',
+            // The only window a chip's `select` command is addressed to. The
+            // canvas posts its element list up from this frame; see canvas/app.mjs.
+            ref: (node) => { if (node !== null) canvasFrame = node; },
           }),
           fromPicker ? h('button', {
             type: 'button',
@@ -1168,6 +1182,686 @@ window.__ModuleLoader__.load({
 
     function PanelIcon() {
       return h('span', { className: 'jsk-panel-icon', title: 'JustSkill Design 工作台' }, icon.logo(20));
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Canvas references in the composer
+     *
+     * The canvas tab posts its element list up through `postMessage` (see
+     * `canvas/app.mjs`). That list is everything the composer needs: the `@`
+     * menu lists it, the composer recognises those names in pasted text, and a
+     * clicked chip resolves against it. The plugin never reads the file — the
+     * canvas is the only reader, so "what exists right now" has one answer.
+     *
+     * A chip is an atomic node the composer stores as
+     * `{ source, ref, label, appearance, clipboardText }`; `ref` is the element
+     * id, `clipboardText` is `@<id>`, and `codec.serialize` is what the model
+     * receives. That split is the point: the composer shows one short chip and
+     * the model gets the whole pointer sentence.
+     *
+     * Three ways in, in the order people meet them:
+     *
+     *   1. ⌘C on the canvas, then paste here — the capture listener claims the
+     *      pointer and inserts one chip (see "Paste" below).
+     *   2. type `@` — the menu lists elements, a pick inserts the same chip.
+     *   3. paste a bare `@<id>` — the lexicon makes it clickable text, which is
+     *      the only shape a plain-text paste can take (the composer deliberately
+     *      grows no chip out of text it did not intercept).
+     * ------------------------------------------------------------------ */
+
+    /** Source name the composer stores on every chip and routes clicks by. */
+    const CANVAS_SOURCE = 'justskill-canvas';
+    /**
+     * Whether `@` also lists the canvas's elements. Off — the default — leaves
+     * the source registered (paste, recognition and chip clicks keep working)
+     * and only drops the menu, whose rows would be the file's own layer names
+     * (`list`, `root`, `empty`): a 2600-element file turns that menu into a
+     * directory listing of the source. Element references enter by ⌘C + paste,
+     * the way the reader already points at things.
+     */
+    const CANVAS_MENU = false;
+    /** How long a chip may wait for a canvas that is still opening. */
+    const PENDING_SELECT_MS = 15_000;
+
+    /** What the on-screen canvas last said it contains, this file only. */
+    let canvasIndex = {
+      file: null, path: null, revision: null, rows: [], names: [], byRef: new Map(),
+    };
+    const canvasIndexListeners = new Set();
+    /** The mounted canvas frame — the only window these commands address. */
+    let canvasFrame = null;
+    /** The mounted canvas tab, so a chip can point that same tab at another file. */
+    let canvasTabId;
+    /** A chip whose element the canvas has not been told about yet. */
+    let pendingSelect = null;
+
+    function canvasIndexChanged() {
+      for (const listener of canvasIndexListeners) {
+        try {
+          listener();
+        } catch {
+          /* one listener must not silence the rest */
+        }
+      }
+    }
+
+    function setCanvasIndex(payload) {
+      const rows = [];
+      const names = [];
+      const byRef = new Map();
+      const elements = Array.isArray(payload.elements) ? payload.elements : [];
+      for (const element of elements) {
+        if (element === null || typeof element !== 'object') continue;
+        const ref = typeof element.id === 'string' ? element.id : '';
+        if (ref === '') continue;
+        const label = typeof element.name === 'string' && element.name !== '' ? element.name : ref;
+        const text = typeof element.text === 'string' ? element.text : '';
+        const pageId = typeof element.pageId === 'string' && element.pageId !== '' ? element.pageId : null;
+        const pageName = typeof element.pageName === 'string' ? element.pageName : '';
+        rows.push({ ref, label, text, pageId, pageName });
+        byRef.set(ref, { ref, label, text, pageId, pageName });
+        // Only names the composer can see in plain text are worth handing it.
+        if (/^[\w-]+$/.test(ref)) names.push(ref);
+      }
+      canvasIndex = {
+        file: typeof payload.file === 'string' ? payload.file : null,
+        path: typeof payload.path === 'string' ? payload.path : null,
+        revision: typeof payload.revision === 'string' ? payload.revision : null,
+        rows,
+        names,
+        byRef,
+      };
+      canvasIndexChanged();
+    }
+
+    function postToCanvas(command, payload) {
+      const frame = canvasFrame;
+      if (frame === null || frame.isConnected === false) return false;
+      const target = frame.contentWindow;
+      if (target === null || typeof target.postMessage !== 'function') return false;
+      target.postMessage({ type: 'jsk-canvas', command, ...payload }, '*');
+      return true;
+    }
+
+    /** `C:\a\b.html` → `file:///c%3A/a/b.html`, `/a/b.html` → `file:///a/b.html`. */
+    function fileUriOf(absolute) {
+      const slashed = String(absolute).replace(/\\/g, '/');
+      const drive = /^([A-Za-z]):\//.exec(slashed);
+      const rest = drive ? `/${drive[1].toLowerCase()}%3A${slashed.slice(2)}` : slashed;
+      return `file://${rest.split('/').map((part, index) => (drive && index === 1 ? part : encodeURIComponent(part))).join('/')}`;
+    }
+
+    /**
+     * What the model reads in place of a chip. The same pointer the canvas's
+     * own ⌘C copies, so a chip and a pasted sentence mean one thing to the agent.
+     * @param {string} ref element id.
+     * @returns {string} the prompt text.
+     */
+    /**
+     * A chip's `ref` is opaque to the composer, so it carries the whole pointer:
+     * `fileUri`, `pageId`, element `id`. That is what lets a pasted chip keep
+     * working after the canvas switches to another file, and what lets the model
+     * get the same sentence the canvas copied without depending on the canvas
+     * still being open. A NUL separates the fields: it cannot occur in a path or
+     * an id, and `ref` is never displayed.
+     */
+    const REF_SEPARATOR = '\u0000';
+
+    /**
+     * @param {{uri?: string|null, pageId?: string|null, id: string}} target pointer fields.
+     * @returns {string} the chip ref.
+     */
+    function encodeRef(target) {
+      return [target.uri ?? '', target.pageId ?? '', target.id].join(REF_SEPARATOR);
+    }
+
+    /**
+     * @param {string} ref chip ref.
+     * @returns {{uri: string|null, pageId: string|null, id: string}} pointer fields.
+     */
+    function decodeRef(ref) {
+      const parts = String(ref === undefined || ref === null ? '' : ref).split(REF_SEPARATOR);
+      if (parts.length < 3) return { uri: null, pageId: null, id: parts[0] ?? '' };
+      return {
+        uri: parts[0] === '' ? null : parts[0],
+        pageId: parts[1] === '' ? null : parts[1],
+        id: parts[2] ?? '',
+      };
+    }
+
+    /**
+     * The pointer sentence the canvas itself copies — the model-facing half of
+     * every chip, byte for byte the same text ⌘C puts on the clipboard.
+     * @param {{uri: string|null, pageId: string|null, id: string}} target pointer fields.
+     * @returns {string} the prompt text.
+     */
+    function canvasRefSentence(target) {
+      const uri = target.uri !== null && target.uri !== ''
+        ? target.uri
+        : (typeof canvasIndex.path === 'string' && canvasIndex.path !== '' ? fileUriOf(canvasIndex.path) : '');
+      const where = target.pageId !== null && target.pageId !== '' && target.pageId !== target.id
+        ? `. Page id: ${target.pageId}`
+        : '';
+      return `Use justSkill tools. Current file ${uri}${where}. Selected node ids: ${target.id}`;
+    }
+
+    /**
+     * A `file://` uri back to an absolute path, for reopening the canvas a chip
+     * names. Mirrors `fileUriOf`, including the Windows drive form.
+     * @param {string} uri the uri.
+     * @returns {string|null} an absolute path, or null when it is not a file uri.
+     */
+    function pathFromFileUri(uri) {
+      if (typeof uri !== 'string' || !uri.startsWith('file://')) return null;
+      const rest = uri.slice('file://'.length);
+      const parts = rest.split('/').map((part) => {
+        try {
+          return decodeURIComponent(part);
+        } catch {
+          return part;
+        }
+      });
+      if (/^\/[A-Za-z]%3A/.test(rest) || /^\/[A-Za-z]:/.test(rest)) {
+        return `${parts[1]}/${parts.slice(2).join('/')}`;
+      }
+      return parts.join('/');
+    }
+
+    /**
+     * The display name of one element, when the canvas on screen can name it.
+     * @param {string} id element id.
+     * @returns {string} the element name, or the id itself.
+     */
+    function labelOfCanvasRef(id) {
+      const row = canvasIndex.byRef.get(id);
+      return row === undefined ? id : row.label;
+    }
+
+    /**
+     * Put a click on the canvas where the chip says. The canvas may be on
+     * screen already (post straight through) or still opening (queue the id, and
+     * the element list it posts when it is ready flushes it).
+     * @param {string} ref element id.
+     * @returns {boolean} whether this plugin accepted the click.
+     */
+    function requestCanvasSelect(target) {
+      if (target.id === '') return false;
+      // The canvas on screen can answer immediately; one showing another file
+      // has to be switched first, and the switch loses the old file's id.
+      const onScreen = typeof canvasIndex.path === 'string'
+        && canvasIndex.path !== ''
+        && (target.path === null || target.path === canvasIndex.path);
+      if (onScreen && postToCanvas('select', { id: target.id })) return true;
+      const absolute = target.path ?? (typeof canvasIndex.path === 'string' ? canvasIndex.path : '');
+      if (absolute === '') return false;
+      // An open canvas tab keeps its file in module state, which outranks the
+      // tab's navigation params — so a chip pointing at another file has to
+      // hand that state the file, or the tab would keep showing the old one.
+      if (canvasTabId !== undefined) setTabFile(canvasTabId, absolute);
+      const sidebarRight = runtime === null ? undefined : runtime.get('sidebarRight');
+      if (sidebarRight === undefined || typeof sidebarRight.openTab !== 'function') return false;
+      pendingSelect = { id: target.id, path: absolute, at: Date.now() };
+      void (async () => {
+        try {
+          let sessionId;
+          try {
+            sessionId = sidebarRight.mounted?.getSnapshot?.();
+          } catch {
+            sessionId = undefined;
+          }
+          if (typeof sessionId === 'string' && sessionId !== '') {
+            await waitForMounted(sidebarRight, sessionId, 3000);
+          }
+          await openCanvasTab(sidebarRight, absolute);
+        } catch {
+          /* the tab is already there, or the sidebar is busy: the queue still tries */
+        }
+        flushPendingSelect();
+      })();
+      return true;
+    }
+
+    function flushPendingSelect() {
+      const pending = pendingSelect;
+      if (pending === null) return;
+      if (Date.now() - pending.at > PENDING_SELECT_MS) {
+        pendingSelect = null;
+        return;
+      }
+      // Wait for the canvas that holds the element, not just any canvas.
+      if (typeof canvasIndex.path !== 'string' || canvasIndex.path !== pending.path) return;
+      if (postToCanvas('select', { id: pending.id })) pendingSelect = null;
+    }
+
+    /** One candidate's opaque payload (the menu hands it back on pick). */
+    function readCanvasCandidateValue(value) {
+      if (typeof value !== 'string') return null;
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed !== null && typeof parsed === 'object' && typeof parsed.ref === 'string') {
+          return { ref: parsed.ref };
+        }
+      } catch {
+        /* a value this source did not write */
+      }
+      return null;
+    }
+
+    /**
+     * The `@` source: canvas elements as atomic reference chips.
+     * @returns {object} the trigger source registered with `ctx.inputTriggers`.
+     */
+    function canvasReferenceSource() {
+      return {
+        trigger: '@',
+        name: CANVAS_SOURCE,
+        order: 20,
+        // The built-in file/session source renders no group row and names its
+        // sections per row; this one does the same and puts the page there.
+        showGroupTitle: false,
+        async candidates(_session, request) {
+          const rows = canvasIndex.rows;
+          if (!CANVAS_MENU || rows.length === 0) return [];
+          const query = typeof request.query === 'string' ? request.query.trim().toLowerCase() : '';
+          const out = [];
+          for (const row of rows) {
+            // The menu is a picker, not a page: a file with hundreds of rows is
+            // narrowed by typing instead of scrolled.
+            if (out.length >= 24) break;
+            if (query !== ''
+              && !row.label.toLowerCase().includes(query)
+              && !row.ref.toLowerCase().includes(query)) continue;
+            // The id is the description only when the label is something else;
+            // otherwise the element's own text is what tells two rows apart.
+            const description = row.label === row.ref ? row.text : row.ref;
+            out.push({
+              name: row.label,
+              ...(description === '' ? {} : { description }),
+              icon: 'file',
+              section: row.pageName !== '' ? row.pageName : '画布',
+              value: JSON.stringify({ ref: row.ref }),
+            });
+          }
+          return out;
+        },
+        onPick(pick) {
+          const value = readCanvasCandidateValue(pick.candidate.value);
+          if (value === null) return undefined;
+          const row = canvasIndex.byRef.get(value.ref);
+          const uri = typeof canvasIndex.path === 'string' && canvasIndex.path !== ''
+            ? fileUriOf(canvasIndex.path)
+            : null;
+          return {
+            insert: {
+              source: CANVAS_SOURCE,
+              ref: encodeRef({ uri, pageId: row === undefined ? null : row.pageId, id: value.ref }),
+              label: labelOfCanvasRef(value.ref),
+              appearance: 'file',
+              clipboardText: `@${value.ref}`,
+            },
+          };
+        },
+        // The names the composer decorates in plain text — this is what makes a
+        // pasted `@home__hero-title` clickable without being an atomic chip.
+        lexicon() {
+          return canvasIndex.names.length === 0 ? undefined : canvasIndex.names;
+        },
+        subscribeLexicon(_session, listener) {
+          canvasIndexListeners.add(listener);
+          return () => canvasIndexListeners.delete(listener);
+        },
+        openReference(_session, reference) {
+          const raw = String(reference === undefined || reference === null || reference.ref === undefined
+            ? ''
+            : reference.ref);
+          if (raw === '') return false;
+          // A chip carries the encoded pointer; editable text carries only the
+          // visible `@id` token, and then the canvas on screen is the only file
+          // it can mean.
+          if (raw.startsWith('@')) return requestCanvasSelect({ id: raw.slice(1), path: null });
+          const decoded = decodeRef(raw);
+          return requestCanvasSelect({
+            id: decoded.id,
+            path: decoded.uri === null ? null : pathFromFileUri(decoded.uri),
+          });
+        },
+        codec: {
+          clipboardText: (ref) => `@${decodeRef(ref).id}`,
+          serialize: async (ref) => canvasRefSentence(decodeRef(ref)),
+        },
+      };
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Paste: a copied pointer becomes one chip
+     *
+     * The canvas copies a pointer sentence (`Use justSkill tools. Current file
+     * … Selected node ids: …`). Pasting it here replaces it with one atomic chip
+     * whose visible half is the element name and whose model half is that same
+     * sentence — the composer's own display/serialize split.
+     *
+     * This has to happen before the editor sees the paste: the composer reads
+     * only `text/plain` and deliberately grows no chip out of pasted text (it
+     * strips the private-use placeholder one would need). A capture listener on
+     * the window runs first; the insert then goes through the public input face,
+     * exactly as a menu pick would.
+     * ------------------------------------------------------------------ */
+
+    /** The ⌘C pointer a canvas selection copies. */
+    const POINTER_PASTE_RE = /^Use justSkill tools\. Current file (\S+?)(?:\. Page id: (\S+?))?\. Selected node ids: ([\w-]+)$/;
+    /** A bare reference — what copying a chip out of the composer puts on the clipboard. */
+    const BARE_PASTE_RE = /^@([\w-]+)$/;
+
+    /**
+     * The composer face of the session on screen. Captured by the pass-through
+     * slot entry below, because a paste outside any slot still needs the public
+     * `captureInsertion()` span and the session-scope input facade.
+     */
+    let inputFace = null;
+
+    /**
+     * Read one paste as a canvas reference.
+     * @param {string} text clipboard `text/plain`.
+     * @returns {{ref: string, label: string, raw: string}|null} the reference, or null to leave the paste alone.
+     */
+    function readPointerPaste(text) {
+      const trimmed = text.trim();
+      const bare = BARE_PASTE_RE.exec(trimmed);
+      if (bare !== null) {
+        // A bare token has no file of its own, so it must be an element the
+        // canvas on screen knows — otherwise `@word` is just prose.
+        const row = canvasIndex.byRef.get(bare[1]);
+        return row === undefined ? null : { uri: null, pageId: row.pageId, id: row.ref, label: row.label, raw: text };
+      }
+      const pointer = POINTER_PASTE_RE.exec(trimmed);
+      if (pointer === null) return null;
+      // The sentence names its own file: the chip must not depend on the canvas
+      // it came from still being the one on screen.
+      const id = pointer[3];
+      const row = canvasIndex.byRef.get(id);
+      return {
+        uri: pointer[1],
+        pageId: typeof pointer[2] === 'string' && pointer[2] !== '' ? pointer[2] : null,
+        id,
+        label: row === undefined ? id : row.label,
+        raw: text,
+      };
+    }
+
+    /**
+     * Say why one paste could not become a chip. Silently degrading is what made
+     * the first three attempts unreadable; this is the one line to ask for.
+     * @param {string} stage where it stopped.
+     * @param {unknown} [cause] the thrown value, when there was one.
+     */
+    function notePasteFailure(stage, cause) {
+      const detail = cause === undefined ? '' : `: ${cause instanceof Error ? cause.message : String(cause)}`;
+      console.info(`[justskill-design] pointer paste: no chip (${stage})${detail}`);
+    }
+
+    /**
+     * The session one composer face belongs to.
+     *
+     * A conversation slot's standard props carry the input face but not always a
+     * session id, and the substance is that the face is *for* the session the
+     * right sidebar is showing — that is the composer on screen.
+     * @param {{sessionId?: string}} face captured composer face.
+     * @returns {string} the session id, or '' when the plugin cannot tell.
+     */
+    function sessionIdOfFace(face) {
+      if (typeof face.sessionId === 'string' && face.sessionId !== '') return face.sessionId;
+      const sidebarRight = runtime === null ? undefined : runtime.get('sidebarRight');
+      if (sidebarRight === undefined || sidebarRight === null || sidebarRight.mounted === undefined) return '';
+      try {
+        const mounted = sidebarRight.mounted.getSnapshot();
+        return typeof mounted === 'string' ? mounted : '';
+      } catch {
+        return '';
+      }
+    }
+
+    /**
+     * The per-session input registry.
+     *
+     * It lives on the root `conversation` service (the scope-addressed
+     * ConversationController), not on the `uiConversation` assembly registry —
+     * those are two services with similar names and only one has `input`.
+     * @returns {object|null} the resolver, or null when neither service is up.
+     */
+    function inputResolver() {
+      if (runtime === null) return null;
+      for (const name of ['conversation', 'uiConversation']) {
+        const service = runtime.get(name);
+        if (service === undefined || service === null) continue;
+        const resolver = service.input;
+        if (resolver !== undefined && resolver !== null && typeof resolver.for === 'function') return resolver;
+      }
+      return null;
+    }
+
+    /**
+     * The session-scope input facade for one session.
+     * @param {string} sessionId session whose composer receives the chip.
+     * @returns {object|null} the facade, or null when the session is not retained.
+     */
+    function sessionInputOf(sessionId) {
+      if (typeof sessionId !== 'string' || sessionId === '') return null;
+      const resolver = inputResolver();
+      if (resolver === null) return null;
+      const sessions = runtime === null ? undefined : runtime.get('sessions');
+      if (sessions === undefined || sessions === null || typeof sessions.binding !== 'function') return null;
+      const binding = sessions.binding(sessionId);
+      if (binding === undefined || binding === null || binding.ctx === undefined) return null;
+      try {
+        return resolver.for(binding.ctx);
+      } catch {
+        return null;
+      }
+    }
+
+    /**
+     * Insert the parsed pointer as one chip at the caret.
+     * @param {{ref: string, label: string, raw: string}} parsed the reference.
+     * @returns {'inserted'|'text'|'failed'} what the editor accepted.
+     */
+    function insertPastedReference(parsed) {
+      const face = inputFace;
+      if (face === null || face.inputActions === undefined || face.inputActions === null) {
+        notePasteFailure('no composer face');
+        return 'failed';
+      }
+      let span;
+      try {
+        span = face.inputActions.captureInsertion();
+      } catch (cause) {
+        notePasteFailure('no caret', cause);
+        return 'failed';
+      }
+      const insert = {
+        source: CANVAS_SOURCE,
+        ref: encodeRef({ uri: parsed.uri, pageId: parsed.pageId, id: parsed.id }),
+        label: parsed.label,
+        appearance: 'file',
+        clipboardText: `@${parsed.id}`,
+      };
+      const input = sessionInputOf(sessionIdOfFace(face));
+      if (input === null) {
+        notePasteFailure('no session input facade');
+      } else {
+        const state = input.state !== undefined && input.state !== null && typeof input.state.getSnapshot === 'function'
+          ? input.state.getSnapshot()
+          : null;
+        // The chip replaces the caret, which no locked phase allows. A locked
+        // composer takes no edit at all, not even the text fallback.
+        if (state !== null && state.phase !== 'plain') {
+          notePasteFailure(`composer is ${state.phase}`);
+          return 'failed';
+        } else if (input.insertReference(insert, span) === true) {
+          try {
+            input.focus();
+          } catch {
+            /* focus is cosmetic here: the paste already happened where the caret was */
+          }
+          return 'inserted';
+        } else {
+          notePasteFailure('the editor refused the chip');
+        }
+      }
+      // The chip is out of reach; the clipboard is read-only during a paste, so
+      // the degrade is done by editing: land the visible token, which the
+      // source's lexicon turns into a clickable reference on the next scan.
+      try {
+        if (face.inputActions.insertText(`@${parsed.id}`, span) === true) return 'text';
+      } catch (cause) {
+        notePasteFailure('no text fallback', cause);
+      }
+      return 'failed';
+    }
+
+    /**
+     * The composer a paste is heading into, if any.
+     *
+     * The event's own path says where it goes, which is truer than the focused
+     * element (a paste can be dispatched at the editor while focus sits on a
+     * control). The focused element is the fallback for engines that do not
+     * compose the path.
+     * @param {ClipboardEvent} event the paste.
+     * @returns {boolean} whether the paste lands in a composer.
+     */
+    function pasteTargetsComposer(event) {
+      const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+      for (const node of path) {
+        if (node === null || node === undefined || typeof node !== 'object') continue;
+        if (typeof node.closest === 'function' && node.closest('[data-composer-input]') !== null) return true;
+      }
+      const active = document.activeElement;
+      if (active === null || typeof active !== 'object' || typeof active.closest !== 'function') return false;
+      return active.closest('[data-composer-input]') !== null;
+    }
+
+    /**
+     * Capture-phase paste: turn a copied pointer into one chip.
+     *
+     * Three outcomes, and the clipboard is only claimed once one of the first
+     * two is certain — losing a paste is worse than leaving it as text:
+     *   - the chip landed → claim the paste;
+     *   - the chip could not be built but the sentence could be typed → claim it;
+     *   - neither → rewrite the clipboard to the bare `@<id>` and let the normal
+     *     paste run, which the source's lexicon decorates into a clickable
+     *     reference. The paste never becomes nothing.
+     * @param {ClipboardEvent} event the paste.
+     */
+    function handleReferencePaste(event) {
+      const clipboard = event.clipboardData;
+      if (clipboard === null || clipboard === undefined || typeof clipboard.getData !== 'function') return;
+      const text = clipboard.getData('text/plain');
+      if (typeof text !== 'string' || text === '') return;
+      const parsed = readPointerPaste(text);
+      if (parsed === null) return;
+      // Only the composer's own editor: a settings field, or another session's
+      // composer, keeps its ordinary paste.
+      if (!pasteTargetsComposer(event)) return;
+      const face = inputFace;
+      const outcome = face === null ? 'failed' : insertPastedReference(parsed);
+      if (outcome === 'failed') {
+        // Recognised, but unreachable: the ordinary paste stays, which is still a
+        // sentence the agent can read. The console line above says where it stopped.
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    /**
+     * Pass-through slot entry: it renders nothing and exists to keep the current
+     * composer face reachable from a paste handler that runs outside any slot.
+     * The same null-rendering entry the trigger menu uses on this slot.
+     * @param {object} props session-scope slot props.
+     * @returns {null} nothing to draw.
+     */
+    function ComposerInputBridge(props) {
+      inputFace = { sessionId: props.sessionId, inputActions: props.inputActions };
+      return null;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * Sent text: the pointer sentence reads as the chip again
+     *
+     * A sent message carries the model form (`codec.serialize`), so the history
+     * otherwise shows the whole sentence where the composer showed one short
+     * chip. This registers the same sentence as a UserText node: the text is
+     * untouched — copying and editing still give the sentence back — but it is
+     * drawn as the chip the reader wrote.
+     * ------------------------------------------------------------------ */
+
+    /** The pointer sentence inside sent text (never global: `match` slices). */
+    const SENT_POINTER_RE = /Use justSkill tools\. Current file (\S+?)(?:\. Page id: (\S+?))?\. Selected node ids: ([\w-]+)/;
+
+    /** One pointer sentence as one inline node. */
+    const canvasPointerRule = {
+      id: 'justskill',
+      order: 40,
+      /**
+       * @param {string} text the whole user message.
+       * @param {number} from where the calculator resumes.
+       * @returns {{id: string, start: number, end: number, data: object}|undefined} the next node.
+       */
+      match(text, from) {
+        const found = SENT_POINTER_RE.exec(text.slice(from));
+        if (found === null) return undefined;
+        const start = from + found.index;
+        const id = found[3];
+        return {
+          id: 'justskill',
+          start,
+          end: start + found[0].length,
+          data: {
+            ref: encodeRef({
+              uri: found[1],
+              pageId: typeof found[2] === 'string' && found[2] !== '' ? found[2] : null,
+              id,
+            }),
+            label: labelOfCanvasRef(id),
+          },
+        };
+      },
+    };
+
+    /**
+     * Draw one sent pointer as the chip the composer showed.
+     * @param {object} props UserText node props (`node.data`, `raw`, `interactive`).
+     * @returns {object} the inline chip.
+     */
+    function CanvasUserText(props) {
+      const data = props.node !== undefined && props.node !== null && typeof props.node.data === 'object' && props.node.data !== null
+        ? props.node.data
+        : {};
+      const ref = typeof data.ref === 'string' ? data.ref : '';
+      const decoded = decodeRef(ref);
+      const label = typeof data.label === 'string' && data.label !== '' ? data.label : decoded.id;
+      const interactive = props.interactive === true && ref !== '';
+      const activate = () => {
+        if (ref === '') return;
+        requestCanvasSelect({ id: decoded.id, path: decoded.uri === null ? null : pathFromFileUri(decoded.uri) });
+      };
+      return h('span', {
+        className: `jsk-refchip${interactive ? ' jsk-refchip-on' : ''}`,
+        title: typeof props.raw === 'string' ? props.raw : label,
+        ...(interactive
+          ? {
+            role: 'button',
+            tabIndex: 0,
+            onClick: activate,
+            onKeyDown: (event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              activate();
+            },
+          }
+          : {}),
+      },
+      h('span', { className: 'jsk-refchip-icon' }, icon.doc(14)),
+      h('span', { className: 'jsk-refchip-label' }, label));
     }
 
     /* ------------------------------------------------------------------ *
@@ -1313,6 +2007,12 @@ window.__ModuleLoader__.load({
 .jsk-pick-time{font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .jsk-switch{position:absolute;right:10px;bottom:10px;z-index:3;display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:8px;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1,#fff) 88%,transparent);color:var(--dsw-alias-label-secondary,#4d5563);font:inherit;font-size:11px;cursor:pointer;backdrop-filter:blur(6px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .jsk-switch:hover{background:var(--dsw-alias-bg-layer-1,#fff)}
+.jsk-refchip{display:inline-flex;align-items:baseline;gap:3px;max-width:240px;padding:0 4px;border-radius:var(--dsw-radius-sm,5px);color:var(--dsw-alias-state-business-primary,#4f6bfe);background:transparent;vertical-align:baseline;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.jsk-refchip-on{cursor:pointer}
+@media (hover: hover){.jsk-refchip-on:hover{background:var(--dsw-alias-state-business-tertiary,rgba(79,107,254,.12))}}
+.jsk-refchip:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4f6bfe);outline-offset:1px}
+.jsk-refchip-icon{display:inline-flex;align-self:center;flex:none}
+.jsk-refchip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 `;
 
     /* ------------------------------------------------------------------ *
@@ -1331,6 +2031,101 @@ window.__ModuleLoader__.load({
           document.head.appendChild(style);
           return () => style.remove();
         }, 'justskill-design: stylesheet');
+
+        // The canvas speaks first: it posts its element list once a file is
+        // parsed, and again whenever either writer changes it. Only the frame
+        // this plugin mounted is believed — the message carries no origin we
+        // could check (the canvas is served from its own loopback port).
+        ctx.effect(() => {
+          const onMessage = (event) => {
+            const data = event.data;
+            if (data === null || typeof data !== 'object' || data.type !== 'jsk-canvas') return;
+            const frame = canvasFrame;
+            if (frame !== null && event.source !== frame.contentWindow) return;
+            if (data.event === 'elements') {
+              setCanvasIndex(data);
+              flushPendingSelect();
+            }
+          };
+          window.addEventListener('message', onMessage);
+          return () => window.removeEventListener('message', onMessage);
+        }, 'justskill-design: canvas element index');
+
+        // Chips for canvas elements, and the `@` names a paste can be recognised by.
+        ctx.inject(['inputTriggers'], (scope) => {
+          const inputTriggers = scope.get('inputTriggers');
+          if (inputTriggers === undefined || typeof inputTriggers.registerSource !== 'function') return;
+          scope.effect(
+            () => inputTriggers.registerSource(canvasReferenceSource()),
+            'justskill-design: canvas @ source',
+          );
+        });
+
+        // Sent messages carry the model form, so the history draws the same
+        // pointer as the chip again. The text itself stays the sentence.
+        ctx.slots.inject('conversation.user.text.node', () => {
+          try {
+            return ctx.slots.register({
+              name: 'conversation.user.text.node',
+              key: 'justskill',
+              priority: 100,
+            }, CanvasUserText);
+          } catch (cause) {
+            console.warn('[justskill-design] sent-pointer chip unavailable:', cause);
+            return () => {};
+          }
+        });
+
+        ctx.inject(['uiConversation'], (scope) => {
+          const conversation = scope.get('uiConversation');
+          if (conversation === undefined || conversation === null || conversation.userText === undefined) return;
+          scope.effect(
+            () => conversation.userText.register(canvasPointerRule),
+            'justskill-design: pointer text rule',
+          );
+        });
+
+        // Keep the current composer's public input face reachable: a paste
+        // happens outside every slot, and turning a pointer into a chip needs
+        // `captureInsertion()` plus the session-scope insert. Contained, because
+        // this entry renders nothing: losing it must not cost the workbench and
+        // the canvas tab their registrations.
+        ctx.slots.inject('conversation.input.overlay', () => {
+          try {
+            return ctx.slots.register({
+              name: 'conversation.input.overlay',
+              id: 'justskill-reference-paste',
+              order: 40,
+            }, ComposerInputBridge);
+          } catch (cause) {
+            console.warn('[justskill-design] composer input face unavailable:', cause);
+            return () => {};
+          }
+        });
+
+        ctx.effect(() => {
+          window.addEventListener('paste', handleReferencePaste, true);
+          return () => window.removeEventListener('paste', handleReferencePaste, true);
+        }, 'justskill-design: pointer paste');
+
+        // Keep the current composer's public input face reachable: a paste
+        // happens outside every slot, and turning a pointer into a chip needs
+        // `captureInsertion()` plus the session-scope insert. Contained, because
+        // this entry renders nothing: losing it must not cost the workbench and
+        // the canvas tab their registrations.
+        ctx.slots.inject('conversation.input.overlay', () => {
+          try {
+            return ctx.slots.register({
+              name: 'conversation.input.overlay',
+              id: 'justskill-reference-paste',
+              order: 40,
+            }, ComposerInputBridge);
+          } catch (cause) {
+            console.warn('[justskill-design] composer input face unavailable:', cause);
+            return () => {};
+          }
+        });
+
 
         ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
           name: 'sidebar.panellist',

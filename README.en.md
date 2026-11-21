@@ -47,6 +47,11 @@ element, press ⌘C, paste the copied pointer into the agent chat, and say what 
 change; the agent applies one operation per change. When the screens are right,
 approve them, and it implements them in your stack.
 
+Inside DSH the pasted pointer becomes one element-reference chip (icon plus the
+element name): click it to jump back to that element on the canvas. The model
+still receives the whole pointer sentence, and the conversation history shows
+the same short chip.
+
 ![justSkill in motion: a prompt is copied into the agent, the agent designs the screens, then you open the canvas and review them](docs/justskill-demo.gif)
 
 [Watch the full 30-second demo (MP4)](docs/justskill-demo.mp4)
