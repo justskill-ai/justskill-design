@@ -323,22 +323,69 @@ window.__ModuleLoader__.load({
       }
     }
 
-    // The Canvas tab keeps the file it picked in module state, keyed by the tab
+    // The Canvas tab keeps what it is showing in module state, keyed by the tab
     // id, so the body and its tab title agree without rewriting the tab's
-    // navigation params. A workbench-opened tab still gets its file from
-    // `navigation.params`; a tab opened from the right-sidebar guide starts with
-    // the workspace picker and switches to the picked file here.
+    // navigation params. Two things can override the tab's params, and they are
+    // not the same: a file the reader picked here, and the picker itself (the
+    // reader asked to switch). A *new* navigation wins over both — otherwise an
+    // agent opening another file would be silently ignored by the file this tab
+    // remembered from an earlier pick.
     const tabFiles = new Map();
+    const tabPicking = new Set();
     const tabFileListeners = new Set();
+    /** Last navigation revision seen per tab, so a re-render is not a navigation. */
+    const tabRevisions = new Map();
 
-    function setTabFile(tabId, file) {
-      if (typeof tabId !== 'string' || tabId === '') return;
-      if (typeof file === 'string' && file !== '') tabFiles.set(tabId, file);
-      else tabFiles.delete(tabId);
+    function notifyTabFile() {
       for (const listener of tabFileListeners) listener();
     }
 
-    function useTabFile(tabId) {
+    function setTabFile(tabId, file) {
+      if (typeof tabId !== 'string' || tabId === '') return;
+      if (typeof file === 'string' && file !== '') {
+        tabFiles.set(tabId, file);
+        tabPicking.delete(tabId);
+      } else {
+        // "Show me the picker": the params of the tab still name the old file,
+        // so dropping the stored one alone would just fall back to it.
+        tabFiles.delete(tabId);
+        tabPicking.add(tabId);
+      }
+      notifyTabFile();
+    }
+
+    function forgetTabChoice(tabId) {
+      if (typeof tabId !== 'string' || tabId === '') return;
+      tabFiles.delete(tabId);
+      tabPicking.delete(tabId);
+      tabRevisions.delete(tabId);
+    }
+
+    /**
+     * Drop this tab's own choice when the tab is navigated somewhere with a file.
+     * @param tabId - the tab.
+     * @param revision - the navigation revision it reports.
+     * @param paramsFile - the file the navigation named, if any.
+     */
+    function noteTabNavigation(tabId, revision, paramsFile) {
+      if (typeof tabId !== 'string' || tabId === '') return;
+      const previous = tabRevisions.get(tabId);
+      tabRevisions.set(tabId, revision);
+      if (previous === undefined || previous === revision) return;
+      if (typeof paramsFile !== 'string' || paramsFile === '') return;
+      if (tabFiles.get(tabId) === undefined && !tabPicking.has(tabId)) return;
+      tabFiles.delete(tabId);
+      tabPicking.delete(tabId);
+      notifyTabFile();
+    }
+
+    /**
+     * What one Canvas tab is showing: a picked file, the picker, or nothing (the
+     * body falls back to the tab's navigation params).
+     * @param tabId - the tab.
+     * @returns {{file: string|undefined, picking: boolean}} the tab's own choice.
+     */
+    function useTabChoice(tabId) {
       const [, force] = useState(0);
       useEffect(() => {
         if (typeof tabId !== 'string' || tabId === '') return undefined;
@@ -346,7 +393,8 @@ window.__ModuleLoader__.load({
         tabFileListeners.add(listener);
         return () => tabFileListeners.delete(listener);
       }, [tabId]);
-      return typeof tabId === 'string' && tabId !== '' ? tabFiles.get(tabId) : undefined;
+      if (typeof tabId !== 'string' || tabId === '') return { file: undefined, picking: false };
+      return { file: tabFiles.get(tabId), picking: tabPicking.has(tabId) };
     }
 
     function readSessionWorkspace(sessionId) {
@@ -1091,13 +1139,22 @@ window.__ModuleLoader__.load({
     function CanvasBody(props) {
       const info = readTabInfo(props);
       const tabId = info && info.tab ? info.tab.id : undefined;
-      const paramsFile = info && info.tab && info.tab.navigation && info.tab.navigation.params
-        ? info.tab.navigation.params.file
-        : undefined;
-      const storedFile = useTabFile(tabId);
-      const file = typeof storedFile === 'string' && storedFile !== '' ? storedFile : paramsFile;
+      const navigation = info && info.tab ? info.tab.navigation : undefined;
+      const paramsFile = navigation && navigation.params ? navigation.params.file : undefined;
+      const navigationRevision = navigation ? navigation.revision : undefined;
+      const choice = useTabChoice(tabId);
+      const file = choice.picking
+        ? undefined
+        : typeof choice.file === 'string' && choice.file !== ''
+          ? choice.file
+          : paramsFile;
       const [state, setState] = useState({ phase: file ? 'loading' : 'pick' });
       const [ticket, setTicket] = useState(0);
+
+      // A navigation that names a file replaces whatever this tab chose itself.
+      useEffect(() => {
+        noteTabNavigation(tabId, navigationRevision, paramsFile);
+      }, [tabId, navigationRevision, paramsFile]);
 
       useEffect(() => {
         if (typeof file !== 'string' || file === '') {
@@ -1122,7 +1179,7 @@ window.__ModuleLoader__.load({
       }, [file, ticket]);
 
       useEffect(() => () => {
-        if (typeof tabId === 'string' && tabId !== '') tabFiles.delete(tabId);
+        forgetTabChoice(tabId);
       }, [tabId]);
 
       // The chip route addresses this exact tab: it is the one that can be
@@ -1143,7 +1200,9 @@ window.__ModuleLoader__.load({
       }
 
       if (state.phase === 'ready') {
-        const fromPicker = !(typeof paramsFile === 'string' && paramsFile !== '') && storedFile === file;
+        // Every displayed canvas can switch files: the tab is the reader's to
+        // aim, whether the file arrived from the workbench, an agent tool or the
+        // picker inside this tab.
         return h(React.Fragment, null,
           h('iframe', {
             className: 'jsk-frame',
@@ -1154,12 +1213,12 @@ window.__ModuleLoader__.load({
             // canvas posts its element list up from this frame; see canvas/app.mjs.
             ref: (node) => { if (node !== null) canvasFrame = node; },
           }),
-          fromPicker ? h('button', {
+          h('button', {
             type: 'button',
             className: 'jsk-switch',
             title: '换一个设计文件',
             onClick: () => setTabFile(tabId, undefined),
-          }, icon.folder(13), '设计文件') : null);
+          }, icon.folder(13), '设计文件'));
       }
       return h('div', { className: 'jsk-canvas-state' },
         state.phase === 'loading' ? h(React.Fragment, null, h('span', { className: 'jsk-spinner' }), '正在打开画布…') : null,
@@ -1172,11 +1231,14 @@ window.__ModuleLoader__.load({
     function CanvasTitle(props) {
       const info = readTabInfo(props);
       const tabId = info && info.tab ? info.tab.id : undefined;
-      const paramsFile = info && info.tab && info.tab.navigation && info.tab.navigation.params
-        ? info.tab.navigation.params.file
-        : undefined;
-      const storedFile = useTabFile(tabId);
-      const file = typeof storedFile === 'string' && storedFile !== '' ? storedFile : paramsFile;
+      const navigation = info && info.tab ? info.tab.navigation : undefined;
+      const paramsFile = navigation && navigation.params ? navigation.params.file : undefined;
+      const choice = useTabChoice(tabId);
+      const file = choice.picking
+        ? undefined
+        : typeof choice.file === 'string' && choice.file !== ''
+          ? choice.file
+          : paramsFile;
       return h('span', { className: 'jsk-tab-title' }, icon.canvas(14), h('span', null, typeof file === 'string' && file !== '' ? basename(file) : 'Canvas'));
     }
 
