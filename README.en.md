@@ -191,7 +191,7 @@ dsh plugin --profile web add justskill-design
 > before resolving a new release), pin the version:
 >
 > ```sh
-> dsh plugin --profile web add justskill-design@3.3.2
+> dsh plugin --profile web add justskill-design@3.3.3
 > ```
 
 On desktop, quit the DSH app completely (⌘Q) first, then reopen it after installing:
