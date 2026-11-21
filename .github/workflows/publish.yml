@@ -1,0 +1,74 @@
+# Publish to npm when a release tag is pushed.
+#
+# A tag is the only trigger: `git push origin v3.4.0` after bumping
+# package.json, SKILL.md and the READMEs. The job refuses to publish when the
+# tag and the manifest disagree, because a published version cannot be taken
+# back — only superseded.
+#
+# Setup, once per repository:
+#   1. npmjs → Access Tokens → new **Granular** token, Read and write, with
+#      "Bypass 2FA" on (CI cannot answer an OTP); or a classic **Automation**
+#      token, which does the same.
+#   2. GitHub → Settings → Secrets and variables → Actions → New repository
+#      secret → name `NPM_TOKEN`, value that token.
+#   3. git push the tag.
+name: publish
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# `contents: read` is all the checkout needs; `id-token: write` is what
+# `--provenance` signs with, and it is why this workflow needs no other secret
+# for the attestation.
+permissions:
+  contents: read
+  id-token: write
+
+# One publish per tag. A cancelled job can leave npm mid-request, so a second
+# run waits rather than races.
+concurrency:
+  group: publish-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: npm publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # The tag names the version and the manifest names the version; publishing
+      # when they disagree is the one mistake that cannot be undone.
+      - name: The tag matches package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./package.json').version")"
+          echo "tag: v$tag, package.json: $version"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::tag v$tag does not match package.json $version"
+            exit 1
+          fi
+
+      # The suite guards the rest of the release: SKILL.md tracks the version,
+      # package.json ships every runtime file, and the reference index is current.
+      - name: Test
+        run: npm test
+
+      # A prerelease version must not take over `latest`: it publishes under
+      # `next` instead, so `npm i justskill-design` keeps resolving to a release.
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          case "$version" in
+            *-*) npm publish --access public --provenance --tag next ;;
+            *)   npm publish --access public --provenance ;;
+          esac
