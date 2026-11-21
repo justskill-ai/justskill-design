@@ -1,17 +1,27 @@
 # Publish to npm when a release tag is pushed.
 #
-# A tag is the only trigger: `git push origin v3.4.0` after bumping
-# package.json, SKILL.md and the READMEs. The job refuses to publish when the
-# tag and the manifest disagree, because a published version cannot be taken
-# back — only superseded.
+# Authentication is **OIDC trusted publishing**, not a token: npm exchanges the
+# GitHub Actions identity token for a short-lived, workflow-specific publish
+# credential. Nothing long-lived exists to leak, rotate or bypass 2FA with.
 #
-# Setup, once per repository:
-#   1. npmjs → Access Tokens → new **Granular** token, Read and write, with
-#      "Bypass 2FA" on (CI cannot answer an OTP); or a classic **Automation**
-#      token, which does the same.
-#   2. GitHub → Settings → Secrets and variables → Actions → New repository
-#      secret → name `NPM_TOKEN`, value that token.
-#   3. git push the tag.
+# One-time setup on npmjs.com → Packages → justskill-design → Settings →
+# Trusted publishing → "GitHub Actions":
+#
+#   Organization or user ..... justskill-ai
+#   Repository ............... justskill-design
+#   Workflow filename ........ publish.yml      (filename only, exact, with .yml)
+#   Environment name ......... (leave empty)
+#   Allowed actions .......... tick "Allow npm publish"  ← the default is
+#                              stage-only; without this the job publishes
+#                              nothing and fails
+#
+# Then, and only then, push a v*.*.* tag. A new trusted publisher must complete
+# its first successful publish within 2 days or it expires (it is validated by
+# that first publish), so create it when you are ready to release.
+#
+# Afterwards, harden the package: Settings → Publishing access → "Require
+# two-factor authentication and disallow tokens". Trusted publishers keep
+# working; token-based publishing stops.
 name: publish
 
 on:
@@ -19,9 +29,10 @@ on:
     tags:
       - "v*.*.*"
 
-# `contents: read` is all the checkout needs; `id-token: write` is what
-# `--provenance` signs with, and it is why this workflow needs no other secret
-# for the attestation.
+# `contents: read` is all the checkout needs. `id-token: write` is the whole
+# authentication: it lets this job ask GitHub for an OIDC token, which npm
+# verifies against the trusted publisher above and which also signs the
+# provenance attestation (npm generates that automatically — no --provenance).
 permissions:
   contents: read
   id-token: write
@@ -35,6 +46,7 @@ concurrency:
 jobs:
   publish:
     name: npm publish
+    # Trusted publishing requires cloud runners; self-hosted is not supported.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -43,6 +55,16 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+          # Release builds never cache: a poisoned or stale cache is a supply
+          # chain problem that a tag push should not be able to hit.
+          package-manager-cache: false
+
+      # Trusted publishing needs npm 11.5.1+ (Node 24 also needs 22.14+). Pinned
+      # so a runner image change cannot silently drop below it.
+      - name: npm version
+        run: |
+          npm install -g 'npm@^11.5.1'
+          npm --version
 
       # The tag names the version and the manifest names the version; publishing
       # when they disagree is the one mistake that cannot be undone.
@@ -57,18 +79,18 @@ jobs:
           fi
 
       # The suite guards the rest of the release: SKILL.md tracks the version,
-      # package.json ships every runtime file, and the reference index is current.
+      # package.json ships every runtime file, and the canvas bridge and its
+      # reference chips have their own regression cases.
       - name: Test
         run: npm test
 
-      # A prerelease version must not take over `latest`: it publishes under
-      # `next` instead, so `npm i justskill-design` keeps resolving to a release.
+      # No token, no secret: the npm CLI sees the OIDC environment and exchanges
+      # it for a publish credential scoped to this repository and workflow.
+      # A prerelease must not take over `latest`, so it publishes under `next`.
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           version="$(node -p "require('./package.json').version")"
           case "$version" in
-            *-*) npm publish --access public --provenance --tag next ;;
-            *)   npm publish --access public --provenance ;;
+            *-*) npm publish --access public --tag next ;;
+            *)   npm publish --access public ;;
           esac
