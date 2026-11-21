@@ -167,12 +167,6 @@ const ui = {
   versionWrap: document.getElementById("version-wrap"),
   packageVersion: document.getElementById("package-version"),
   updateBadge: document.getElementById("update-badge"),
-  updatePop: document.getElementById("update-pop"),
-  updatePopSub: document.getElementById("update-pop-sub"),
-  updateCmdDsh: document.getElementById("update-cmd-dsh"),
-  updateCmdSkill: document.getElementById("update-cmd-skill"),
-  updateClose: document.getElementById("update-close"),
-  updateDismiss: document.getElementById("update-dismiss"),
 };
 
 let toastTimer = null;
@@ -2944,53 +2938,20 @@ function enterEmbed() {
 }
 
 // -- package version / update reminder --------------------------------------
+//
+// The badge is a link, not a popover. The release page is the one place that
+// carries both "how do I update" and "what changed" for every version, and an
+// in-app copy of those commands goes stale the moment a release changes them.
+// `releases/latest` always redirects to the newest published release.
 
-const UPDATE_DISMISS_KEY = "justskill-design:update-dismiss";
-const UPDATE_DISMISS_MS = 24 * 60 * 60 * 1000;
+const RELEASE_PAGE = "https://github.com/justskill-ai/justskill-design/releases/latest";
 
 const packageUpdate = {
   local: null,
   latest: null,
-  source: null,
   updateAvailable: false,
-  open: false,
 };
 
-function readUpdateDismiss() {
-  try {
-    const raw = localStorage.getItem(UPDATE_DISMISS_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed === null || typeof parsed !== "object") return null;
-    if (typeof parsed.latest !== "string" || typeof parsed.until !== "number") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function writeUpdateDismiss(latest, until = Date.now() + UPDATE_DISMISS_MS) {
-  try {
-    localStorage.setItem(UPDATE_DISMISS_KEY, JSON.stringify({ latest, until }));
-  } catch {
-    /* private mode / quota */
-  }
-}
-
-function isUpdateDismissed(latest, now = Date.now()) {
-  const entry = readUpdateDismiss();
-  if (entry === null) return false;
-  if (entry.latest !== latest) return false;
-  return entry.until > now;
-}
-
-function updateCommands(latest) {
-  const pin = typeof latest === "string" && latest !== "" ? `@${latest}` : "";
-  return {
-    dsh: `dsh plugin --profile web add justskill-design${pin}`,
-    skill: "npx skills update",
-  };
-}
 
 function renderPackageUpdate() {
   if (!ui.versionWrap || !ui.packageVersion) return;
@@ -3005,71 +2966,26 @@ function renderPackageUpdate() {
     ui.updateBadge.textContent = packageUpdate.latest
       ? `有新版 ${packageUpdate.latest}`
       : "有新版";
-    ui.updateBadge.setAttribute("aria-expanded", packageUpdate.open ? "true" : "false");
-  }
-  if (ui.updatePop) {
-    const show = packageUpdate.updateAvailable && packageUpdate.open;
-    ui.updatePop.hidden = !show;
-    if (show) {
-      const sourceLabel = packageUpdate.source === "npm" ? "npm" : "GitHub";
-      if (ui.updatePopSub) {
-        ui.updatePopSub.textContent =
-          `当前 v${packageUpdate.local} · 最新 ${packageUpdate.latest}（${sourceLabel}）`;
-      }
-      const commands = updateCommands(packageUpdate.latest);
-      if (ui.updateCmdDsh) ui.updateCmdDsh.textContent = commands.dsh;
-      if (ui.updateCmdSkill) ui.updateCmdSkill.textContent = commands.skill;
-    }
+    ui.updateBadge.title = packageUpdate.latest
+      ? `当前 v${packageUpdate.local}，最新 ${packageUpdate.latest}。打开发布页看怎么更新、这次更新了什么`
+      : "打开发布页：怎么更新、这次更新了什么";
   }
   applyBarFit();
 }
 
-function setPackageUpdateOpen(open) {
-  packageUpdate.open = open === true && packageUpdate.updateAvailable;
-  renderPackageUpdate();
-}
-
-function dismissPackageUpdate() {
-  if (typeof packageUpdate.latest === "string" && packageUpdate.latest !== "") {
-    writeUpdateDismiss(packageUpdate.latest);
-  }
-  packageUpdate.updateAvailable = false;
-  packageUpdate.open = false;
-  renderPackageUpdate();
-}
-
 async function initPackageUpdate() {
   if (!ui.versionWrap) return;
-  ui.updateBadge?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    setPackageUpdateOpen(!packageUpdate.open);
-  });
-  ui.updateClose?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    setPackageUpdateOpen(false);
-  });
-  ui.updateDismiss?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    dismissPackageUpdate();
-  });
-  document.addEventListener("click", (event) => {
-    if (!packageUpdate.open) return;
-    if (ui.versionWrap.contains(event.target)) return;
-    setPackageUpdateOpen(false);
-  });
-
+  // The href is in the markup so the link works before this resolves; setting
+  // it again keeps one definition of the URL (RELEASE_PAGE) for the tests and
+  // for anyone reading this file.
+  ui.updateBadge?.setAttribute("href", RELEASE_PAGE);
   try {
     const { ok, payload } = await api("version");
     if (!ok || payload === null || typeof payload !== "object") return;
-    const local = typeof payload.local === "string" ? payload.local : null;
-    const latest = typeof payload.latest === "string" ? payload.latest : null;
-    packageUpdate.local = local;
-    packageUpdate.latest = latest;
-    packageUpdate.source = typeof payload.source === "string" ? payload.source : null;
+    packageUpdate.local = typeof payload.local === "string" ? payload.local : null;
+    packageUpdate.latest = typeof payload.latest === "string" ? payload.latest : null;
     packageUpdate.updateAvailable = payload.updateAvailable === true
-      && latest !== null
-      && !isUpdateDismissed(latest);
-    packageUpdate.open = false;
+      && packageUpdate.latest !== null;
     renderPackageUpdate();
   } catch (error) {
     console.error("package update check failed:", error);

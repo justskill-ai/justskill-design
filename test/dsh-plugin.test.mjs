@@ -295,7 +295,7 @@ test("the client bundle loads through the ModuleLoader factory and registers bot
   assert.match(client, /function readSessionWorkspace/);
   assert.match(client, /usePackageUpdate/);
   assert.match(client, /jsk-update-badge/);
-  assert.match(client, /jsk-update-pop/);
+  assert.match(client, /releases\/latest/);
   assert.match(client, /post\('version'/);
 
   const host = readFileSync(join(ROOT, "dsh/index.js"), "utf8");
@@ -305,7 +305,7 @@ test("the client bundle loads through the ModuleLoader factory and registers bot
   const shell = readFileSync(join(ROOT, "canvas/index.html"), "utf8");
   assert.match(shell, /id="package-version"/);
   assert.match(shell, /id="update-badge"/);
-  assert.match(shell, /id="update-pop"/);
+  assert.match(shell, /releases\/latest/);
 
   const canvas = readFileSync(join(ROOT, "canvas/app.mjs"), "utf8");
   assert.match(canvas, /initPackageUpdate/);
@@ -391,4 +391,28 @@ test("the embedded canvas still says which version is running", () => {
   assert.match(html, /class="pill version" id="package-version"/);
   assert.match(css, /body\[data-embed\][\s\S]*?\.bar-left \.pill:not\(\.version\)/);
   assert.doesNotMatch(css, /body\[data-embed\][\s\S]*?\.bar-left \.pill,/);
+});
+
+test("the update prompt opens the release page instead of an in-app command list", () => {
+  const client = readFileSync(join(ROOT, "dsh/client.js"), "utf8");
+  const shell = readFileSync(join(ROOT, "canvas/index.html"), "utf8");
+  const app = readFileSync(join(ROOT, "canvas/app.mjs"), "utf8");
+  const url = "https://github.com/justskill-ai/justskill-design/releases/latest";
+
+  // The release page is the one place that answers both "how do I update" and
+  // "what changed", for every version. A popover that repeats the commands
+  // drifts from the release the first time the commands change, so the badge
+  // is a plain link out.
+  for (const [name, source] of [["dsh/client.js", client], ["canvas/index.html", shell]]) {
+    assert.ok(source.includes(url), `${name} must link the releases/latest page`);
+    assert.match(source, /target: '_blank'|target="_blank"/, `${name} must open the release page in a new tab`);
+    assert.match(source, /rel: 'noopener noreferrer'|rel="noopener noreferrer"/, `${name} must not hand the opener over`);
+  }
+  assert.match(app, /const RELEASE_PAGE = "https:\/\/github\.com\/justskill-ai\/justskill-design\/releases\/latest"/);
+  assert.doesNotMatch(shell, /id="update-pop"/);
+  assert.doesNotMatch(client, /jsk-update-pop/);
+  // The 24-hour dismiss bookkeeping belonged to the popover; with no popover
+  // there is nothing to dismiss, and the badge is small enough to keep.
+  assert.doesNotMatch(app, /UPDATE_DISMISS/);
+  assert.doesNotMatch(client, /UPDATE_DISMISS/);
 });

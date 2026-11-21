@@ -161,131 +161,32 @@ body { display: block; }
 
 .update-badge {
   height: 22px;
-  padding: 0 7px;
-  border: 0;
+  padding: 0 8px;
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--color-warn-bg, #fdf3e3);
   color: var(--chrome-warn);
   font-size: 11px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 20px;
+  text-decoration: none;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .update-badge:hover {
   filter: brightness(0.97);
-  background: var(--color-warn-bg, #fdf3e3);
   color: var(--chrome-warn);
+  text-decoration: none;
 }
 
-.update-pop {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 8px);
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 300px;
-  padding: 12px;
-  border: 1px solid var(--chrome-line);
-  border-radius: 14px;
-  background: var(--chrome-pill);
-  box-shadow: 0 12px 32px -12px #14130f40;
-  color: var(--chrome-ink);
-  white-space: normal;
-}
-
-.update-pop[hidden] { display: none; }
-
-.update-pop-head {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.update-pop-head strong {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--chrome-ink);
-}
-
-.update-pop-head span {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--chrome-dim);
-}
-
-.update-cmd {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 9px 10px;
-  border: 1px solid var(--chrome-line);
-  border-radius: 10px;
-  background: var(--chrome-track);
-}
-
-.update-cmd span {
-  font-size: 10.5px;
-  color: var(--chrome-dim);
-}
-
-.update-cmd code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11px;
-  line-height: 1.45;
-  color: var(--chrome-ink);
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.update-pop-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.update-pop-foot > span:first-child {
-  font-size: 10.5px;
-  color: var(--chrome-dim);
-}
-
-.update-pop-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.update-close {
-  height: 28px;
-  padding: 0 8px;
-  border-radius: 8px;
-  color: var(--chrome-dim);
-}
-
-.update-dismiss {
-  height: 28px;
-  padding: 0 11px;
-  border-radius: 8px;
-  background: var(--chrome-ink);
-  border-color: var(--chrome-ink);
-  color: #ffffff;
-  font-size: 11.5px;
-  font-weight: 500;
-}
-
-.update-dismiss:hover {
-  background: var(--chrome-ink);
-  color: #ffffff;
-  filter: brightness(1.08);
+.update-badge:focus-visible {
+  outline: 2px solid var(--chrome-warn);
+  outline-offset: 1px;
 }
 
 /* Version stays with the brand; only drop the update badge when the bar is very tight. */
-.bar:is([data-fit="mini"], [data-fit="micro"]) #update-badge,
-.bar:is([data-fit="mini"], [data-fit="micro"]) #update-pop { display: none; }
+.bar:is([data-fit="mini"], [data-fit="micro"]) #update-badge { display: none; }
 
 .zoom { color: var(--chrome-dim); min-width: 44px; text-align: right; }
 

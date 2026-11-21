@@ -13,28 +13,10 @@
     <span class="brand">JustSkill Design</span>
     <span class="version-wrap" id="version-wrap" hidden>
       <span class="pill version" id="package-version">—</span>
-      <button type="button" class="update-badge" id="update-badge" hidden aria-expanded="false">有新版</button>
-      <div class="update-pop" id="update-pop" hidden role="dialog" aria-label="有新版本可用">
-        <div class="update-pop-head">
-          <strong>有新版本可用</strong>
-          <span id="update-pop-sub">—</span>
-        </div>
-        <div class="update-cmd">
-          <span>DSH 插件</span>
-          <code id="update-cmd-dsh">dsh plugin --profile web add justskill-design</code>
-        </div>
-        <div class="update-cmd">
-          <span>Skill</span>
-          <code id="update-cmd-skill">npx skills update</code>
-        </div>
-        <div class="update-pop-foot">
-          <span>24 小时内不再提醒</span>
-          <span class="update-pop-actions">
-            <button type="button" class="update-close" id="update-close">关闭</button>
-            <button type="button" class="update-dismiss" id="update-dismiss">知道了</button>
-          </span>
-        </div>
-      </div>
+      <!-- A link, not a popover: the release page carries the update commands
+           and the changelog for every version, and in-app copies of the
+           commands went stale whenever the release changed them. -->
+      <a class="update-badge" id="update-badge" href="https://github.com/justskill-ai/justskill-design/releases/latest" target="_blank" rel="noopener noreferrer" title="打开发布页：怎么更新、这次更新了什么" hidden>有新版</a>
     </span>
     <span class="file" id="file-name">—</span>
     <span class="pill" id="revision">—</span>
