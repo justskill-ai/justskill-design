@@ -171,6 +171,22 @@ node design.mjs serve design.html
 `add` reads a fragment from `--html-file` or `--html -` (stdin). Prefer a file
 or stdin: a fragment inside shell single quotes breaks on the first apostrophe.
 
+### End a page-editing turn with the pages you changed
+
+A turn that ran a write on the design — `new`, `add`, `set`, `move`, `remove`,
+`rename`, or a full-file `Write` — ends with the page list: one line per design
+file the turn touched, the file's name in the lead, then every page it touched
+as its `data-name` with the page id beside it, written in the language of the
+conversation:
+
+> 改动的页面（design.html）：首页（home）、设置（settings）
+
+A turn that touched two files gives each file its own line. A token-only turn
+touched no page and names none. A page the turn removed is listed as removed, so
+the line stays a faithful record. The line is a record, not prose: no
+explanation attaches to it, so the user can scan any turn and see at a glance
+which file and which pages its changes live in.
+
 ### Images
 
 When a page has a place for a photograph — a hero, a card, a gallery, an avatar —
