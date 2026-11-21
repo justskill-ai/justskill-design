@@ -13,3 +13,4 @@
 - `docs/format-v3.md` —— 冻结的契约。它是格式的权威定义，逐字翻译容易和代码、测试漂移，所以保持英文。
 - `references/*.md` —— 由格式表生成（`styling.md`、`schema.md`），或由脚本检查（`images.md`、`product-flow.md`），保持英文，避免翻译副本落后于生成内容。
 - `docs/plan*.md`、`docs/remediation.md` —— 内部工作记录，不面向使用者，不翻译。
+- [`docs/release.md`](../release.md) —— 发版清单（改哪五处版本号、打 tag 即发布、可信发布怎么配、踩过哪些坑），维护者用，不翻译。
