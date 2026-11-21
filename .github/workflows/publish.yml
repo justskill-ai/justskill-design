@@ -78,6 +78,19 @@ jobs:
             exit 1
           fi
 
+      # A version that is already on npm can never be published again, and npm
+      # reports that only after the whole tarball has been built. Fail here, in
+      # five seconds, naming the one thing to do about it.
+      - name: The version is not on npm yet
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          published="$(npm view "justskill-design@$version" version 2>/dev/null || true)"
+          if [ -n "$published" ]; then
+            echo "::error::justskill-design@$version is already published — bump the version before tagging"
+            exit 1
+          fi
+          echo "justskill-design@$version is free"
+
       # The suite guards the rest of the release: SKILL.md tracks the version,
       # package.json ships every runtime file, and the canvas bridge and its
       # reference chips have their own regression cases.
