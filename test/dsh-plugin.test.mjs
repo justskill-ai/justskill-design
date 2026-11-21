@@ -205,15 +205,31 @@ test("SKILL.md keeps the frontmatter top level to the fields the Skill format al
   assert.match(source, /^  whenToUse: >-$/m);
 });
 
-test("the SKILL.md version tracks package.json", () => {
-  const source = readFileSync(join(ROOT, "SKILL.md"), "utf8");
+test("every place the release version is written tracks package.json", () => {
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
-  const version = pkg.version.replaceAll(".", "\\.");
+  const version = pkg.version;
+
+  // SKILL.md carries the version the skill markets read.
+  const skill = readFileSync(join(ROOT, "SKILL.md"), "utf8");
   assert.match(
-    source,
-    new RegExp(`^  version: "${version}"$`, "m"),
+    skill,
+    new RegExp(`^  version: "${version.replaceAll(".", "\\.")}"$`, "m"),
     "bump metadata.version in SKILL.md whenever package.json's version changes",
   );
+
+  // Both READMEs carry the install line a reader copies and runs. A stale pin
+  // there installs the previous release without anyone noticing, which is why
+  // this is a test and not a note in a checklist.
+  for (const name of ["README.md", "README.en.md"]) {
+    const source = readFileSync(join(ROOT, name), "utf8");
+    const pins = [...source.matchAll(/justskill-design@(\d+\.\d+\.\d+(?:-[\w.]+)?)/g)].map((match) => match[1]);
+    assert.notEqual(pins.length, 0, `${name} must show the install command with a pinned version`);
+    assert.deepEqual(
+      [...new Set(pins)],
+      [version],
+      `${name} pins ${pins.join(", ")} but package.json is ${version}`,
+    );
+  }
 });
 
 test("SKILL.md describes the tool-first canvas step with a serve fallback", () => {
