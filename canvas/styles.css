@@ -185,8 +185,13 @@ body { display: block; }
   outline-offset: 1px;
 }
 
-/* Version stays with the brand; only drop the update badge when the bar is very tight. */
-.bar:is([data-fit="mini"], [data-fit="micro"]) #update-badge { display: none; }
+/* Version and the update badge stay with the brand at every width: "which
+   version am I on, and is there a newer one" is the question the bar exists to
+   answer. At the narrowest step the badge keeps the words and drops the number;
+   the number is in its tooltip, and "有新版" is what the reader needs to decide
+   to click. */
+.bar[data-fit="micro"] #update-badge-version { display: none; }
+.bar[data-fit="micro"] #update-badge { padding: 0 6px; }
 
 .zoom { color: var(--chrome-dim); min-width: 44px; text-align: right; }
 

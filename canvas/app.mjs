@@ -167,6 +167,7 @@ const ui = {
   versionWrap: document.getElementById("version-wrap"),
   packageVersion: document.getElementById("package-version"),
   updateBadge: document.getElementById("update-badge"),
+  updateBadgeVersion: document.getElementById("update-badge-version"),
 };
 
 let toastTimer = null;
@@ -2963,9 +2964,7 @@ function renderPackageUpdate() {
   ui.packageVersion.textContent = `v${packageUpdate.local}`;
   if (ui.updateBadge) {
     ui.updateBadge.hidden = !packageUpdate.updateAvailable;
-    ui.updateBadge.textContent = packageUpdate.latest
-      ? `有新版 ${packageUpdate.latest}`
-      : "有新版";
+    if (ui.updateBadgeVersion) ui.updateBadgeVersion.textContent = packageUpdate.latest ?? "";
     ui.updateBadge.title = packageUpdate.latest
       ? `当前 v${packageUpdate.local}，最新 ${packageUpdate.latest}。打开发布页看怎么更新、这次更新了什么`
       : "打开发布页：怎么更新、这次更新了什么";

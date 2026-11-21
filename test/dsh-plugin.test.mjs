@@ -410,6 +410,11 @@ test("the update prompt opens the release page instead of an in-app command list
   }
   assert.match(app, /const RELEASE_PAGE = "https:\/\/github\.com\/justskill-ai\/justskill-design\/releases\/latest"/);
   assert.doesNotMatch(shell, /id="update-pop"/);
+  // The badge must not be dropped by the bar's fit steps: it is the prompt.
+  const css = readFileSync(join(ROOT, "canvas/styles.css"), "utf8");
+  assert.doesNotMatch(css, /#update-badge\s*\{\s*display:\s*none/);
+  assert.match(css, /\.bar\[data-fit="micro"\] #update-badge-version \{ display: none; \}/);
+  assert.match(shell, /id="update-badge-version"/);
   assert.doesNotMatch(client, /jsk-update-pop/);
   // The 24-hour dismiss bookkeeping belonged to the popover; with no popover
   // there is nothing to dismiss, and the badge is small enough to keep.
