@@ -379,3 +379,16 @@ test("the canvas has an opt-in embed mode and it leaves normal tabs alone", () =
   assert.match(app, /function claimKeyboardFocus\(\)/);
   assert.match(app, /window\.focus\(\)/);
 });
+
+test("the embedded canvas still says which version is running", () => {
+  const css = readFileSync(join(ROOT, "canvas/styles.css"), "utf8");
+  const html = readFileSync(join(ROOT, "canvas/index.html"), "utf8");
+  // The sidebar tab is the only place a reader sees this canvas, and its bar
+  // hides most pills to fit a 460px panel. The version is the one pill that
+  // must survive: without it there is no way to tell whether the running build
+  // is the one with a fix. The embed rule therefore excludes `.pill.version`
+  // instead of hiding every `.bar-left .pill`.
+  assert.match(html, /class="pill version" id="package-version"/);
+  assert.match(css, /body\[data-embed\][\s\S]*?\.bar-left \.pill:not\(\.version\)/);
+  assert.doesNotMatch(css, /body\[data-embed\][\s\S]*?\.bar-left \.pill,/);
+});

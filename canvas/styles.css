@@ -1162,11 +1162,16 @@ dl.attrs dd { margin: 0 0 6px; font-family: ui-monospace, SFMono-Regular, Menlo,
  *
  * The DSH plugin iframes the canvas in a right-sidebar tab. The layer tree and
  * inspector are folded by `enterEmbed()` in app.mjs; the bar itself keeps only
- * what a narrow panel can use: the brand, zoom and Fit. Hiding by attribute
- * rather than waiting for `applyBarFit()` also makes the first paint correct,
- * before the bar has measured a single pill.
+ * what a narrow panel can use: the brand, the version, zoom and Fit. Hiding by
+ * attribute rather than waiting for `applyBarFit()` also makes the first paint
+ * correct, before the bar has measured a single pill.
+ *
+ * Every `.pill` used to go, which took the version with it: the one thing a
+ * sidebar reader cannot learn anywhere else. The file name, the revision and
+ * the read-only warning are about this file; the version is about the build
+ * answering the question "is this the release with the fix?". It stays.
  */
-body[data-embed] :is(.bar-left .file, .bar-left .pill, .bar-left .warn,
+body[data-embed] :is(.bar-left .file, .bar-left .pill:not(.version), .bar-left .warn,
   #toggle-problems, .export-sep, #export-page, #export-all) {
   display: none !important;
 }
