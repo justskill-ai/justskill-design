@@ -1883,28 +1883,45 @@ window.__ModuleLoader__.load({
       }, [sessionId, turn]);
 
       if (state.phase !== 'ready' || state.files.length === 0) return null;
-      return h('div', { className: 'jsk-tail' },
-        h('span', { className: 'jsk-tail-label' }, icon.canvas(13), '改动的页面'),
-        state.files.map((group) => {
-          const pages = Array.isArray(group.pages) ? group.pages : [];
-          return h('span', { className: 'jsk-tail-group', key: group.file },
-            h('span', { className: 'jsk-tail-file' }, basename(group.file)),
-            pages.map((page) => {
-              const removed = page.removed === true;
-              const shared = {
-                key: page.id,
-                className: `jsk-pagechip${removed ? ' jsk-pagechip-static' : ' jsk-pagechip-on'}`,
-                title: removed ? `${page.name}（已删除）` : `在画布中打开 ${page.name}`,
-              };
-              return removed
-                ? h('span', shared, page.name, h('span', { className: 'jsk-pagechip-note' }, '已删除'))
-                : h('button', {
-                  ...shared,
-                  type: 'button',
-                  onClick: () => requestCanvasSelect({ id: page.id, path: group.file, fit: true }),
-                }, page.name);
-            }));
-        }));
+      // The row opens with the justSkill mark and wordmark, so a lone pill
+      // still says where it comes from; the chips then use the same inline
+      // reference style the ⌘C pointer renders as, keeping one chip language.
+      const multiFile = state.files.length > 1;
+      const rows = [
+        h('span', {
+          key: 'mark',
+          className: 'jsk-tail-mark',
+          title: 'JustSkill · 本轮改动的页面',
+        }, icon.logo(13)),
+        h('span', { key: 'brand', className: 'jsk-tail-brand' }, 'JustSkill：'),
+      ];
+      for (const group of state.files) {
+        const pages = Array.isArray(group.pages) ? group.pages : [];
+        if (multiFile) {
+          rows.push(h('span', {
+            key: group.file,
+            className: 'jsk-tail-file',
+            title: group.file,
+          }, icon.doc(12), basename(group.file)));
+        }
+        for (const page of pages) {
+          const removed = page.removed === true;
+          const shared = {
+            key: `${group.file}\u0000${page.id}`,
+            className: `jsk-pagechip${removed ? ' jsk-pagechip-static' : ' jsk-pagechip-on'}`,
+            title: removed ? `${page.name}（已删除）` : `在画布中打开 ${page.name}`,
+          };
+          const glyph = h('span', { className: 'jsk-pagechip-icon' }, icon.doc(13));
+          rows.push(removed
+            ? h('span', shared, glyph, page.name, h('span', { className: 'jsk-pagechip-note' }, '已删除'))
+            : h('button', {
+              ...shared,
+              type: 'button',
+              onClick: () => requestCanvasSelect({ id: page.id, path: group.file, fit: true }),
+            }, glyph, page.name));
+        }
+      }
+      return h('div', { className: 'jsk-tail' }, rows);
     }
 
     /* ------------------------------------------------------------------ *
@@ -2045,15 +2062,17 @@ window.__ModuleLoader__.load({
 .jsk-refchip:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4f6bfe);outline-offset:1px}
 .jsk-refchip-icon{display:inline-flex;align-self:center;flex:none}
 .jsk-refchip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.jsk-tail{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0 6px;font-size:12px;color:var(--dsw-alias-label-secondary,#68707d)}
-.jsk-tail-label{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--dsw-alias-label-secondary,#4d5563);flex:none}
-.jsk-tail-group{display:inline-flex;align-items:center;gap:6px;min-width:0}
-.jsk-tail-file{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);white-space:nowrap}
-.jsk-pagechip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:999px;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#3c4452);font:inherit;font-size:12px;white-space:nowrap;transition:border-color .15s ease, box-shadow .15s ease}
+.jsk-tail{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:2px 0 8px;font-size:12.5px}
+.jsk-tail-mark{display:inline-flex;align-items:center;justify-content:center;flex:none;width:20px;height:20px;border-radius:6px;color:#fff;background:linear-gradient(135deg,#5a73ff,#93a2ff);box-shadow:0 2px 6px rgba(79,107,254,.25)}
+.jsk-tail-brand{flex:none;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary,#4d5563);letter-spacing:.01em}
+.jsk-tail-file{display:inline-flex;align-items:center;gap:4px;max-width:180px;height:22px;padding:0 8px;border-radius:6px;background:var(--dsw-alias-bg-layer-2,#f4f5f8);color:var(--dsw-alias-label-secondary,#68707d);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jsk-pagechip{display:inline-flex;align-items:center;gap:3px;max-width:240px;padding:2px 6px;border:0;border-radius:var(--dsw-radius-sm,5px);background:transparent;color:var(--dsw-alias-state-business-primary,#4f6bfe);font:inherit;font-size:12.5px;white-space:nowrap;vertical-align:baseline;transition:background .12s ease}
+.jsk-pagechip-icon{display:inline-flex;align-self:center;flex:none}
 .jsk-pagechip-on{cursor:pointer}
-@media (hover: hover){.jsk-pagechip-on:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 55%,var(--dsw-alias-border-l2,#e7e9ee));color:var(--dsw-alias-brand-primary,#4658d9);box-shadow:0 2px 8px -4px rgba(79,107,254,.35)}}
-.jsk-pagechip-static{opacity:.7;cursor:default}
-.jsk-pagechip-note{font-size:10px;color:var(--dsw-alias-label-tertiary,#9aa2af)}
+@media (hover: hover){.jsk-pagechip-on:hover{background:var(--dsw-alias-state-business-tertiary,rgba(79,107,254,.12))}}
+.jsk-pagechip-on:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4f6bfe);outline-offset:1px}
+.jsk-pagechip-static{color:var(--dsw-alias-label-tertiary,#9aa2af);cursor:default}
+.jsk-pagechip-note{font-size:10px;line-height:1;padding:2px 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-2,#f4f5f8);color:var(--dsw-alias-label-tertiary,#9aa2af)}
 `;
 
     /* ------------------------------------------------------------------ *
