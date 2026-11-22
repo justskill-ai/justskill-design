@@ -199,7 +199,7 @@ test("SKILL.md keeps the frontmatter top level to the fields the Skill format al
 
   // The markets read these from SKILL.md, so they stay in the file — under the
   // one key the format sets aside for custom metadata.
-  assert.match(source, /^  version: "3\.3\.4"$/m);
+  assert.match(source, /^  version: "3\.4\.0"$/m);
   assert.match(source, /^  category: "workflow"$/m);
   assert.match(source, /^  tags: ".*"$/m);
   assert.match(source, /^  whenToUse: >-$/m);
