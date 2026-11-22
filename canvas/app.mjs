@@ -278,6 +278,40 @@ function fitAll() {
   drawOverlay();
 }
 
+/**
+ * Fit one page to the viewport: the same math `fitAll` applies to every page,
+ * applied to the page a host pill names.
+ * @param {string} pageId the page to fit.
+ * @returns {boolean} whether the page exists and the camera moved.
+ */
+function fitPage(pageId) {
+  const page = (state.model?.pages ?? []).find((candidate) => candidate.id === pageId);
+  if (!page) return false;
+  const box = state.boxes.get(pageId);
+  const position = box?.position ?? { x: 0, y: 0 };
+  const width = box?.width ?? (parseFloat(page.width) || 390);
+  const height = box?.height ?? (parseFloat(page.height) || 844);
+  const rect = ui.viewport.getBoundingClientRect();
+  // The same chrome allowance `fitAll` uses: the bar floats over the top and
+  // a page label sits above the page, so the usable area starts below them.
+  const pad = 60;
+  const topPad = pad + 56;
+  const usableW = rect.width - pad * 2;
+  const usableH = rect.height - topPad - pad;
+  const zoom = Math.min(
+    1.5,
+    Math.max(0.1, Math.min(usableW / (width || 1), usableH / (height || 1))),
+  );
+  state.camera = {
+    zoom,
+    x: rect.width / 2 - (position.x + width / 2) * zoom,
+    y: topPad + usableH / 2 - (position.y + height / 2) * zoom,
+  };
+  applyCamera();
+  drawOverlay();
+  return true;
+}
+
 // -- panels ------------------------------------------------------------------
 
 /**
@@ -2730,10 +2764,37 @@ function selectFromHost(id) {
   select(id, { pageId, reveal: true, expand: true });
 }
 
+/**
+ * Focus the canvas on what a host pill names.
+ *
+ * A pill names a page, so the page is selected as a page and — with `fit` —
+ * fitted to the viewport. An id the file has no page for keeps the select
+ * handshake, and a `fit` on it fits the page that carries the element.
+ * @param {string} id page or element id.
+ * @param {boolean} fit whether to fit the target to the viewport.
+ */
+function focusFromHost(id, fit) {
+  if (typeof id !== "string" || id === "") return;
+  const page = (state.model?.pages ?? []).find((candidate) => candidate.id === id);
+  if (page !== undefined) {
+    select(id, { pageId: id, expand: true });
+    if (fit) fitPage(id);
+    return;
+  }
+  if (!findNode(id)) {
+    toast(`This canvas has no element ${id}`, "refused");
+    return;
+  }
+  const pageId = state.selectionPage ?? pathNodesOf(id)[0]?.id;
+  select(id, { pageId, reveal: true, expand: true });
+  if (fit && pageId) fitPage(pageId);
+}
+
 window.addEventListener("message", (event) => {
   const data = event.data;
   if (data === null || typeof data !== "object" || data.type !== "jsk-canvas") return;
   if (data.command === "select") selectFromHost(data.id);
+  if (data.command === "focus") focusFromHost(data.id, data.fit === true);
 });
 
 // -- top bar actions ---------------------------------------------------------

@@ -1345,18 +1345,22 @@ window.__ModuleLoader__.load({
     /**
      * Put a click on the canvas where the chip says. The canvas may be on
      * screen already (post straight through) or still opening (queue the id, and
-     * the element list it posts when it is ready flushes it).
-     * @param {string} ref element id.
+     * the element list it posts when it is ready flushes it). A pill carries
+     * `fit`, which turns the command into `focus`: the canvas selects the page
+     * and fits it to the viewport.
+     * @param {{id: string, path?: string|null, fit?: boolean}} target the click target.
      * @returns {boolean} whether this plugin accepted the click.
      */
     function requestCanvasSelect(target) {
       if (target.id === '') return false;
+      const fit = target.fit === true;
+      const command = fit ? 'focus' : 'select';
       // The canvas on screen can answer immediately; one showing another file
       // has to be switched first, and the switch loses the old file's id.
       const onScreen = typeof canvasIndex.path === 'string'
         && canvasIndex.path !== ''
         && (target.path === null || target.path === canvasIndex.path);
-      if (onScreen && postToCanvas('select', { id: target.id })) return true;
+      if (onScreen && postToCanvas(command, { id: target.id, fit })) return true;
       const absolute = target.path ?? (typeof canvasIndex.path === 'string' ? canvasIndex.path : '');
       if (absolute === '') return false;
       // An open canvas tab keeps its file in module state, which outranks the
@@ -1365,7 +1369,7 @@ window.__ModuleLoader__.load({
       if (canvasTabId !== undefined) setTabFile(canvasTabId, absolute);
       const sidebarRight = runtime === null ? undefined : runtime.get('sidebarRight');
       if (sidebarRight === undefined || typeof sidebarRight.openTab !== 'function') return false;
-      pendingSelect = { id: target.id, path: absolute, at: Date.now() };
+      pendingSelect = { id: target.id, path: absolute, fit, at: Date.now() };
       void (async () => {
         try {
           let sessionId;
@@ -1395,7 +1399,9 @@ window.__ModuleLoader__.load({
       }
       // Wait for the canvas that holds the element, not just any canvas.
       if (typeof canvasIndex.path !== 'string' || canvasIndex.path !== pending.path) return;
-      if (postToCanvas('select', { id: pending.id })) pendingSelect = null;
+      if (postToCanvas(pending.fit ? 'focus' : 'select', { id: pending.id, fit: pending.fit })) {
+        pendingSelect = null;
+      }
     }
 
     /** One candidate's opaque payload (the menu hands it back on pick). */
@@ -1830,6 +1836,78 @@ window.__ModuleLoader__.load({
     }
 
     /* ------------------------------------------------------------------ *
+     * Turn tail: the pages a turn actually changed
+     *
+     * The plugin's Host half keeps a journal of every design.mjs write a
+     * turn's shell calls made (see `dsh/journal.js`), so the record needs
+     * nothing from the model. A completed turn asks for its pages once; the
+     * row renders one capsule per page, grouped by file, and a click focuses
+     * the canvas on that page with a viewport fit. A turn with no writes
+     * renders nothing.
+     * ------------------------------------------------------------------ */
+
+    /**
+     * @param {object} props turn-tail owner props (`turn`, `seq`, `openFile`)
+     *   plus the session-standard `sessionId`.
+     * @returns {object|null} the capsule row, or null for a turn without writes.
+     */
+    function PagesTail(props) {
+      const turn = props.turn !== undefined && props.turn !== null && typeof props.turn.turn === 'number'
+        ? props.turn.turn
+        : undefined;
+      const sessionId = props.sessionId;
+      const [state, setState] = useState({ phase: 'idle', files: [] });
+
+      useEffect(() => {
+        if (typeof sessionId !== 'string' || sessionId === '' || typeof turn !== 'number') {
+          setState({ phase: 'idle', files: [] });
+          return undefined;
+        }
+        let cancelled = false;
+        setState({ phase: 'loading', files: [] });
+        post('turn-pages', { sessionId, turn }).then(
+          (value) => {
+            if (cancelled) return;
+            const files = value !== null && typeof value === 'object' && Array.isArray(value.files)
+              ? value.files
+              : [];
+            setState(files.length > 0 ? { phase: 'ready', files } : { phase: 'empty', files: [] });
+          },
+          () => {
+            if (!cancelled) setState({ phase: 'empty', files: [] });
+          },
+        );
+        return () => {
+          cancelled = true;
+        };
+      }, [sessionId, turn]);
+
+      if (state.phase !== 'ready' || state.files.length === 0) return null;
+      return h('div', { className: 'jsk-tail' },
+        h('span', { className: 'jsk-tail-label' }, icon.canvas(13), '改动的页面'),
+        state.files.map((group) => {
+          const pages = Array.isArray(group.pages) ? group.pages : [];
+          return h('span', { className: 'jsk-tail-group', key: group.file },
+            h('span', { className: 'jsk-tail-file' }, basename(group.file)),
+            pages.map((page) => {
+              const removed = page.removed === true;
+              const shared = {
+                key: page.id,
+                className: `jsk-pagechip${removed ? ' jsk-pagechip-static' : ' jsk-pagechip-on'}`,
+                title: removed ? `${page.name}（已删除）` : `在画布中打开 ${page.name}`,
+              };
+              return removed
+                ? h('span', shared, page.name, h('span', { className: 'jsk-pagechip-note' }, '已删除'))
+                : h('button', {
+                  ...shared,
+                  type: 'button',
+                  onClick: () => requestCanvasSelect({ id: page.id, path: group.file, fit: true }),
+                }, page.name);
+            }));
+        }));
+    }
+
+    /* ------------------------------------------------------------------ *
      * Styles
      * ------------------------------------------------------------------ */
 
@@ -1967,6 +2045,15 @@ window.__ModuleLoader__.load({
 .jsk-refchip:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#4f6bfe);outline-offset:1px}
 .jsk-refchip-icon{display:inline-flex;align-self:center;flex:none}
 .jsk-refchip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jsk-tail{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0 6px;font-size:12px;color:var(--dsw-alias-label-secondary,#68707d)}
+.jsk-tail-label{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--dsw-alias-label-secondary,#4d5563);flex:none}
+.jsk-tail-group{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.jsk-tail-file{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#9aa2af);white-space:nowrap}
+.jsk-pagechip{display:inline-flex;align-items:center;gap:4px;height:24px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2,#e7e9ee);border-radius:999px;background:var(--dsw-alias-bg-layer-1,#fff);color:var(--dsw-alias-label-primary,#3c4452);font:inherit;font-size:12px;white-space:nowrap;transition:border-color .15s ease, box-shadow .15s ease}
+.jsk-pagechip-on{cursor:pointer}
+@media (hover: hover){.jsk-pagechip-on:hover{border-color:color-mix(in srgb,var(--dsw-alias-brand-primary,#4f6bfe) 55%,var(--dsw-alias-border-l2,#e7e9ee));color:var(--dsw-alias-brand-primary,#4658d9);box-shadow:0 2px 8px -4px rgba(79,107,254,.35)}}
+.jsk-pagechip-static{opacity:.7;cursor:default}
+.jsk-pagechip-note{font-size:10px;color:var(--dsw-alias-label-tertiary,#9aa2af)}
 `;
 
     /* ------------------------------------------------------------------ *
@@ -2037,6 +2124,23 @@ window.__ModuleLoader__.load({
             () => conversation.userText.register(canvasPointerRule),
             'justskill-design: pointer text rule',
           );
+        });
+
+        // The turn tail: one capsule row per completed turn that wrote pages.
+        // The row queries the Host journal once per turn; a turn without
+        // writes renders nothing.
+        ctx.slots.inject('conversation.chat.turnTail', () => {
+          try {
+            return ctx.slots.register({
+              name: 'conversation.chat.turnTail',
+              id: 'justskill-pages',
+              order: 40,
+              inject: (sessionId) => ({ sessionId }),
+            }, PagesTail);
+          } catch (cause) {
+            console.warn('[justskill-design] turn-tail pills unavailable:', cause);
+            return () => {};
+          }
         });
 
         // Keep the current composer's public input face reachable: a paste

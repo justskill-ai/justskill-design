@@ -13,12 +13,13 @@
  */
 
 import { realpath, stat } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { dirname } from "node:path";
 
 import { startServer } from "../lib/node/server.mjs";
 import { checkForUpdate, readLocalVersion } from "../lib/node/update-check.mjs";
+import { PageJournal } from "./journal.js";
 import { readDesignFile, scanWorkspace } from "./scan.js";
 import { readSkill } from "./skill.js";
 
@@ -49,6 +50,11 @@ function fail(status, code, message) {
     status,
     headers: { "cache-control": "no-store" },
   });
+}
+
+/** The message of one thrown value, for a log line. */
+function errorText(error) {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function readJson(request) {
@@ -149,6 +155,13 @@ export function apply(ctx) {
 
   const pool = new CanvasPool();
   ctx.effect(() => () => pool.closeAll(), "justskill-design: canvas servers");
+
+  /**
+   * The page journal: which pages each turn actually changed. Created when the
+   * shell env service is up; the turn-pages route reads it lazily, so a route
+   * registered before the journal exists answers with an empty list.
+   */
+  let pageJournal = null;
 
   // Session-scoped handoff from the Host tool to the browser watcher. The tool
   // cannot touch the right-sidebar UI, so it leaves a request the client claims
@@ -359,6 +372,23 @@ export function apply(ctx) {
       return ok({ cleared: true });
     }, "justskill-design: pending canvas clear route");
 
+    // The pages one completed turn actually changed, from the plugin's own
+    // journal — the record the turn tail renders as pills.
+    route("/api/justskill-design/turn-pages", async (request) => {
+      const body = await readJson(request);
+      if (body === null) return fail(400, "bad-request", "body must be a JSON object");
+      if (typeof body.sessionId !== "string" || body.sessionId === "") {
+        return fail(400, "bad-request", "sessionId must be a non-empty string");
+      }
+      const turn = typeof body.turn === "number" ? body.turn : Number(body.turn);
+      if (!Number.isInteger(turn) || turn < 0) {
+        return fail(400, "bad-request", "turn must be a non-negative integer");
+      }
+      if (pageJournal === null) return ok({ files: [] });
+      const files = await pageJournal.turnPages({ sessionId: body.sessionId, turn });
+      return ok({ files });
+    }, "justskill-design: turn pages route");
+
     // Local version immediately; remote check is best-effort and never throws
     // into the workbench. The browser keeps its own 24h dismiss, separate from
     // this process cache.
@@ -451,5 +481,70 @@ export function apply(ctx) {
         return { requested: true, file };
       },
     }), "justskill-design: canvas tool");
+  });
+
+  // The page journal rides on two plugin-visible seams: the shell env
+  // registry's per-execution contributor sees every model shell call before it
+  // runs (and stamps the current turn into the environment), and the
+  // `tools/result` event confirms which calls actually landed. A recording
+  // failure must never break the shell call it rides on, so both halves
+  // contain their own errors.
+  ctx.inject(["shellEnv", "agents"], (scope) => {
+    const shellEnv = scope.get("shellEnv");
+    const agents = scope.get("agents");
+    if (shellEnv === undefined || typeof shellEnv.register !== "function") {
+      ctx.logger?.warn?.("justskill-design: shellEnv is unavailable; the page journal stays off");
+      return;
+    }
+    const profile = ctx.get("profileContext");
+    const dir = profile !== undefined && profile !== null && typeof profile.dir === "string" && profile.dir !== ""
+      ? join(profile.dir, "justskill-design")
+      : null;
+    pageJournal = new PageJournal(dir);
+    void pageJournal.open();
+
+    scope.effect(() => shellEnv.register({
+      name: "justskill-design",
+      variables: {
+        DSH_JUSTSKILL_TURN: {
+          description: "Current conversation turn number, recorded by the justSkill page journal.",
+        },
+      },
+      resolve(execution) {
+        const overlay = {};
+        try {
+          const agent = execution?.agent;
+          if (agent === undefined || agent.session === undefined) return overlay;
+          if (typeof agents?.turnBoundaryOf !== "function") return overlay;
+          const turn = agents.turnBoundaryOf(agent.session)?.lastTurn;
+          if (typeof turn !== "number") return overlay;
+          overlay.DSH_JUSTSKILL_TURN = String(turn);
+          const command = execution?.arguments?.command;
+          if (typeof command === "string"
+            && (command.includes("design.mjs") || command.includes("justskill"))) {
+            pageJournal.stageExecution(execution, {
+              sessionId: agent.session?.header?.id ?? "",
+              turn,
+              cwd: typeof agent.session?.header?.cwd === "string" ? agent.session.header.cwd : undefined,
+            });
+          }
+        } catch (error) {
+          ctx.logger?.warn?.(`justskill-design: page journal record failed: ${errorText(error)}`);
+        }
+        return overlay;
+      },
+    }), "justskill-design: shell env page journal");
+
+    scope.effect(() => {
+      const onResult = (execution, result) => {
+        try {
+          pageJournal?.settleExecution(execution, result);
+        } catch (error) {
+          ctx.logger?.warn?.(`justskill-design: page journal settle failed: ${errorText(error)}`);
+        }
+      };
+      const dispose = ctx.on("tools/result", onResult);
+      return typeof dispose === "function" ? dispose : undefined;
+    }, "justskill-design: page journal confirm");
   });
 }
