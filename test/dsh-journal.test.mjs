@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -293,4 +293,147 @@ test("a write without a workspace to resolve against records nothing", () => {
 
 test("unparseable shell quoting yields no record", () => {
   assert.deepEqual(designWriteCommands("node design.mjs set 'unterminated.html a --text x"), []);
+});
+
+test("package runners do not hide the CLI", () => {
+  for (const line of [
+    "npx justskill set design.html a --text x",
+    "pnpm dlx justskill set design.html a --text x",
+    "yarn run justskill set design.html a --text x",
+    "bunx justskill set design.html a --text x",
+    "npx --yes justskill set design.html a --text x",
+  ]) {
+    const writes = designWriteCommands(line);
+    assert.equal(writes.length, 1, line);
+    assert.equal(writes[0].verb, "set", line);
+    assert.equal(writes[0].target, "a", line);
+  }
+  // A runner installing some other package is not ours to record.
+  assert.deepEqual(designWriteCommands("npx other-tool set design.html a --text x"), []);
+});
+
+test("a symlinked workspace records the real path", async () => {
+  const realDir = join(ACTUAL, "real");
+  const linkDir = join(ACTUAL, "link");
+  await mkdir(realDir, { recursive: true });
+  try {
+    await symlink(realDir, linkDir, "dir");
+  } catch (error) {
+    if (error.code !== "EEXIST") throw error;
+  }
+  const file = join(realDir, "design.html");
+  await writeFile(file, DESIGN);
+  const throughLink = attributeWrite(
+    { verb: "set", file: join(linkDir, "design.html"), workdir: null, target: "home__title", renameTo: null },
+    null,
+  );
+  assert.equal(throughLink.file, file);
+  assert.deepEqual(
+    { pageId: throughLink.pageId, pageName: throughLink.pageName },
+    { pageId: "home", pageName: "首页" },
+  );
+  // A file the command creates lands under the real directory too.
+  const fresh = attributeWrite(
+    { verb: "new", file: join(linkDir, "fresh.html"), workdir: null, target: null, renameTo: null },
+    null,
+  );
+  assert.equal(fresh.file, join(realDir, "fresh.html"));
+});
+
+test("a pending write older than ten minutes is pruned", async () => {
+  const file = await designFixture("prune.html");
+  const journal = new PageJournal(null);
+  await journal.open();
+  const stale = { arguments: { command: `node design.mjs set ${file} home__title --text 陈` }, callId: "old1" };
+  journal.stageExecution(stale, { sessionId: "sp", turn: 1, cwd: ACTUAL });
+  const realNow = Date.now;
+  try {
+    Date.now = () => realNow() + 11 * 60_000;
+    // The next staging prunes; the stale one then settles into nothing.
+    const fresh = { arguments: { command: `node design.mjs set ${file} home__title --text 新` }, callId: "new1" };
+    journal.stageExecution(fresh, { sessionId: "sp", turn: 2, cwd: ACTUAL });
+    assert.equal(await journal.settleExecution(stale, { isError: false }), false);
+    await writeFile(file, DESIGN.replace("你好", "新"));
+    assert.equal(await journal.settleExecution(fresh, { isError: false }), true);
+    assert.deepEqual(await journal.turnPages({ sessionId: "sp", turn: 2 }), [
+      { file, pages: [{ id: "home", name: "首页", removed: false }] },
+    ]);
+  } finally {
+    Date.now = realNow;
+  }
+});
+
+test("a re-staged execution merges its commands", async () => {
+  const file = await designFixture("merge.html");
+  const journal = new PageJournal(null);
+  await journal.open();
+  const meta = { sessionId: "sm", turn: 1, cwd: ACTUAL };
+  journal.stageExecution(
+    { arguments: { command: `node design.mjs set ${file} home__title --text 一` }, callId: "m1" },
+    meta,
+  );
+  journal.stageExecution(
+    { arguments: { command: `node design.mjs set ${file} settings__hint --text 二` }, callId: "m1" },
+    meta,
+  );
+  await writeFile(file, DESIGN.replace("你好", "一").replace(">设置<", ">二<"));
+  assert.equal(await journal.settleExecution(
+    { arguments: { command: "ignored" }, callId: "m1" },
+    { isError: false },
+  ), true);
+  const groups = await journal.turnPages({ sessionId: "sm", turn: 1 });
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].pages.map((page) => page.id), ["home", "settings"]);
+});
+
+test("file-level records name each page once", async () => {
+  const file = await designFixture("dedupe.html");
+  const journal = new PageJournal(null);
+  await journal.open();
+  const meta = { sessionId: "sd", turn: 1, cwd: ACTUAL };
+  const first = { arguments: { command: `node design.mjs add ${file} --html-file /tmp/a.html` }, callId: "d1" };
+  journal.stageExecution(first, meta);
+  await writeFile(file, DESIGN.replace("你好", "一"));
+  await journal.settleExecution(first, { isError: false });
+  const second = { arguments: { command: `node design.mjs add ${file} --html-file /tmp/b.html` }, callId: "d2" };
+  journal.stageExecution(second, meta);
+  await writeFile(file, DESIGN.replace("你好", "二"));
+  await journal.settleExecution(second, { isError: false });
+  const groups = await journal.turnPages({ sessionId: "sd", turn: 1 });
+  assert.equal(groups.length, 1);
+  assert.deepEqual(groups[0].pages, [
+    { id: "home", name: "首页", removed: false },
+    { id: "settings", name: "设置", removed: false },
+  ]);
+});
+
+test("a renamed page shows the name it has now", async () => {
+  const file = await designFixture("renamed.html");
+  const journal = new PageJournal(null);
+  await journal.open();
+  const execution = { arguments: { command: `node design.mjs rename ${file} home start` }, callId: "r1" };
+  journal.stageExecution(execution, { sessionId: "sr", turn: 1, cwd: ACTUAL });
+  await writeFile(file, DESIGN.replace('data-id="home" data-type="page"', 'data-id="start" data-type="page"'));
+  await journal.settleExecution(execution, { isError: false });
+  assert.deepEqual(await journal.turnPages({ sessionId: "sr", turn: 1 }), [
+    { file, pages: [{ id: "start", name: "首页", removed: false }] },
+  ]);
+});
+
+test("truncation keeps one copy of every entry on disk", async () => {
+  const dir = join(ACTUAL, "trunc");
+  await mkdir(dir, { recursive: true });
+  const file = await designFixture("trunc.html");
+  const journal = new PageJournal(dir, { maxBytes: 600 });
+  await journal.open();
+  for (let i = 0; i < 24; i += 1) {
+    const execution = { arguments: { command: `node design.mjs set ${file} home__title --text 第${i}次` }, callId: `tr${i}` };
+    journal.stageExecution(execution, { sessionId: "st", turn: i, cwd: ACTUAL });
+    await writeFile(file, DESIGN.replace("你好", `第${i}次`));
+    await journal.settleExecution(execution, { isError: false });
+  }
+  const lines = (await readFile(join(dir, "pages.ndjson"), "utf8")).split("\n").filter((line) => line !== "");
+  assert.equal(lines.length, new Set(lines).size, "截断后磁盘上没有重复行");
+  assert.equal((await journal.turnPages({ sessionId: "st", turn: 23 })).length, 1, "最新轮次仍然可查");
+  await rm(dir, { recursive: true, force: true });
 });

@@ -16,17 +16,25 @@
 
 import { createHash } from "node:crypto";
 import { mkdir, open, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
-import { basename, isAbsolute, join, resolve } from "node:path";
+import { readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { getAttr, pagesOf, parse, walk } from "../lib/parse.mjs";
 
-/** Verbs that change pages. `tokens`, `format` and friends are deliberately out. */
+/**
+ * Verbs that change pages. `tokens` rewrites declarations, `format` and
+ * `migrate` rewrite bytes into canonical form — none of them moves content
+ * between pages, so they deliberately produce no pill.
+ */
 export const WRITE_VERBS = new Set(["new", "add", "set", "move", "remove", "rename", "import"]);
 
 /** Verbs whose command line names an element or container to attribute by. */
 const TARGET_VERBS = new Set(["add", "set", "move", "remove", "rename"]);
 
 const BOOLEAN_FLAGS = new Set(["force", "dry-run", "json", "quiet", "help", "h", "stdout"]);
+
+/** Package runners that may precede the `justskill` binary. */
+const RUNNER_TOKENS = new Set(["npx", "pnpm", "yarn", "bun", "bunx"]);
+const RUNNER_SUBCOMMANDS = new Set(["dlx", "exec", "run"]);
 
 /** Upper bound for the journal file; past it the oldest half is dropped. */
 const JOURNAL_MAX_BYTES = 2 * 1024 * 1024;
@@ -184,6 +192,14 @@ export function parseDesignWrite(text, workdir = null) {
   // Leading environment assignments (`FOO=1 node design.mjs …`) are skipped.
   let index = 0;
   while (index < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) index += 1;
+  // Package runners (`npx justskill`, `pnpm dlx justskill`, `yarn run justskill`)
+  // are skipped with their subcommands and flags, down to the CLI token.
+  while (index < tokens.length && RUNNER_TOKENS.has(tokens[index])) {
+    index += 1;
+    while (index < tokens.length && (RUNNER_SUBCOMMANDS.has(tokens[index]) || tokens[index].startsWith("-"))) {
+      index += 1;
+    }
+  }
   // A node invocation puts the CLI one token later; node's own flags are skipped.
   if (tokens[index] === "node" || tokens[index] === "nodejs" || (tokens[index] ?? "").endsWith("/node")) {
     index += 1;
@@ -347,6 +363,30 @@ export function hashFile(file) {
 }
 
 /**
+ * The real path of a file, best effort.
+ *
+ * The canvas names its file by `realpath`, so a journal record that kept a
+ * symlinked path would never match the canvas on screen: the pill would open
+ * the right canvas and then silently fail to select anything. A file that
+ * does not exist yet (`new`, `import pen`) real paths its directory instead,
+ * which is the part a symlinked workspace actually bends.
+ * @param {string} file absolute path.
+ * @returns {string} the real path when it can be known, else the input.
+ */
+export function realPathBestEffort(file) {
+  try {
+    return realpathSync(file);
+  } catch {
+    /* fall through to the directory */
+  }
+  try {
+    return join(realpathSync(dirname(file)), basename(file));
+  } catch {
+    return file;
+  }
+}
+
+/**
  * Attribute one recognized write against the file as it stands before it runs.
  * @param {DesignWrite} write a recognized write command.
  * @param {string | null} cwd the session workspace, for relative paths.
@@ -364,11 +404,14 @@ export function attributeWrite(write, cwd = null) {
     // record on a file the command never touched.
     return null;
   }
-  const file = isAbsolute(base) ? base : resolve(dir, base);
+  const file = realPathBestEffort(isAbsolute(base) ? base : resolve(dir, base));
 
   if (write.verb === "new" || write.verb === "import" || write.target === null) {
     // File-level: the pages exist only after the write, or the command names
     // no container. The query resolves them from the file as it stands then.
+    // (`add` without `--in`/`--page` lands in the last page per the verb's own
+    // semantics; recording it file-wide overstates the pill list and is
+    // deduplicated at query time.)
     return { file, pageId: null, pageName: "", removed: false };
   }
 
@@ -384,6 +427,10 @@ export function attributeWrite(write, cwd = null) {
     pageName: page.pageName,
     removed: write.verb === "remove" && page.pageId === write.target,
   };
+  // A `move --into` across pages is recorded on the page the element left
+  // (attribution is pre-write by design); the destination page shows no pill
+  // for that one op. Known trade-off, kept because post-write attribution
+  // cannot answer a `remove` at all.
 }
 
 /* ------------------------------------------------------------------ *
@@ -413,12 +460,15 @@ export class PageJournal {
   #entries = [];
   #loaded = false;
   #pending = new Map();
+  #maxBytes = JOURNAL_MAX_BYTES;
 
   /**
    * @param {string | null} dir plugin-owned directory, or null for memory only.
+   * @param {{maxBytes?: number}} [options] the on-disk cap, overridable for tests.
    */
-  constructor(dir) {
+  constructor(dir, options = {}) {
     if (dir !== null) this.#file = join(dir, "pages.ndjson");
+    if (typeof options.maxBytes === "number" && options.maxBytes > 0) this.#maxBytes = options.maxBytes;
   }
 
   /** Create the storage directory and read what is already on disk. */
@@ -545,8 +595,10 @@ export class PageJournal {
     try {
       const lines = entries.map((entry) => JSON.stringify(entry)).join("\n") + "\n";
       const info = await stat(this.#file).catch(() => null);
-      if (info !== null && info.size + lines.length > JOURNAL_MAX_BYTES) {
-        await this.#truncate(lines);
+      if (info !== null && info.size + lines.length > this.#maxBytes) {
+        // The entries are already in memory, so the rewrite below carries them;
+        // appending them a second time would double every line on disk.
+        await this.#truncate();
         return;
       }
       const handle = await open(this.#file, "a");
@@ -560,20 +612,14 @@ export class PageJournal {
     }
   }
 
-  /** Rewrite the file with the newest half of the entries plus the new lines. */
-  async #truncate(newLines) {
+  /** Rewrite the file with the newest half of the in-memory entries. */
+  async #truncate() {
     const keep = this.#entries.slice(Math.floor(this.#entries.length / 2));
     this.#entries = keep;
     const temp = `${this.#file}.tmp`;
     try {
       await writeFile(temp, keep.map((entry) => JSON.stringify(entry)).join("\n") + "\n", "utf8");
       await rename(temp, this.#file);
-      const handle = await open(this.#file, "a");
-      try {
-        await handle.writeFile(newLines, "utf8");
-      } finally {
-        await handle.close();
-      }
     } catch {
       try {
         await unlink(temp);
@@ -604,9 +650,14 @@ export class PageJournal {
       }
       if (entry.pageId === null) {
         // File-level record: the file's current pages are what the write made.
+        // Several such records in one turn (two bare `add`s, say) still name
+        // each page once.
         const pages = pagesOfFile(entry.file);
         if (pages !== null) {
-          for (const page of pages) group.pages.push({ id: page.id, name: page.name, removed: false });
+          for (const page of pages) {
+            if (group.pages.some((known) => known.id === page.id)) continue;
+            group.pages.push({ id: page.id, name: page.name, removed: false });
+          }
         }
         continue;
       }
@@ -617,6 +668,19 @@ export class PageJournal {
         existing.removed = true;
       } else if (existing.removed === true && entry.verb !== "remove") {
         existing.removed = false;
+      }
+    }
+    // A renamed page records its new id with no name yet; the file as it
+    // stands now knows what the page is called.
+    for (const group of groups) {
+      if (!group.pages.some((page) => page.name === page.id)) continue;
+      const pages = pagesOfFile(group.file);
+      if (pages === null) continue;
+      const names = new Map(pages.map((page) => [page.id, page.name]));
+      for (const page of group.pages) {
+        if (page.name !== page.id) continue;
+        const named = names.get(page.id);
+        if (named !== undefined) page.name = named;
       }
     }
     return groups;
